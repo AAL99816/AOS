@@ -1,0 +1,48 @@
+name: Build & Release MallookiOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (example: 1.0.13)'
+        required: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set version
+        shell: powershell
+        run: |
+          $json = Get-Content package.json | ConvertFrom-Json
+          $json.version = "${{ github.event.inputs.version }}"
+          $json | ConvertTo-Json -Depth 10 | Set-Content package.json
+
+      - name: Commit version bump
+        shell: powershell
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git add package.json
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "release v${{ github.event.inputs.version }}"
+            git push
+          } else {
+            Write-Host "No package.json changes to commit."
+          }
+
+      - run: npm install
+
+      - name: Build & Release
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: npm run release:win
