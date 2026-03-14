@@ -910,7 +910,7 @@ function normalizeAppState(raw={}){
   out.workout = Array.isArray(out.workout) ? out.workout : clone(DS.workout);
   out.workoutCards = Array.isArray(out.workoutCards) ? out.workoutCards : clone(DS.workoutCards);
 
-cconst rawProjects =
+const rawProjects =
   Array.isArray(src.projects) ? src.projects :
   Array.isArray(src.programs) ? src.programs :
   Array.isArray(out.projects) ? out.projects : [];
