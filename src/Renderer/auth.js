@@ -1,8 +1,8 @@
 'use strict';
 
 /* ══ SUPABASE ══ */
-const SUPABASE_URL = 'https://mscjokrxedqkhaoaooxj.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zY2pva3J4ZWRxa2hhb2Fvb3hqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMjk0NzgsImV4cCI6MjA4ODYwNTQ3OH0.0AWstxFtuxW8bbWcMFBmkgMMiSk7oUuUuG_vN6UsPCw';
+const SUPABASE_URL = 'https://kzsbpqbhogmribkumdui.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt6c2JwcWJob2dtcmlia3VtZHVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0MzgzMDgsImV4cCI6MjA4OTAxNDMwOH0.5DLUeO-Q-HutYmQaOMnzrpPFob6bPLe5os28kq2VZ_k';
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
@@ -41,7 +41,7 @@ async function doAuth() {
       email,
       password: pass,
       options: {
-        emailRedirectTo: 'mallookios://auth/callback'
+        emailRedirectTo: 'com.aal99816.aos://auth/callback' 
       }
     });
   }

@@ -31,7 +31,7 @@ if (window.updater) {
 
     if (msg.event === 'checking') {
       title.textContent = 'Checking for updates…';
-      sub.textContent = 'Looking for a newer version of MallookiOS.';
+      sub.textContent = 'Looking for a newer version of AOS.';
       wrap.classList.add('hidden');
       actions.classList.add('hidden');
     }
@@ -48,7 +48,7 @@ if (window.updater) {
     if (msg.event === 'progress') {
       const pct = Math.round(msg.percent || 0);
       title.textContent = 'Downloading update…';
-      sub.textContent = 'MallookiOS is updating in the background.';
+      sub.textContent = 'AOS is updating in the background.';
       wrap.classList.remove('hidden');
       actions.classList.add('hidden');
       fill.style.width = pct + '%';

@@ -1,18 +1,20 @@
-const { app, BrowserWindow, ipcMain, dialog} = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
 const path = require('node:path');
 const fs = require('fs');
-const DEEP_LINK_PROTOCOL = 'mallookios'
 
+const DEEP_LINK_PROTOCOL = 'com.aal99816.aos';
 
 let mainWindow = null;
 let pendingDeepLink = null;
+
 function sendUpdater(event, payload = {}) {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('updater:event', { event, ...payload });
   }
 }
+
 // ── Auto-updater ──────────────────────────────────────────────
 autoUpdater.logger = log;
 autoUpdater.logger.transports.file.level = 'info';
@@ -55,8 +57,8 @@ ipcMain.handle('updater:install', async () => {
 });
 
 function extractDeepLinkFromArgv(argv = []) {
-  return argv.find(arg =>
-    typeof arg === 'string' && arg.startsWith(`${DEEP_LINK_PROTOCOL}://`)
+  return argv.find(
+    (arg) => typeof arg === 'string' && arg.startsWith(`${DEEP_LINK_PROTOCOL}://`)
   ) || null;
 }
 
@@ -68,7 +70,7 @@ function createWindow() {
     height: 860,
     minWidth: 950,
     minHeight: 650,
-    title: 'MallookiOS',
+    title: 'AOS',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     backgroundColor: '#1a0a0f',
     webPreferences: {
@@ -98,10 +100,10 @@ if (process.defaultApp) {
       DEEP_LINK_PROTOCOL,
       process.execPath,
       [path.resolve(process.argv[1])]
-    )
+    );
   }
 } else {
-  app.setAsDefaultProtocolClient(DEEP_LINK_PROTOCOL)
+  app.setAsDefaultProtocolClient(DEEP_LINK_PROTOCOL);
 }
 
 function forwardDeepLink(url) {
@@ -120,14 +122,14 @@ function forwardDeepLink(url) {
     }
   }
 }
-const gotTheLock = app.requestSingleInstanceLock()
+
+const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
-  app.quit()
+  app.quit();
 } else {
   app.on('second-instance', (_event, commandLine) => {
-      const deepLink = extractDeepLinkFromArgv(commandLine);
-    
+    const deepLink = extractDeepLinkFromArgv(commandLine);
 
     if (deepLink) {
       pendingDeepLink = deepLink;
@@ -135,40 +137,54 @@ if (!gotTheLock) {
     }
 
     if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      mainWindow.focus()
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
     }
-  })
+  });
 }
 
 app.on('open-url', (event, url) => {
-  event.preventDefault()
+  event.preventDefault();
   pendingDeepLink = url;
-  forwardDeepLink(url)
-})
+  forwardDeepLink(url);
+});
+
 pendingDeepLink = extractDeepLinkFromArgv(process.argv);
 
 app.whenReady().then(createWindow);
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
-app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+});
 
 ipcMain.handle('cache-save', (_e, json) => {
-  fs.writeFileSync(CACHE_FILE, json, 'utf-8'); return { ok: true };
+  fs.writeFileSync(CACHE_FILE, json, 'utf-8');
+  return { ok: true };
 });
+
 ipcMain.handle('cache-load', () => {
   if (!fs.existsSync(CACHE_FILE)) return { ok: true, data: null };
   return { ok: true, data: fs.readFileSync(CACHE_FILE, 'utf-8') };
 });
+
 ipcMain.handle('export-data', async (_e, json) => {
   const win = BrowserWindow.getFocusedWindow();
   const { filePath, canceled } = await dialog.showSaveDialog(win, {
     title: 'Export Backup',
-    defaultPath: `mallooki_backup_${new Date().toISOString().slice(0,10)}.json`,
+    defaultPath: `aos_backup_${new Date().toISOString().slice(0, 10)}.json`,
     filters: [{ name: 'JSON', extensions: ['json'] }]
   });
+
   if (canceled || !filePath) return { ok: false };
-  fs.writeFileSync(filePath, json, 'utf-8'); return { ok: true };
+
+  fs.writeFileSync(filePath, json, 'utf-8');
+  return { ok: true };
 });
+
 ipcMain.handle('import-data', async () => {
   const win = BrowserWindow.getFocusedWindow();
   const { filePaths, canceled } = await dialog.showOpenDialog(win, {
@@ -176,6 +192,8 @@ ipcMain.handle('import-data', async () => {
     filters: [{ name: 'JSON', extensions: ['json'] }],
     properties: ['openFile']
   });
+
   if (canceled || !filePaths.length) return { ok: false };
+
   return { ok: true, data: fs.readFileSync(filePaths[0], 'utf-8') };
 });
