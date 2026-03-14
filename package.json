@@ -1,0 +1,66 @@
+{
+  "name": "aos",
+  "version": "1.0.133",
+  "description": "AOS — Personal Life Dashboard",
+  "author": "AAL99816",
+  "main": "src/main.js",
+
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AAL99816/AOS.git"
+  },
+
+  "homepage": "https://github.com/AAL99816/AOS",
+
+  "bugs": {
+    "url": "https://github.com/AAL99816/AOS/issues"
+  },
+
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win --publish never",
+    "release:win": "electron-builder --win --publish always"
+  },
+
+  "build": {
+    "appId": "com.aal99816.aos",
+    "productName": "AOS",
+
+    "directories": {
+      "output": "dist"
+    },
+
+    "publish": {
+      "provider": "github",
+      "owner": "AAL99816",
+      "repo": "AOS",
+      "releaseType": "draft",
+      "vPrefixedTagName": true
+    },
+
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+
+    "nsis": {
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
+      "differentialPackage": true
+    }
+  },
+
+  "dependencies": {
+    "electron-log": "^5.4.0",
+    "electron-updater": "^6.1.8"
+  },
+
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.13.0"
+  }
+}

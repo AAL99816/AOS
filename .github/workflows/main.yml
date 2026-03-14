@@ -1,23 +1,30 @@
-name: Build & Release MallookiOS
+name: Build & Release AOS
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version number (example: 1.0.13)'
+        description: "Version number (example: 1.0.13)"
         required: true
 
 jobs:
   build:
     runs-on: windows-latest
+
+    permissions:
+      contents: write
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.GH_TOKEN }}
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
+          cache: "npm"
 
       - name: Set version
         shell: powershell
@@ -40,9 +47,11 @@ jobs:
             Write-Host "No package.json changes to commit."
           }
 
-      - run: npm install
+      - name: Install dependencies
+        run: npm install
 
       - name: Build & Release
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: npm run release:win
+        
