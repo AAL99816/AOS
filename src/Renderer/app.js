@@ -1,27 +1,24 @@
 'use strict';
 
 /* ══ HERO ══ */
-function uploadHero(input){
+async function uploadHero(input){
   const f = input.files[0];
   if(!f) return;
 
-  const r = new FileReader();
-  r.onload = e => {
-    S.heroImg = e.target.result;
+  try {
+    S.heroImg = await uploadAsset('hero', f);
+  } catch {
+    S.heroImg = await new Promise(res => {
+      const r = new FileReader();
+      r.onload = e => res(e.target.result);
+      r.readAsDataURL(f);
+    });
+  }
 
-    const img = eid('heroImg');
-    if (S.heroImg) {
-      img.src = S.heroImg;
-      img.classList.add('has-image');
-    } else {
-      img.src = '';
-      img.classList.remove('has-image');
-    }
-
-    scheduleSave();
-  };
-
-  r.readAsDataURL(f);
+  const img = eid('heroImg');
+  if(S.heroImg){ img.src=S.heroImg; img.classList.add('has-image'); }
+  else { img.src=''; img.classList.remove('has-image'); }
+  scheduleSave();
 }
 
 /* ══ EXPORT / IMPORT ══ */
@@ -37,6 +34,43 @@ function go(name,btn){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   eid('panel-'+name).classList.add('active');if(btn)btn.classList.add('active');
+}
+
+/* ══ TODAY SUMMARY ══ */
+function renderTodaySummary(){
+  const c = eid('todaySummary');
+  if(!c) return;
+
+  const t = today();
+  const habitsDone  = (S.habits||[]).filter(h=>h.days&&h.days[t]).length;
+  const habitsTotal = (S.habits||[]).length;
+  const gymDone     = !!(S.gymLog&&S.gymLog[t]);
+  const cardioMins  = (S.cardioLog&&S.cardioLog[t]) || 0;
+  const activeMedia = (S.media||[]).find(m=>m.status==='reading');
+  const activeGoals = (S.goals||[]).filter(g=>g.progress>0&&g.progress<100).length;
+  const activeProjs = (S.projects||[]).filter(p=>p.status==='Active').length;
+
+  const stats = [
+    {label:'Habits',  val: habitsTotal ? `${habitsDone} / ${habitsTotal}` : '—'},
+    {label:'Gym',     val: gymDone ? '✓ done' : 'not logged'},
+    ...(cardioMins>0 ? [{label:'Cardio', val:`${cardioMins} min`}] : []),
+    ...(activeMedia   ? [{label: activeMedia.mediaType==='book' ? 'Reading' : 'Watching', val:activeMedia.title}] : []),
+    ...(activeGoals>0 ? [{label:'Goals',    val:`${activeGoals} active`}] : []),
+    ...(activeProjs>0 ? [{label:'Projects', val:`${activeProjs} active`}] : []),
+  ];
+
+  c.innerHTML = `
+    <div class="card" style="padding:14px 20px">
+      <div style="font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--blush);font-family:'DM Mono',monospace;margin-bottom:12px">Today at a Glance</div>
+      <div style="display:flex;gap:28px;flex-wrap:wrap">
+        ${stats.map(s=>`
+          <div>
+            <div style="font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;font-family:'DM Mono',monospace;margin-bottom:3px">${s.label}</div>
+            <div style="font-size:0.82rem;color:var(--mist)">${escapeHtml(String(s.val))}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+  `;
 }
 
 /* ══ RENDER ALL ══ */
@@ -56,11 +90,13 @@ function renderAll(){
   eid('quoteText').value = S.quote.text;
   eid('quoteAuthor').value = S.quote.author;
   eid('cardioTarget').value = S.cardioTarget || '';
-  eid('dailyNotes').value=S.notes[today()]||'Use this space for thoughts, tasks, reflections, reminders, or a quick plan for today.';
+  eid('dailyNotes').value=S.notes[today()]||'';
 
+  renderTodaySummary();
   renderHabits();
   renderGymWeek();
   renderWorkoutCards();
+  renderTrainingLog();
   renderGoals();
   renderProjects();
   renderBooks();
@@ -94,4 +130,4 @@ async function bootApp(){
   }
 }
 
-bootApp();
+// Booted by auth.js after session restore or login.

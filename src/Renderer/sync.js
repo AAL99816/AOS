@@ -1,5 +1,15 @@
 'use strict';
 
+async function uploadAsset(path, file) {
+  if (!currentUser) throw new Error('Not signed in');
+  const ext = (file.type || '').split('/')[1] || 'jpg';
+  const fullPath = `${currentUser.id}/${path}.${ext}`;
+  const { error } = await sb.storage.from('aos').upload(fullPath, file, { upsert: true });
+  if (error) throw error;
+  const { data } = sb.storage.from('aos').getPublicUrl(fullPath);
+  return data.publicUrl;
+}
+
 function setSyncStatus(status) {
   const dot = eid('syncDot');
   dot.className = 'sync-dot ' + status;

@@ -18,6 +18,7 @@ function renderHabits(){
     c.appendChild(row);
   });
   updateStreaks();
+  if(typeof renderTodaySummary==='function') renderTodaySummary();
 }
 
 function updateHabitName(id,val){

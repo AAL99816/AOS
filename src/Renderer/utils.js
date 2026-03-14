@@ -12,6 +12,11 @@ function weekDays(){
 }
 function calcStreak(obj){let n=0,d=new Date();while(obj[dStr(d)]){n++;d.setDate(d.getDate()-1);}return n;}
 
+function escapeHtml(str){
+  return String(str??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function escapeAttr(str){return escapeHtml(str);}
+
 let toastT;
 function toast(msg,ms=2500){
   const el=eid('toast');

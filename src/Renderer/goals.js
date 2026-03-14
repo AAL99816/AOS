@@ -18,11 +18,7 @@ function renderGoals() {
   const cats = Object.keys(grouped);
 
   if (!cats.length) {
-    c.innerHTML = `
-      <div style="color:var(--muted);grid-column:span 2;padding:14px">
-        No goals here yet.
-      </div>
-    `;
+    c.innerHTML = `<div style="grid-column:span 2;text-align:center;padding:48px 24px"><div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:10px">◆</div><div style="font-size:0.66rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">No goals yet</div></div>`;
     return;
   }
 
@@ -36,7 +32,6 @@ function renderGoals() {
       const pct = clampPct(g.progress);
       const statusClass = pct >= 100 ? 'done' : pct > 0 ? 'inprog' : '';
       const dateText = g.deadline || '';
-      const metaLine = [g.type || '', g.context || ''].filter(Boolean).join(' · ');
 
       const card = document.createElement('div');
       card.className = 'goal-item';
@@ -56,13 +51,10 @@ function renderGoals() {
           >
         </div>
 
-        ${
-          metaLine
-            ? `<div style="font-size:0.62rem;color:var(--blush);margin-bottom:4px;font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;">
-                ${escapeHtml(metaLine)}
-               </div>`
-            : ''
-        }
+        <div style="display:flex;gap:6px;margin-bottom:4px">
+          <input class="editable" style="font-size:0.62rem;color:var(--blush);font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;width:50%" value="${escapeAttr(g.type||'')}" placeholder="type" onchange="updateGoalField(${g.id},'type',this.value)">
+          <input class="editable" style="font-size:0.62rem;color:var(--blush);font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;width:50%" value="${escapeAttr(g.context||'')}" placeholder="context" onchange="updateGoalField(${g.id},'context',this.value)">
+        </div>
 
         ${
           g.notes
@@ -166,8 +158,8 @@ function saveGoal() {
     id: Date.now(),
     text,
     category: eid('gCat').value.trim() || 'Unsorted',
-    type: '',
-    context: '',
+    type: eid('gType').value.trim(),
+    context: eid('gCtx').value.trim(),
     deadline: eid('gDl').value,
     progress: clampPct(eid('gPct').value),
     notes: eid('gNotes').value.trim()
@@ -183,6 +175,8 @@ function saveGoal() {
 function resetGoalModal() {
   eid('gText').value = '';
   eid('gCat').value = 'Academic';
+  eid('gType').value = '';
+  eid('gCtx').value = '';
   eid('gDl').value = '';
   eid('gPct').value = 0;
   eid('gPLbl').textContent = '0';
@@ -195,18 +189,3 @@ function clampPct(v) {
   return Math.max(0, Math.min(100, n));
 }
 
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, ch => {
-    return {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;'
-    }[ch];
-  });
-}
-
-function escapeAttr(str) {
-  return escapeHtml(str);
-}

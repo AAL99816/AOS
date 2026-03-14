@@ -263,11 +263,11 @@ main{flex:1; padding:26px 44px 60px;}
 .prog-name-inp{font-size:0.7rem; color:var(--muted); margin-top:2px;}
 .prog-notes-inp{font-size:0.72rem; color:var(--muted); line-height:1.5; font-style:italic; margin-top:6px;}
 .spill{font-size:0.58rem; font-family:'DM Mono',monospace; letter-spacing:0.07em; text-transform:uppercase; padding:3px 8px; border-radius:20px; white-space:nowrap; cursor:pointer;}
-.s-wishlist{background:rgba(240,204,213,0.08); color:var(--mist);    border:1px solid var(--border);}
-.s-applied {background:rgba(192,96,122,0.14); color:var(--petal);   border:1px solid rgba(192,96,122,0.30);}
-.s-pending {background:rgba(201,149,106,0.13); color:var(--gold-lt); border:1px solid rgba(201,149,106,0.28);}
-.s-admitted{background:rgba(61,184,122,0.12);  color:#72e8a0;        border:1px solid rgba(61,184,122,0.28);}
-.s-rejected{background:rgba(180,60,60,0.10);   color:#f09090;        border:1px solid rgba(180,60,60,0.22);}
+.s-active  {background:rgba(192,96,122,0.14); color:var(--petal);   border:1px solid rgba(192,96,122,0.30);}
+.s-planning{background:rgba(240,204,213,0.08); color:var(--mist);   border:1px solid var(--border);}
+.s-paused  {background:rgba(201,149,106,0.13); color:var(--gold-lt); border:1px solid rgba(201,149,106,0.28);}
+.s-complete{background:rgba(61,184,122,0.12);  color:#72e8a0;        border:1px solid rgba(61,184,122,0.28);}
+.s-dropped {background:rgba(180,60,60,0.10);   color:#f09090;        border:1px solid rgba(180,60,60,0.22);}
 
 /* ══ BOOKS ══ */
 .book-filters{display:flex; gap:6px; margin-bottom:14px;}
@@ -544,7 +544,7 @@ main{flex:1; padding:26px 44px 60px;}
   <button class="tab" onclick="go('fitness',this)">Fitness</button>
   <button class="tab" onclick="go('goals',this)">Goals</button>
   <button class="tab" onclick="go('projects',this)">Projects</button>
-  <button class="tab" onclick="go('books',this)">Books</button>
+  <button class="tab" onclick="go('media',this)">Media</button>
   <div class="nav-right">
     <div class="sync-dot" id="syncDot" title="Sync status"></div>
     <button class="nav-btn" onclick="doExport()">Export</button>
@@ -571,6 +571,7 @@ main{flex:1; padding:26px 44px 60px;}
         <div id="streakList"></div>
       </div>
     </div>
+    <div id="todaySummary" style="margin-bottom:22px"></div>
     <div class="sec">Daily Habits <span class="lbl">This Week</span></div>
     <div class="card" style="margin-bottom:18px">
       <div class="habit-list" id="habitList"></div>
@@ -599,9 +600,13 @@ main{flex:1; padding:26px 44px 60px;}
         <span id="cardioToday"></span>
       </div>
     </div>
-    <div class="sec">Training Week <span class="lbl">Click day to check off · Click type to rename</span></div>
+    <div class="sec" style="justify-content:space-between">
+      <span>Training Week <span class="lbl">Click day to check off · Click type to rename</span></span>
+      <button class="btn btn-g" style="font-size:0.68rem" onclick="addWorkoutCard()">+ Card</button>
+    </div>
     <div class="gym-week" id="gymWeek"></div>
     <div class="g3" id="workoutCards"></div>
+    <div id="trainingLog" style="margin-top:26px"></div>
   </div>
 
   <!-- GOALS -->
@@ -619,22 +624,38 @@ main{flex:1; padding:26px 44px 60px;}
       <div class="sec" style="margin:0">Projects <span class="lbl">Tracks & Focus Areas</span></div>
       <button class="btn btn-p" onclick="openModal('mProject')">+ Add Project</button>
     </div>
+    <div class="prog-filters" id="projectFilters">
+      <button class="fpill active" onclick="setProjectF('all',this)">All</button>
+      <button class="fpill" onclick="setProjectF('Active',this)">Active</button>
+      <button class="fpill" onclick="setProjectF('Planning',this)">Planning</button>
+      <button class="fpill" onclick="setProjectF('Paused',this)">Paused</button>
+      <button class="fpill" onclick="setProjectF('Complete',this)">Complete</button>
+      <button class="fpill" onclick="setProjectF('Dropped',this)">Dropped</button>
+    </div>
     <div class="progs-grid" id="projectsGrid"></div>
   </div>
 
-  <!-- BOOKS -->
-  <div id="panel-books" class="panel">
+  <!-- MEDIA -->
+  <div id="panel-media" class="panel">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div class="sec" style="margin:0">Reading List <span class="lbl">Hover to add cover image</span></div>
-      <button class="btn btn-p" onclick="openModal('mBook')">+ Add Book</button>
+      <div class="sec" style="margin:0">Media <span class="lbl">Hover to add cover</span></div>
+      <button class="btn btn-p" onclick="openModal('mBook')">+ Add</button>
     </div>
-    <div class="book-filters">
+    <div class="book-type-filters book-filters">
+      <button class="fpill active" onclick="setMediaTypeF('all',this)">All</button>
+      <button class="fpill" onclick="setMediaTypeF('book',this)">Books</button>
+      <button class="fpill" onclick="setMediaTypeF('show',this)">Shows</button>
+      <button class="fpill" onclick="setMediaTypeF('anime',this)">Anime</button>
+      <button class="fpill" onclick="setMediaTypeF('film',this)">Films</button>
+      <button class="fpill" onclick="setMediaTypeF('other',this)">Other</button>
+    </div>
+    <div class="book-status-filters book-filters" style="margin-top:6px">
       <button class="fpill active" onclick="setBookF('all',this)">All</button>
-      <button class="fpill" onclick="setBookF('unread',this)">To Read</button>
-      <button class="fpill" onclick="setBookF('reading',this)">Reading</button>
+      <button class="fpill" onclick="setBookF('unread',this)">Queued</button>
+      <button class="fpill" onclick="setBookF('reading',this)">In Progress</button>
       <button class="fpill" onclick="setBookF('done',this)">Finished</button>
     </div>
-    <div class="books-grid" id="booksGrid"></div>
+    <div class="books-grid" id="mediaGrid" style="margin-top:14px"></div>
   </div>
 
 </main>
@@ -650,41 +671,44 @@ main{flex:1; padding:26px 44px 60px;}
   <h2>New Goal</h2>
   <div class="mf"><label>Goal</label><input id="gText" placeholder="What do you want to achieve?"></div>
   <div class="mf"><label>Category</label><select id="gCat"><option>Academic</option><option>Career</option><option>Health</option><option>Personal</option><option>Creative</option></select></div>
+  <div class="mf"><label>Type</label><input id="gType" placeholder="e.g. Long-term, Milestone, Habit"></div>
+  <div class="mf"><label>Context</label><input id="gCtx" placeholder="e.g. Career, Kuwait, Q1 2026"></div>
   <div class="mf"><label>Deadline</label><input id="gDl" type="date"></div>
   <div class="mf"><label>Progress — <span id="gPLbl">0</span>%</label><input id="gPct" type="range" min="0" max="100" value="0" oninput="eid('gPLbl').textContent=this.value"></div>
-  <div class="mf"><label>Notes</label><textarea id="gNotes" placeholder="Context…"></textarea></div>
+  <div class="mf"><label>Notes</label><textarea id="gNotes" placeholder="Notes…"></textarea></div>
   <div class="modal-acts"><button class="btn btn-g" onclick="closeModal('mGoal')">Cancel</button><button class="btn btn-p" onclick="saveGoal()">Save</button></div>
 </div></div>
 
 <div class="modal-bg" id="mProject"><div class="modal">
   <h2>Add Project</h2>
-  <div class="mf"><label>Title</label><input id="pSchool" placeholder="e.g. Economics Applications"></div>
-  <div class="mf"><label>Type</label><input id="pName" placeholder="e.g. Academic Track"></div>
-  <div class="mf"><label>Context</label><input id="pLoc" placeholder="e.g. Fall 2026 / Personal / Career"></div>
-  <div class="mf"><label>Status</label><select id="pStat"><option>Wishlist</option><option>Applied</option><option>Pending</option><option>Admitted</option><option>Rejected</option></select></div>
+  <div class="mf"><label>Title</label><input id="pTitle" placeholder="e.g. Economics Applications"></div>
+  <div class="mf"><label>Type</label><input id="pType" placeholder="e.g. Academic, Business, Creative"></div>
+  <div class="mf"><label>Context</label><input id="pCtx" placeholder="e.g. Fall 2026 / Kuwait / Personal"></div>
+  <div class="mf"><label>Status</label><select id="pStat"><option>Active</option><option>Planning</option><option>Paused</option><option>Complete</option><option>Dropped</option></select></div>
   <div class="mf"><label>Target Date</label><input id="pDl" type="date"></div>
   <div class="mf"><label>Notes</label><textarea id="pNotes" placeholder="What this area is for, key tasks, next steps…"></textarea></div>
   <div class="modal-acts"><button class="btn btn-g" onclick="closeModal('mProject')">Cancel</button><button class="btn btn-p" onclick="saveProject()">Save</button></div>
 </div></div>
 
 <div class="modal-bg" id="mBook"><div class="modal">
-  <h2>Add Book</h2>
+  <h2>Add Media</h2>
+  <div class="mf"><label>Type</label><select id="bkType"><option value="book">Book</option><option value="show">Show</option><option value="anime">Anime</option><option value="film">Film</option><option value="other">Other</option></select></div>
   <div class="mf"><label>Title</label><input id="bkT" placeholder="Title"></div>
-  <div class="mf"><label>Author</label><input id="bkA" placeholder="Author"></div>
-  <div class="mf"><label>Status</label><select id="bkS"><option value="unread">To Read</option><option value="reading">Reading</option><option value="done">Finished</option></select></div>
+  <div class="mf"><label>Author / Creator</label><input id="bkA" placeholder="Author, director, studio…"></div>
+  <div class="mf"><label>Status</label><select id="bkS"><option value="unread">Queue</option><option value="reading">In Progress</option><option value="done">Finished</option></select></div>
   <div class="mf"><label>Rating (1–5)</label><input id="bkR" type="number" min="1" max="5" placeholder="—"></div>
   <div class="mf"><label>Notes</label><textarea id="bkN" placeholder="Thoughts…"></textarea></div>
   <div class="modal-acts"><button class="btn btn-g" onclick="closeModal('mBook')">Cancel</button><button class="btn btn-p" onclick="saveBook()">Save</button></div>
 </div></div>
 
 <div class="modal-bg" id="mBookDetails"><div class="modal book-detail-modal">
-  <h2>Book Details</h2>
+  <h2>Media Details</h2>
 
   <div class="book-detail-grid">
     <div class="book-detail-block">
-      <div class="book-detail-kicker">Book</div>
-      <div class="mf"><label>Title</label><input id="bdTitle" placeholder="Book title" oninput="updateActiveBookField('title', this.value)"></div>
-      <div class="mf"><label>Author</label><input id="bdAuthor" placeholder="Author" oninput="updateActiveBookField('author', this.value)"></div>
+      <div class="book-detail-kicker">Details</div>
+      <div class="mf"><label>Title</label><input id="bdTitle" placeholder="Title" oninput="updateActiveBookField('title', this.value)"></div>
+      <div class="mf"><label id="bdCreatorLabel">Author</label><input id="bdAuthor" placeholder="Author / creator" oninput="updateActiveBookField('author', this.value)"></div>
       <div class="book-progress-row">
         <div class="mf" style="margin-bottom:0"><label>Status</label><select id="bdStatus" onchange="updateActiveBookStatus(this.value)"><option value="unread">To Read</option><option value="reading">Reading</option><option value="done">Finished</option></select></div>
         <div class="mf" style="margin-bottom:0"><label>Rating (1–5)</label><input id="bdRating" type="number" min="1" max="5" placeholder="—" onchange="updateActiveBookRating(this.value)"></div>
@@ -694,8 +718,8 @@ main{flex:1; padding:26px 44px 60px;}
     <div class="book-detail-block">
       <div class="book-detail-kicker">Progress</div>
       <div class="book-progress-row">
-        <div class="mf" style="margin-bottom:0"><label>Current Page</label><input id="bdCurrentPage" type="number" min="0" placeholder="0" oninput="updateActiveBookPages()"></div>
-        <div class="mf" style="margin-bottom:0"><label>Total Pages</label><input id="bdTotalPages" type="number" min="0" placeholder="0" oninput="updateActiveBookPages()"></div>
+        <div class="mf" style="margin-bottom:0"><label id="bdCurrentPageLabel">Current Page</label><input id="bdCurrentPage" type="number" min="0" placeholder="0" oninput="updateActiveBookPages()"></div>
+        <div class="mf" style="margin-bottom:0"><label id="bdTotalPagesLabel">Total Pages</label><input id="bdTotalPages" type="number" min="0" placeholder="0" oninput="updateActiveBookPages()"></div>
       </div>
       <div class="book-progress-bar"><div id="bdProgressFill" class="book-progress-fill"></div></div>
       <div id="bdProgressText" class="book-progress-text">0%</div>
@@ -708,10 +732,10 @@ main{flex:1; padding:26px 44px 60px;}
   </div>
 
   <div class="book-detail-block">
-    <div class="book-detail-kicker">Chapter Notes</div>
+    <div class="book-detail-kicker" id="bdChapterNotesLabel">Chapter Notes</div>
     <div id="bdChapterNotes" class="chapter-notes"></div>
     <div class="book-detail-actions">
-      <button class="btn btn-g" onclick="addChapterNote()">+ Add Chapter Note</button>
+      <button class="btn btn-g" onclick="addChapterNote()">+ Add Note</button>
       <button class="btn btn-g" onclick="closeModal('mBookDetails')">Done</button>
     </div>
   </div>
@@ -748,6 +772,7 @@ main{flex:1; padding:26px 44px 60px;}
 </div>
 
 <script src="./Renderer/utils.js"></script>
+<script src="./Renderer/state.js"></script>
 <script src="./Renderer/auth.js"></script>
 <script src="./Renderer/sync.js"></script>
 <script src="./Renderer/updater.js"></script>
@@ -755,9 +780,8 @@ main{flex:1; padding:26px 44px 60px;}
 <script src="./Renderer/fitness.js"></script>
 <script src="./Renderer/goals.js"></script>
 <script src="./Renderer/projects.js"></script>
-<script src="./Renderer/books.js"></script>
+<script src="./Renderer/media.js"></script>
 <script src="./Renderer/modals.js"></script>
-<script src="./Renderer/state.js"></script>
 <script src="./Renderer/app.js"></script>
 </body>
 </html>

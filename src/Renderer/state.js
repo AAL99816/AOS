@@ -41,21 +41,21 @@ goals:[
   {id:2,text:'Set up your main recurring habits',category:'Health',deadline:'',progress:10,notes:'Prayer, gym, study, reading, sleep, walking — whatever matters most.'}
 ],  
 projects:[
-  {id:1,school:'Graduate Applications',name:'Academic Track',location:'Fall 2026',status:'Pending',deadline:'',notes:'Use this section for projects, tracks, applications, business areas, writing pipelines, or any long-term focus.'},
-  {id:2,school:'Aqarna',name:'Business / Product Track',location:'Kuwait',status:'Pending',deadline:'',notes:'Rename, repurpose, or remove this card. This area is meant to be flexible.'}
+  {id:1,title:'Graduate Applications',type:'Academic Track',context:'Fall 2026',status:'Active',deadline:'',notes:'Use this for projects, life tracks, applications, business areas, or any long-term focus area.'},
+  {id:2,title:'Aqarna',type:'Business / Product',context:'Kuwait',status:'Active',deadline:'',notes:'Rename, repurpose, or remove this card. Projects can represent anything ongoing in your life.'}
 ],
-books:[
-  {id:1,title:'1984',author:'George Orwell',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-  {id:2,title:'The Blade Itself',author:'Joe Abercrombie',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-  {id:3,title:'The World as Will and Idea',author:'Arthur Schopenhauer',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-  {id:4,title:'Essays of Arthur Schopenhauer',author:'Arthur Schopenhauer',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-  {id:5,title:'Critique of Pure & Practical Reason',author:'Immanuel Kant',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-  {id:6,title:'Fundamental Principles of the Metaphysic of Morals',author:'Immanuel Kant',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-  {id:7,title:'Crime and Punishment',author:'Fyodor Dostoevsky',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-  {id:8,title:'The Prince',author:'Niccolò Machiavelli',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-  {id:9,title:'Moby Dick',author:'Herman Melville',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-  {id:10,title:'Animal Farm',author:'George Orwell',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-  {id:11,title:'The Brothers Karamazov',author:'Fyodor Dostoevsky',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
+media:[
+  {id:1,mediaType:'book',title:'1984',author:'George Orwell',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
+  {id:2,mediaType:'book',title:'The Blade Itself',author:'Joe Abercrombie',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
+  {id:3,mediaType:'book',title:'The World as Will and Idea',author:'Arthur Schopenhauer',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
+  {id:4,mediaType:'book',title:'Essays of Arthur Schopenhauer',author:'Arthur Schopenhauer',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
+  {id:5,mediaType:'book',title:'Critique of Pure & Practical Reason',author:'Immanuel Kant',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
+  {id:6,mediaType:'book',title:'Fundamental Principles of the Metaphysic of Morals',author:'Immanuel Kant',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
+  {id:7,mediaType:'book',title:'Crime and Punishment',author:'Fyodor Dostoevsky',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
+  {id:8,mediaType:'book',title:'The Prince',author:'Niccolo Machiavelli',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
+  {id:9,mediaType:'book',title:'Moby Dick',author:'Herman Melville',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
+  {id:10,mediaType:'book',title:'Animal Farm',author:'George Orwell',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
+  {id:11,mediaType:'book',title:'The Brothers Karamazov',author:'Fyodor Dostoevsky',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
 ],
 gymLog:{},
 cardioLog:{},
@@ -85,27 +85,28 @@ function deepMerge(base,over){
 function makeProject(p={}){
   return {
     id: p.id ?? Date.now() + Math.random(),
-    school: p.school ?? '',
-    name: p.name ?? '',
-    location: p.location ?? '',
-    status: p.status ?? 'Pending',
+    title:   p.title   ?? p.school   ?? '',
+    type:    p.type    ?? p.name     ?? '',
+    context: p.context ?? p.location ?? '',
+    status:  p.status  ?? 'Active',
     deadline: p.deadline ?? '',
     notes: p.notes ?? ''
   };
 }
 
-function makeBook(b={}){
+function makeMedia(m={}){
   return {
-    id: b.id ?? Date.now() + Math.random(),
-    title: b.title ?? '',
-    author: b.author ?? '',
-    status: b.status ?? 'unread',
-    rating: b.rating ?? null,
-    notes: b.notes ?? '',
-    coverUrl: b.coverUrl ?? '',
-    currentPage: Number.isFinite(+b.currentPage) ? +b.currentPage : 0,
-    totalPages: Number.isFinite(+b.totalPages) ? +b.totalPages : 0,
-    chapterNotes: Array.isArray(b.chapterNotes) ? b.chapterNotes : []
+    id: m.id ?? Date.now() + Math.random(),
+    mediaType: m.mediaType ?? 'book',
+    title: m.title ?? '',
+    author: m.author ?? '',
+    status: m.status ?? 'unread',
+    rating: m.rating ?? null,
+    notes: m.notes ?? '',
+    coverUrl: m.coverUrl ?? '',
+    currentPage: Number.isFinite(+m.currentPage) ? +m.currentPage : 0,
+    totalPages: Number.isFinite(+m.totalPages) ? +m.totalPages : 0,
+    chapterNotes: Array.isArray(m.chapterNotes) ? m.chapterNotes : []
   };
 }
 
@@ -156,7 +157,11 @@ const rawProjects =
 out.projects = rawProjects.map(makeProject);
 delete out.programs;
 
-  out.books = (Array.isArray(out.books) ? out.books : []).map(makeBook);
+  const rawMedia = Array.isArray(src.media) ? src.media
+    : Array.isArray(src.books) ? src.books
+    : Array.isArray(out.media) ? out.media : [];
+  out.media = rawMedia.map(makeMedia);
+  delete out.books;
 
   return out;
 }

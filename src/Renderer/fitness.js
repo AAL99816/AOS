@@ -44,15 +44,6 @@ function fmtPct(pct) {
   return `${sign}${pct.toFixed(1)}%`;
 }
 
-function escapeHtml(v) {
-  return String(v ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 /* ══ GYM WEEK ══ */
 function renderGymWeek() {
   ensureFitnessState();
@@ -79,6 +70,11 @@ function renderGymWeek() {
         title="Click to rename"
       >
       <div class="ck">${done ? '✓' : isRest ? '—' : '○'}</div>
+      <button
+        onclick="event.stopPropagation();toggleRestDay(${i})"
+        title="${isRest ? 'Mark as training day' : 'Mark as rest day'}"
+        style="margin-top:5px;background:none;border:1px solid ${isRest ? 'rgba(192,96,122,0.18)' : 'rgba(192,96,122,0.35)'};border-radius:5px;color:${isRest ? 'var(--muted)' : 'var(--blush)'};font-size:0.5rem;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;padding:2px 5px;cursor:pointer;transition:all 0.15s;"
+      >${isRest ? 'gym' : 'rest'}</button>
     `;
 
     div.addEventListener('click', () => {
@@ -87,7 +83,7 @@ function renderGymWeek() {
       S.gymLog[d] = !S.gymLog[d];
 
       if (S.gymLog[d]) {
-        const gh = S.habits?.find(h => h.id === 7);
+        const gh = hfind('gym','lift','workout','training','weights');
         if (gh) gh.days[d] = true;
       }
 
@@ -98,6 +94,16 @@ function renderGymWeek() {
 
     c.appendChild(div);
   });
+}
+
+function toggleRestDay(i){
+  ensureFitnessState();
+  if(!S.workout[i]) S.workout[i]={type:'',rest:false};
+  S.workout[i].rest = !S.workout[i].rest;
+  if(S.workout[i].rest) S.workout[i].type='Rest';
+  else if((S.workout[i].type||'').toLowerCase()==='rest') S.workout[i].type='';
+  scheduleSave();
+  renderGymWeek();
 }
 
 function updateWDay(i, val) {
@@ -187,7 +193,8 @@ function renderWorkoutCards() {
         <button class="btn btn-g" style="font-size:0.68rem;padding:4px 9px" onclick="addEx(${wc.id})">+ Add</button>
       </div>
 
-      <div style="margin-top:12px;display:flex;justify-content:flex-end;">
+      <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;">
+        <button class="btn btn-d" style="font-size:0.66rem;padding:4px 9px" onclick="delWorkoutCard(${wc.id})">Remove</button>
         <button class="btn btn-p" style="font-size:0.68rem;padding:5px 10px" onclick="logWorkoutSession(${wc.id})">Log Session</button>
       </div>
     `;
@@ -195,43 +202,80 @@ function renderWorkoutCards() {
     c.appendChild(div);
   });
 
-  c.appendChild(renderWorkoutHistoryCard());
 }
 
-function renderWorkoutHistoryCard() {
+
+function renderTrainingLog(){
+  const c = eid('trainingLog');
+  if(!c) return;
+  c.innerHTML = '';
+
+  const hist = [...(S.workoutHistory||[])].reverse();
+
+  const sec = document.createElement('div');
+  sec.className = 'sec';
+  sec.innerHTML = `Training Log <span class="lbl">${hist.length} session${hist.length!==1?'s':''}</span>`;
+  c.appendChild(sec);
+
+  if(!hist.length){
+    c.innerHTML += `<div style="text-align:center;padding:40px 24px"><div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:10px">◆</div><div style="font-size:0.66rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">No sessions logged yet</div></div>`;
+    return;
+  }
+
+  const grouped = {};
+  hist.forEach(item => {
+    const month = (item.date||'').slice(0,7);
+    if(!grouped[month]) grouped[month]=[];
+    grouped[month].push(item);
+  });
+
   const wrap = document.createElement('div');
   wrap.className = 'card';
 
-  const hist = [...(S.workoutHistory || [])].slice(-8).reverse();
+  Object.keys(grouped).sort().reverse().forEach(month => {
+    const d = new Date(month+'-02');
+    const lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--blush);font-family:"DM Mono",monospace;padding:10px 0 6px;border-bottom:1px solid var(--border);margin-bottom:4px;';
+    lbl.textContent = d.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+    wrap.appendChild(lbl);
 
-  wrap.innerHTML = `
-    <div class="wk-head">
-      <div class="wk-title-inp" style="border:none;">Recent Training Log</div>
-      <div class="wk-badge-inp" style="background:rgba(192,96,122,0.12);color:var(--petal);border:1px solid var(--border);">
-        History
-      </div>
-    </div>
+    grouped[month].forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'ex-item';
+      row.style.cssText = 'display:flex;align-items:baseline;justify-content:space-between;gap:12px;';
+      row.innerHTML = `
+        <div style="display:flex;align-items:baseline;gap:10px;flex:1;min-width:0;">
+          <div style="font-size:0.62rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${escapeHtml(item.date||'')}</div>
+          <div style="font-size:0.8rem;color:var(--mist);flex-shrink:0">${escapeHtml(item.title||'Workout')}</div>
+          <div style="font-size:0.68rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(item.summary||'')}</div>
+        </div>
+        <button class="habit-del" style="opacity:0.4" onclick="deleteWorkoutSession(${item.id})">✕</button>
+      `;
+      wrap.appendChild(row);
+    });
+  });
 
-    ${
-      hist.length
-        ? hist.map(item => `
-            <div class="ex-item" style="display:block;">
-              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-                <div style="font-size:0.8rem;color:var(--mist);">${escapeHtml(item.title || 'Workout')}</div>
-                <div style="font-size:0.62rem;color:var(--muted-lt);font-family:'DM Mono',monospace;">
-                  ${escapeHtml(item.date || '')}
-                </div>
-              </div>
-              <div style="margin-top:4px;font-size:0.68rem;color:var(--muted);line-height:1.5;">
-                ${escapeHtml(item.summary || '')}
-              </div>
-            </div>
-          `).join('')
-        : `<div style="font-size:0.74rem;color:var(--muted);">No workout sessions logged yet.</div>`
-    }
-  `;
+  c.appendChild(wrap);
+}
 
-  return wrap;
+function deleteWorkoutSession(id){
+  S.workoutHistory = (S.workoutHistory||[]).filter(s=>s.id!==id);
+  scheduleSave();
+  renderTrainingLog();
+}
+
+function addWorkoutCard(){
+  ensureFitnessState();
+  S.workoutCards.push({id:Date.now(),title:'New Block',subtitle:'',exercises:[]});
+  scheduleSave();
+  renderWorkoutCards();
+}
+
+function delWorkoutCard(id){
+  if(!confirm('Remove this workout card?'))return;
+  S.workoutCards=S.workoutCards.filter(w=>w.id!==id);
+  scheduleSave();
+  renderWorkoutCards();
 }
 
 /* ══ WORKOUT TEMPLATE EDITING ══ */
@@ -347,18 +391,20 @@ function logWorkoutSession(wcId) {
 
   S.workoutHistory.push({
     id: Date.now(),
+    cardId: wc.id,
     title: wc.title || 'Workout',
     date: today(),
     summary: summary || 'Session completed'
   });
 
-  const gh = S.habits?.find(h => h.id === 7);
+  const gh = hfind('gym','lift','workout','training','weights');
   if (gh) gh.days[today()] = true;
   S.gymLog[today()] = true;
 
   scheduleSave();
   renderWorkoutCards();
   renderGymWeek();
+  renderTrainingLog();
   if (typeof renderHabits === 'function') renderHabits();
 
   toast(`${wc.title || 'Workout'} saved to history`);
@@ -374,7 +420,7 @@ function logCardio() {
   S.cardioLog[today()] = (S.cardioLog[today()] || 0) + mins;
 
   if (S.cardioLog[today()] >= 30) {
-    const ch = S.habits?.find(h => h.id === 6);
+    const ch = hfind('cardio','walk','run','jog','cycle');
     if (ch) ch.days[today()] = true;
   }
 
