@@ -1,5 +1,45 @@
 'use strict';
 
+const PRAYERS = ['fajr','dhuhr','asr','maghrib','isha'];
+const PRAYER_LABEL = {fajr:'Fajr',dhuhr:'Dhuhr',asr:'Asr',maghrib:'Maghrib',isha:'Isha'};
+
+function togglePrayer(name){
+  const t=today();
+  if(!S.prayerLog) S.prayerLog={};
+  if(!S.prayerLog[t]) S.prayerLog[t]={};
+  S.prayerLog[t][name]=!S.prayerLog[t][name];
+  scheduleSave();
+  renderPrayer();
+  if(typeof renderTodaySummary==='function') renderTodaySummary();
+}
+
+function prayerStreakFor(name){
+  if(!S.prayerLog) return 0;
+  const days={};
+  Object.entries(S.prayerLog).forEach(([d,p])=>{if(p[name]) days[d]=true;});
+  return calcStreak(days);
+}
+
+function renderPrayer(){
+  const c=eid('prayerRow');
+  if(!c) return;
+  const t=today(), log=(S.prayerLog&&S.prayerLog[t])||{};
+  const allDone=PRAYERS.every(p=>!!log[p]);
+  c.innerHTML=`
+    <div class="prayer-grid">
+      ${PRAYERS.map(p=>{
+        const done=!!log[p], str=prayerStreakFor(p);
+        return `<div class="prayer-slot${done?' done':''}" onclick="togglePrayer('${p}')">
+          <div class="prayer-name">${PRAYER_LABEL[p]}</div>
+          <div class="prayer-dot">${done?'✓':''}</div>
+          <div class="prayer-streak">${str>0?str+'d':''}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    ${allDone?`<div style="text-align:center;margin-top:12px;font-size:0.68rem;color:var(--gold-lt);font-family:'Cormorant Garamond',serif;font-style:italic;letter-spacing:0.04em;">All five — complete.</div>`:''}
+  `;
+}
+
 function renderHabits(){
   const week=weekDays(),c=eid('habitList');c.innerHTML='';
   S.habits.forEach(h=>{
@@ -18,6 +58,7 @@ function renderHabits(){
     c.appendChild(row);
   });
   updateStreaks();
+  renderPrayer();
   if(typeof renderTodaySummary==='function') renderTodaySummary();
 }
 
@@ -64,7 +105,15 @@ function hfind(...keys){return S.habits.find(h=>hmatch(h,...keys));}
 function streakOf(h){return h?calcStreak(h.days||{}):0;}
 
 function prayerStreak(){
-  const prayers=['fajr','dhuhr','asr','maghrib','isha'].map(k=>hfind(k)).filter(Boolean);
+  if(S.prayerLog && Object.keys(S.prayerLog).length){
+    const days={};
+    Object.entries(S.prayerLog).forEach(([d,p])=>{
+      if(PRAYERS.every(name=>p[name])) days[d]=true;
+    });
+    const s=calcStreak(days);
+    if(s>0) return s;
+  }
+  const prayers=PRAYERS.map(k=>hfind(k)).filter(Boolean);
   if(prayers.length===5){
     const days={},all=[...new Set(prayers.flatMap(h=>Object.keys(h.days||{})))];
     all.forEach(d=>{if(prayers.every(h=>h.days&&h.days[d]))days[d]=true;});

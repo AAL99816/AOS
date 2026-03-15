@@ -90,6 +90,7 @@ function renderGymWeek() {
       scheduleSave();
       renderGymWeek();
       if (typeof renderHabits === 'function') renderHabits();
+      if (typeof renderTodaySummary === 'function') renderTodaySummary();
     });
 
     c.appendChild(div);
@@ -426,6 +427,7 @@ function logCardio() {
 
   scheduleSave();
   if (typeof renderHabits === 'function') renderHabits();
+  if (typeof renderTodaySummary === 'function') renderTodaySummary();
   updateCardioDisplay();
 
   eid('cardioMins').value = 0;

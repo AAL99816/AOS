@@ -56,13 +56,7 @@ function renderGoals() {
           <input class="editable" style="font-size:0.62rem;color:var(--blush);font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;width:50%" value="${escapeAttr(g.context||'')}" placeholder="context" onchange="updateGoalField(${g.id},'context',this.value)">
         </div>
 
-        ${
-          g.notes
-            ? `<div style="font-size:0.72rem;color:var(--muted);margin-bottom:7px;line-height:1.55;">
-                ${escapeHtml(g.notes)}
-               </div>`
-            : ''
-        }
+        <textarea class="editable-area" style="font-size:0.72rem;color:var(--muted);margin-bottom:7px;min-height:42px;" placeholder="Notes…" onchange="updateGoalField(${g.id},'notes',this.value)">${escapeHtml(g.notes||'')}</textarea>
 
         <div class="goal-bar">
           <div class="goal-fill" style="width:${pct}%"></div>

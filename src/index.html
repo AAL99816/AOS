@@ -205,6 +205,16 @@ main{flex:1; padding:26px 44px 60px;}
 .add-inp:focus{border-color:var(--blush);}
 .add-inp::placeholder{color:var(--muted); opacity:0.7;}
 
+/* ══ PRAYER ══ */
+.prayer-grid{display:flex;gap:8px;}
+.prayer-slot{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;padding:11px 6px;border-radius:10px;border:1px solid var(--border);background:rgba(45,16,25,0.35);cursor:pointer;transition:all 0.18s;user-select:none;}
+.prayer-slot:hover{border-color:rgba(192,96,122,0.35);background:rgba(74,26,40,0.28);}
+.prayer-slot.done{background:linear-gradient(135deg,rgba(139,50,82,0.32),rgba(74,26,40,0.45));border-color:var(--blush);}
+.prayer-name{font-size:0.58rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;}
+.prayer-dot{width:19px;height:19px;border-radius:50%;border:1.5px solid var(--rose);display:flex;align-items:center;justify-content:center;font-size:0.58rem;color:transparent;transition:all 0.15s;}
+.prayer-slot.done .prayer-dot{background:var(--rose);border-color:var(--petal);color:var(--cream);}
+.prayer-streak{font-family:'DM Mono',monospace;font-size:0.56rem;color:var(--gold-lt);min-height:12px;}
+
 /* ══ FITNESS ══ */
 .cardio-bar{display:flex; align-items:center; gap:14px; padding:13px 18px; border-radius:var(--r); margin-bottom:16px; background:linear-gradient(90deg,rgba(139,50,82,0.16),rgba(26,10,15,0.5)); border:1px solid var(--border);}
 .cardio-label{font-size:0.64rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; font-family:'DM Mono',monospace;}
@@ -572,6 +582,10 @@ main{flex:1; padding:26px 44px 60px;}
       </div>
     </div>
     <div id="todaySummary" style="margin-bottom:22px"></div>
+    <div class="sec">Prayer <span class="lbl">Today</span></div>
+    <div class="card" style="margin-bottom:18px">
+      <div id="prayerRow"></div>
+    </div>
     <div class="sec">Daily Habits <span class="lbl">This Week</span></div>
     <div class="card" style="margin-bottom:18px">
       <div class="habit-list" id="habitList"></div>
@@ -771,6 +785,7 @@ main{flex:1; padding:26px 44px 60px;}
   </div>
 </div>
 
+<script src="./Renderer/web-api.js"></script>
 <script src="./Renderer/utils.js"></script>
 <script src="./Renderer/state.js"></script>
 <script src="./Renderer/auth.js"></script>

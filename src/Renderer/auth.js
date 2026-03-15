@@ -4,9 +4,11 @@
 const SUPABASE_URL = 'https://kzsbpqbhogmribkumdui.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt6c2JwcWJob2dtcmlia3VtZHVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0MzgzMDgsImV4cCI6MjA4OTAxNDMwOH0.5DLUeO-Q-HutYmQaOMnzrpPFob6bPLe5os28kq2VZ_k';
 
+const IS_WEB = window.location.protocol === 'https:' || window.location.protocol === 'http:';
+
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
-    detectSessionInUrl: false
+    detectSessionInUrl: IS_WEB
   }
 });
 
@@ -41,7 +43,7 @@ async function doAuth() {
       email,
       password: pass,
       options: {
-        emailRedirectTo: 'com.aal99816.aos://auth/callback' 
+        emailRedirectTo: IS_WEB ? window.location.origin : 'com.aal99816.aos://auth/callback'
       }
     });
   }

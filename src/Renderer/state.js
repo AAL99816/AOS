@@ -59,6 +59,7 @@ media:[
 ],
 gymLog:{},
 cardioLog:{},
+prayerLog:{},
 notes:{},
 workoutHistory:[],
 exerciseHistory:{}
@@ -143,6 +144,7 @@ function normalizeAppState(raw={}){
   out.cardioLog = out.cardioLog && typeof out.cardioLog === 'object' ? out.cardioLog : {};
   out.workoutHistory = (Array.isArray(out.workoutHistory) ? out.workoutHistory : []).map(makeWorkoutSession);
   out.exerciseHistory = out.exerciseHistory && typeof out.exerciseHistory === 'object' ? out.exerciseHistory : {};
+  out.prayerLog = out.prayerLog && typeof out.prayerLog === 'object' ? out.prayerLog : {};
 
   out.habits = (Array.isArray(out.habits) ? out.habits : clone(DS.habits)).map(makeHabit);
   out.goals = (Array.isArray(out.goals) ? out.goals : clone(DS.goals)).map(makeGoal);

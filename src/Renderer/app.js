@@ -37,6 +37,34 @@ function go(name,btn){
 }
 
 /* ══ TODAY SUMMARY ══ */
+function calmInsight(t, habitsDone, habitsTotal, gymDone, cardioMins){
+  const hour = new Date().getHours();
+  const prayerLog = (S.prayerLog && S.prayerLog[t]) || {};
+  const prayersDone = (typeof PRAYERS !== 'undefined') ? PRAYERS.filter(p=>!!prayerLog[p]).length : 0;
+
+  if(prayersDone === 5 && habitsTotal && habitsDone === habitsTotal)
+    return 'All prayers and all habits. A rare kind of day.';
+  if(prayersDone === 5) return 'All prayers complete. A good foundation.';
+  if(prayersDone > 0 && prayersDone < 5) return `${prayersDone} of 5 prayers done. ${5-prayersDone} remaining.`;
+
+  if(habitsTotal && habitsDone === habitsTotal) return 'Every habit done. Hold the standard.';
+  if(habitsTotal && habitsDone/habitsTotal >= 0.7) return `${habitsDone} of ${habitsTotal} habits — momentum is there.`;
+
+  if(gymDone && cardioMins >= 30) return 'Gym and cardio both done. Rest well tonight.';
+  if(gymDone) return 'Gym done. The work is in.';
+  if(cardioMins >= 30) return `${cardioMins} min of cardio — goal met.`;
+
+  const readH = (typeof hfind !== 'undefined') ? hfind('read','reading','book') : null;
+  const readStr = readH ? calcStreak(readH.days||{}) : 0;
+  if(readStr >= 7) return `${readStr}-day reading streak. Protect it.`;
+  if(readStr >= 3) return `${readStr} days of reading in a row.`;
+
+  if(habitsTotal && habitsDone === 0 && hour >= 15) return 'Nothing logged yet — the day still has room.';
+  if(hour < 10) return 'Morning. The day is open.';
+  if(hour < 17) return 'Afternoon. Build on what you started.';
+  return 'Evening. Reflect, rest, reset.';
+}
+
 function renderTodaySummary(){
   const c = eid('todaySummary');
   if(!c) return;
@@ -49,6 +77,7 @@ function renderTodaySummary(){
   const activeMedia = (S.media||[]).find(m=>m.status==='reading');
   const activeGoals = (S.goals||[]).filter(g=>g.progress>0&&g.progress<100).length;
   const activeProjs = (S.projects||[]).filter(p=>p.status==='Active').length;
+  const insight     = calmInsight(t, habitsDone, habitsTotal, gymDone, cardioMins);
 
   const stats = [
     {label:'Habits',  val: habitsTotal ? `${habitsDone} / ${habitsTotal}` : '—'},
@@ -69,6 +98,7 @@ function renderTodaySummary(){
             <div style="font-size:0.82rem;color:var(--mist)">${escapeHtml(String(s.val))}</div>
           </div>`).join('')}
       </div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:0.8rem;color:var(--muted-lt);font-style:italic;font-family:'Cormorant Garamond',serif;">${escapeHtml(insight)}</div>
     </div>
   `;
 }
@@ -94,6 +124,7 @@ function renderAll(){
 
   renderTodaySummary();
   renderHabits();
+  renderPrayer();
   renderGymWeek();
   renderWorkoutCards();
   renderTrainingLog();
