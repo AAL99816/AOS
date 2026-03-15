@@ -245,7 +245,7 @@ function renderTrainingLog(){
       row.className = 'ex-item';
       row.style.cssText = 'display:flex;align-items:baseline;justify-content:space-between;gap:12px;';
       row.innerHTML = `
-        <div style="display:flex;align-items:baseline;gap:10px;flex:1;min-width:0;">
+        <div style="display:flex;align-items:baseline;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="openSessionDetail(${item.id})">
           <div style="font-size:0.62rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${escapeHtml(item.date||'')}</div>
           <div style="font-size:0.8rem;color:var(--mist);flex-shrink:0">${escapeHtml(item.title||'Workout')}</div>
           <div style="font-size:0.68rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(item.summary||'')}</div>
@@ -257,6 +257,26 @@ function renderTrainingLog(){
   });
 
   c.appendChild(wrap);
+}
+
+function openSessionDetail(id){
+  const s = (S.workoutHistory||[]).find(s => s.id === id);
+  if(!s) return;
+  eid('sdTitle').textContent = s.title || 'Workout';
+  eid('sdDate').textContent = s.date || '';
+  const ex = eid('sdExercises');
+  if(s.exercises && s.exercises.length){
+    ex.innerHTML = s.exercises.map(e => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:0.82rem;color:var(--mist)">${escapeHtml(e.name||'')}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted-lt)">
+          ${[e.sets, e.weight!=null?e.weight+'kg':null, e.reps!=null?e.reps+' reps':null].filter(Boolean).join(' · ')}
+        </span>
+      </div>`).join('');
+  } else {
+    ex.innerHTML = `<div style="font-size:0.75rem;color:var(--muted);text-align:center;padding:20px">${escapeHtml(s.summary||'No exercise data')}</div>`;
+  }
+  openModal('mSessionDetail');
 }
 
 function deleteWorkoutSession(id){
@@ -390,12 +410,18 @@ function logWorkoutSession(wcId) {
     .slice(0, 5)
     .join(' · ');
 
+  const exercises = (wc.exercises||[]).map(ex => {
+    const last = getLastExerciseLog(ex.name);
+    return { name: ex.name, sets: ex.sets, weight: last?.weight ?? null, reps: last?.reps ?? null };
+  });
+
   S.workoutHistory.push({
     id: Date.now(),
     cardId: wc.id,
     title: wc.title || 'Workout',
     date: today(),
-    summary: summary || 'Session completed'
+    summary: summary || 'Session completed',
+    exercises
   });
 
   const gh = hfind('gym','lift','workout','training','weights');

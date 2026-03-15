@@ -62,7 +62,9 @@ cardioLog:{},
 prayerLog:{},
 notes:{},
 workoutHistory:[],
-exerciseHistory:{}
+exerciseHistory:{},
+weeklyReflections:{},
+onboarded:false
 
 };
 
@@ -145,6 +147,8 @@ function normalizeAppState(raw={}){
   out.workoutHistory = (Array.isArray(out.workoutHistory) ? out.workoutHistory : []).map(makeWorkoutSession);
   out.exerciseHistory = out.exerciseHistory && typeof out.exerciseHistory === 'object' ? out.exerciseHistory : {};
   out.prayerLog = out.prayerLog && typeof out.prayerLog === 'object' ? out.prayerLog : {};
+  out.weeklyReflections = out.weeklyReflections && typeof out.weeklyReflections === 'object' ? out.weeklyReflections : {};
+  out.onboarded = typeof src.onboarded === 'boolean' ? src.onboarded : false;
 
   out.habits = (Array.isArray(out.habits) ? out.habits : clone(DS.habits)).map(makeHabit);
   out.goals = (Array.isArray(out.goals) ? out.goals : clone(DS.goals)).map(makeGoal);

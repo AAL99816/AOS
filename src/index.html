@@ -453,6 +453,35 @@ main{flex:1; padding:26px 44px 60px;}
 .mf input[type=range]{padding:0; background:none; border:none; accent-color:var(--blush); cursor:pointer;}
 .modal-acts{display:flex; gap:7px; margin-top:14px; justify-content:flex-end;}
 
+/* ══ REVIEW ══ */
+.review-week-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;}
+.review-week-lbl{font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--cream);}
+.review-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.review-block{background:rgba(45,16,25,0.45);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.review-kicker{font-size:0.56rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--blush);font-family:'DM Mono',monospace;margin-bottom:10px;}
+.review-prayer-row{display:flex;align-items:center;gap:4px;margin-bottom:5px;}
+.review-prayer-name{font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace;width:50px;flex-shrink:0;}
+.review-dot{width:15px;height:15px;border-radius:4px;border:1px solid var(--border);background:transparent;flex-shrink:0;}
+.review-dot.done{background:var(--rose);border-color:var(--blush);}
+.review-habit-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.review-habit-name{font-size:0.72rem;color:var(--mist);width:130px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.review-habit-bar{height:4px;background:rgba(192,96,122,0.12);border-radius:2px;flex:1;overflow:hidden;}
+.review-habit-fill{height:100%;background:linear-gradient(90deg,var(--rose),var(--blush));border-radius:2px;transition:width 0.3s;}
+.review-pct{font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted-lt);width:28px;text-align:right;}
+
+/* ══ ONBOARDING ══ */
+.onboard-step{display:none;}
+.onboard-step.active{display:block;}
+.onboard-progress{display:flex;gap:5px;margin-bottom:22px;}
+.onboard-pip{height:3px;flex:1;border-radius:2px;background:var(--border);transition:background 0.2s;}
+.onboard-pip.done{background:var(--blush);}
+.onboard-habits{display:flex;flex-direction:column;gap:7px;margin:12px 0;}
+.onboard-habit-opt{display:flex;align-items:center;gap:10px;padding:9px 13px;border-radius:9px;border:1px solid var(--border);background:rgba(45,16,25,0.35);cursor:pointer;transition:all 0.15s;}
+.onboard-habit-opt:hover,.onboard-habit-opt.selected{border-color:var(--blush);background:rgba(139,50,82,0.16);}
+.onboard-habit-opt span{font-size:0.8rem;color:var(--mist);}
+.onboard-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--rose);display:flex;align-items:center;justify-content:center;font-size:0.58rem;color:transparent;flex-shrink:0;transition:all 0.15s;}
+.onboard-habit-opt.selected .onboard-check{background:var(--rose);color:var(--cream);}
+
 /* ══ TOAST ══ */
 #toast{position:fixed; bottom:20px; right:20px; z-index:300; background:linear-gradient(135deg,rgba(139,50,82,0.92),rgba(45,16,25,0.96)); border:1px solid var(--border-lt); border-radius:10px; padding:9px 15px; font-size:0.76rem; color:var(--mist); opacity:0; pointer-events:none; transition:opacity 0.25s; box-shadow:0 8px 30px rgba(0,0,0,0.5);}
 #toast.show{opacity:1;}
@@ -533,6 +562,10 @@ main{flex:1; padding:26px 44px 60px;}
   .gym-week{grid-template-columns:repeat(4,1fr);}
   .books-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));}
 }
+@media(max-width:700px){
+  .review-grid{grid-template-columns:1fr;}
+  .review-habit-name{width:100px;}
+}
 @media(max-width:600px){
   nav{overflow-x:auto;overflow-y:hidden;gap:0;scrollbar-width:none;}
   nav::-webkit-scrollbar{display:none;}
@@ -609,6 +642,7 @@ main{flex:1; padding:26px 44px 60px;}
   <button class="tab" onclick="go('goals',this)">Goals</button>
   <button class="tab" onclick="go('projects',this)">Projects</button>
   <button class="tab" onclick="go('media',this)">Media</button>
+  <button class="tab" onclick="go('review',this)">Review</button>
   <div class="nav-right">
     <div class="sync-dot" id="syncDot" title="Sync status"></div>
     <button class="nav-btn" onclick="doExport()">Export</button>
@@ -726,6 +760,15 @@ main{flex:1; padding:26px 44px 60px;}
     <div class="books-grid" id="mediaGrid" style="margin-top:14px"></div>
   </div>
 
+
+  <!-- REVIEW -->
+  <div id="panel-review" class="panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div class="sec" style="margin:0">Weekly Review <span class="lbl">Reflect &amp; Track</span></div>
+    </div>
+    <div id="reviewContent"></div>
+  </div>
+
 </main>
 
 <div class="sbar">
@@ -809,6 +852,47 @@ main{flex:1; padding:26px 44px 60px;}
   </div>
 </div></div>
 
+<div class="modal-bg" id="mOnboard"><div class="modal" style="width:480px">
+  <h2 style="margin-bottom:6px">Welcome to AOS</h2>
+  <div style="font-size:0.72rem;color:var(--muted);margin-bottom:18px">Let's set up your personal dashboard in 3 steps.</div>
+  <div class="onboard-progress">
+    <div class="onboard-pip done"></div>
+    <div class="onboard-pip"></div>
+    <div class="onboard-pip"></div>
+  </div>
+  <!-- Step 1 -->
+  <div class="onboard-step active">
+    <div class="mf"><label>Your Name</label><input id="onboardName" placeholder="e.g. Abdullah"></div>
+    <div class="mf"><label>Username</label><input id="onboardUsername" placeholder="@handle — letters, numbers, _"></div>
+    <div class="modal-acts"><button class="btn btn-p" onclick="showOnboardStep(2)">Next →</button></div>
+  </div>
+  <!-- Step 2 -->
+  <div class="onboard-step">
+    <div style="font-size:0.76rem;color:var(--muted);margin-bottom:8px">Choose the habits that matter to you:</div>
+    <div class="onboard-habits" id="onboardHabits"></div>
+    <div class="modal-acts">
+      <button class="btn btn-g" onclick="showOnboardStep(1)">← Back</button>
+      <button class="btn btn-p" onclick="showOnboardStep(3)">Next →</button>
+    </div>
+  </div>
+  <!-- Step 3 -->
+  <div class="onboard-step">
+    <div class="mf"><label>Your First Goal</label><input id="onboardGoal" placeholder="What do you want to achieve?"></div>
+    <div class="mf"><label>Category</label><select id="onboardGoalCat"><option>Personal</option><option>Academic</option><option>Career</option><option>Health</option><option>Creative</option></select></div>
+    <div class="modal-acts">
+      <button class="btn btn-g" onclick="showOnboardStep(2)">← Back</button>
+      <button class="btn btn-p" onclick="finishOnboarding()">Build My Dashboard</button>
+    </div>
+  </div>
+</div></div>
+
+<div class="modal-bg" id="mSessionDetail"><div class="modal">
+  <h2 id="sdTitle">Session</h2>
+  <div id="sdDate" style="font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px"></div>
+  <div id="sdExercises"></div>
+  <div class="modal-acts"><button class="btn btn-p" onclick="closeModal('mSessionDetail')">Done</button></div>
+</div></div>
+
 <div class="modal-bg" id="mStreaks"><div class="modal">
   <h2>Edit Streaks</h2>
   <div class="mf"><label><input type="checkbox" id="st-prayer" onchange="toggleStreakOption('prayer',this.checked)"> Prayer (All 5)</label></div>
@@ -850,6 +934,7 @@ main{flex:1; padding:26px 44px 60px;}
 <script src="./Renderer/goals.js"></script>
 <script src="./Renderer/projects.js"></script>
 <script src="./Renderer/media.js"></script>
+<script src="./Renderer/review.js"></script>
 <script src="./Renderer/modals.js"></script>
 <script src="./Renderer/app.js"></script>
 <script>

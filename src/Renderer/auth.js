@@ -12,8 +12,19 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   }
 });
 
-let currentUser = null;
+let currentUser  = null;
+let currentProfile = null;
 let authMode = 'login';
+
+async function loadProfile() {
+  if (!currentUser) return;
+  const { data } = await sb
+    .from('profiles')
+    .select('username, avatar_url')
+    .eq('id', currentUser.id)
+    .single();
+  currentProfile = data || {};
+}
 
 function setAuthMode(mode, btn) {
   authMode = mode;
@@ -62,8 +73,11 @@ async function doAuth() {
   }
 
   currentUser = res.data.user;
+  await loadProfile();
   eid('authScreen').classList.add('hidden');
   eid('userEmail').textContent = currentUser.email;
+  localStorage.setItem('aos_user_exists', 'true');
+  subscribeToSync();
   await bootApp();
 }
 
@@ -165,8 +179,11 @@ window.addEventListener('DOMContentLoaded', async () => {
   const { data: { session } } = await sb.auth.getSession();
   if (session && session.user) {
     currentUser = session.user;
+    await loadProfile();
     eid('authScreen').classList.add('hidden');
     eid('userEmail').textContent = currentUser.email;
+    localStorage.setItem('aos_user_exists', 'true');
+    subscribeToSync();
     await bootApp();
   }
 });

@@ -21,6 +21,27 @@ function setSyncStatus(status) {
 }
 
 let saveTimer;
+let lastSaveTime = 0;
+let syncChannel = null;
+
+function subscribeToSync() {
+  if (!currentUser) return;
+  if (syncChannel) { sb.removeChannel(syncChannel); syncChannel = null; }
+  syncChannel = sb.channel('sync:' + currentUser.id)
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'app_data',
+      filter: `user_id=eq.${currentUser.id}`
+    }, payload => {
+      if (Date.now() - lastSaveTime < 3000) return;
+      if (!payload.new?.data) return;
+      S = normalizeAppState(payload.new.data);
+      setSyncStatus('synced');
+      if (typeof renderAll === 'function') renderAll();
+    })
+    .subscribe();
+}
 
 function scheduleSave() {
   setSyncStatus('syncing');
@@ -33,6 +54,7 @@ async function saveToSupabase() {
 
   setSyncStatus('syncing');
   const json = JSON.stringify(S);
+  lastSaveTime = Date.now();
 
   try {
     await window.api.cacheSave(json);

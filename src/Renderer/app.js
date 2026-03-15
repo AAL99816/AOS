@@ -5,9 +5,9 @@ function renderHeroProfile(){
   const av = eid('heroAvatar');
   const un = eid('heroUsernameInp');
   if(!av || !un) return;
-  const meta = (typeof currentUser !== 'undefined' && currentUser?.user_metadata) || {};
-  const avatarUrl = meta.avatar_url || '';
-  const username  = meta.username  || '';
+  const prof      = (typeof currentProfile !== 'undefined' && currentProfile) || {};
+  const avatarUrl = prof.avatar_url || '';
+  const username  = prof.username   || '';
   const initials  = (username || (typeof currentUser !== 'undefined' && currentUser?.email) || '?')[0].toUpperCase();
   av.innerHTML = avatarUrl
     ? `<img src="${escapeAttr(avatarUrl)}" alt=""><input type="file" accept="image/*" onchange="uploadAvatar(this)">`
@@ -17,21 +17,24 @@ function renderHeroProfile(){
 
 async function uploadAvatar(input){
   const f = input.files[0];
-  if(!f || typeof currentUser === 'undefined' || !currentUser) return;
+  if(!f || !currentUser) return;
   try{
     const url = await uploadAsset('avatar', f);
-    await sb.auth.updateUser({ data:{ avatar_url: url } });
-    if(currentUser.user_metadata) currentUser.user_metadata.avatar_url = url;
+    await sb.from('profiles').upsert({ id: currentUser.id, avatar_url: url }, { onConflict: 'id' });
+    if(!currentProfile) currentProfile = {};
+    currentProfile.avatar_url = url;
     renderHeroProfile();
     toast('Avatar updated');
   } catch { toast('Could not upload avatar'); }
 }
 
 async function saveUsername(val){
-  if(typeof currentUser === 'undefined' || !currentUser) return;
+  if(!currentUser) return;
   const username = val.trim().replace(/[^a-zA-Z0-9_]/g,'').slice(0,30);
-  await sb.auth.updateUser({ data:{ username } });
-  if(currentUser.user_metadata) currentUser.user_metadata.username = username;
+  if(!username) return;
+  await sb.from('profiles').upsert({ id: currentUser.id, username }, { onConflict: 'id' });
+  if(!currentProfile) currentProfile = {};
+  currentProfile.username = username;
   toast('Username saved');
 }
 
@@ -69,6 +72,69 @@ function go(name,btn){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   eid('panel-'+name).classList.add('active');if(btn)btn.classList.add('active');
+  if(name==='review' && typeof renderWeeklyReview==='function') renderWeeklyReview();
+}
+
+/* ══ ONBOARDING ══ */
+const HABIT_PRESETS=[
+  'Prayer (All 5)','Gym / Lift','Cardio / Walk','Reading',
+  'Study / Deep Work','Sleep On Time','Hydration','Stretch / Mobility',
+  'Journal / Reflect','Cold Shower'
+];
+let _selectedHabits=new Set(['Prayer (All 5)','Gym / Lift','Cardio / Walk','Reading','Study / Deep Work','Sleep On Time']);
+
+function showOnboarding(){
+  _selectedHabits=new Set(['Prayer (All 5)','Gym / Lift','Cardio / Walk','Reading','Study / Deep Work','Sleep On Time']);
+  renderOnboardHabits();
+  showOnboardStep(1);
+  openModal('mOnboard');
+}
+
+function showOnboardStep(n){
+  document.querySelectorAll('.onboard-step').forEach((s,i)=>s.classList.toggle('active',i+1===n));
+  document.querySelectorAll('.onboard-pip').forEach((p,i)=>p.classList.toggle('done',i<n));
+}
+
+function toggleOnboardHabit(name){
+  if(_selectedHabits.has(name)) _selectedHabits.delete(name);
+  else _selectedHabits.add(name);
+  renderOnboardHabits();
+}
+
+function renderOnboardHabits(){
+  const c=eid('onboardHabits');if(!c)return;
+  c.innerHTML=HABIT_PRESETS.map(h=>`
+    <div class="onboard-habit-opt${_selectedHabits.has(h)?' selected':''}" onclick="toggleOnboardHabit('${escapeAttr(h)}')">
+      <div class="onboard-check">${_selectedHabits.has(h)?'✓':''}</div>
+      <span>${escapeHtml(h)}</span>
+    </div>`).join('');
+}
+
+function finishOnboarding(){
+  const displayName=(eid('onboardName').value||'').trim();
+  const username=(eid('onboardUsername').value||'').trim().replace(/[^a-zA-Z0-9_]/g,'').slice(0,30);
+  const goalText=(eid('onboardGoal').value||'').trim();
+  const goalCat=eid('onboardGoalCat').value||'Personal';
+
+  S.appTitle = displayName ? displayName+"'s OS" : 'My OS';
+  S.appSub   = '';
+  S.habits   = [..._selectedHabits].map((name,i)=>makeHabit({id:Date.now()+i,name}));
+  S.goals    = goalText ? [makeGoal({id:Date.now(),text:goalText,category:goalCat,progress:0})] : [];
+  S.projects = [];
+  S.onboarded= true;
+
+  closeModal('mOnboard');
+
+  if(username && currentUser){
+    sb.from('profiles').upsert({ id: currentUser.id, username }, { onConflict: 'id' }).then(()=>{
+      if(!currentProfile) currentProfile = {};
+      currentProfile.username = username;
+      renderHeroProfile();
+    });
+  }
+  scheduleSave();
+  renderAll();
+  toast('Welcome to AOS');
 }
 
 /* ══ TODAY SUMMARY ══ */
@@ -179,10 +245,18 @@ function setupInlineEdits(){
 
 /* ══ INIT ══ */
 async function initApp(){
-  await loadFromSupabase();
+  const hasData = await loadFromSupabase();
   eid('dateBadge').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   setupInlineEdits();
   renderHeroProfile();
+
+  const knownUser = localStorage.getItem('aos_user_exists')==='true';
+  if(!hasData && !knownUser){
+    renderAll();
+    showOnboarding();
+    return;
+  }
+  if(!S.onboarded){ S.onboarded=true; scheduleSave(); }
   renderAll();
 }
 
