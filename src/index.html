@@ -2,8 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>AOS</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AOS">
+<link rel="apple-touch-icon" href="/icons/icon.svg">
 <!-- Supabase JS client — loaded from CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
@@ -72,11 +78,20 @@ body::after{
   font-family:'Cormorant Garamond',serif; font-size:2.2rem; font-weight:300;
   background:linear-gradient(135deg,var(--cream) 0%,var(--petal) 60%,var(--blush) 100%);
   -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-  margin-bottom:6px; text-align:center;
+  margin-bottom:3px; text-align:center;
+}
+.auth-box .auth-tagline{
+  font-family:'Cormorant Garamond',serif; font-style:italic; font-size:0.95rem;
+  color:var(--muted-lt); text-align:center; margin-bottom:6px;
+}
+.auth-box .auth-modules{
+  font-size:0.58rem; color:var(--muted); letter-spacing:0.12em;
+  text-transform:uppercase; text-align:center; margin-bottom:6px; line-height:1.9;
 }
 .auth-box .auth-sub{
-  font-size:0.68rem; color:var(--muted); letter-spacing:0.15em;
-  text-transform:uppercase; text-align:center; margin-bottom:28px;
+  font-size:0.62rem; color:var(--muted); letter-spacing:0.15em;
+  text-transform:uppercase; text-align:center; margin-bottom:24px;
+  padding-top:10px; border-top:1px solid var(--border);
 }
 .auth-tabs{display:flex; gap:4px; margin-bottom:22px;}
 .auth-tab{
@@ -117,6 +132,18 @@ body::after{
 .sync-dot.syncing {background:var(--gold-lt); animation:pulse 1s infinite;}
 .sync-dot.offline {background:#f09090;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+
+/* ══ AVATAR ══ */
+.hero-left{display:flex;align-items:flex-end;gap:14px;}
+.hero-avatar-wrap{display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0;}
+.hero-avatar{width:46px;height:46px;border-radius:50%;border:1.5px solid var(--border-lt);overflow:hidden;cursor:pointer;position:relative;background:linear-gradient(135deg,rgba(139,50,82,0.40),rgba(26,10,15,0.85));display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:1.2rem;color:var(--petal);transition:border-color 0.2s;flex-shrink:0;}
+.hero-avatar:hover{border-color:var(--blush);}
+.hero-avatar img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
+.hero-avatar input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.hero-username-inp{font-size:0.58rem;color:var(--muted-lt);font-family:'DM Mono',monospace;letter-spacing:0.08em;text-align:center;width:68px;background:transparent;border:none;outline:none;border-bottom:1px solid transparent;transition:border-color 0.18s;}
+.hero-username-inp:hover{border-bottom-color:rgba(192,96,122,0.25);}
+.hero-username-inp:focus{border-bottom-color:var(--blush);}
+.hero-username-inp::placeholder{color:var(--muted);opacity:0.5;}
 
 /* ══ HERO ══ */
 .hero{position:relative; height:200px; overflow:hidden; display:flex; align-items:flex-end; border-bottom:1px solid var(--border);}
@@ -504,6 +531,25 @@ main{flex:1; padding:26px 44px 60px;}
   .hero-content,nav,main,.sbar{padding-left:18px;padding-right:18px;}
   .today-top,.goals-grid,.g2,.g3{grid-template-columns:1fr;}
   .gym-week{grid-template-columns:repeat(4,1fr);}
+  .books-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));}
+}
+@media(max-width:600px){
+  nav{overflow-x:auto;overflow-y:hidden;gap:0;scrollbar-width:none;}
+  nav::-webkit-scrollbar{display:none;}
+  .tab{padding:12px 13px;font-size:0.65rem;}
+  .hero-title h1{font-size:2rem;}
+  .hero{height:170px;}
+  .hero-content{padding:0 18px 18px;}
+  .hero-right{gap:6px;}
+  .hero-upload-btn{display:none;}
+  .prayer-grid{flex-wrap:wrap;}
+  .prayer-slot{min-width:56px;}
+  .habit-days{gap:3px;}
+  .day-dot{width:20px;height:20px;font-size:0.48rem;}
+  .gym-week{grid-template-columns:repeat(4,1fr);}
+  .progs-grid{grid-template-columns:1fr;}
+  main{padding:18px 18px 80px;}
+  .today-top{gap:12px;}
 }
 </style>
 </head>
@@ -514,6 +560,8 @@ main{flex:1; padding:26px 44px 60px;}
 <div id="authScreen">
   <div class="auth-box">
     <h1>AOS</h1>
+    <div class="auth-tagline">Personal Life OS</div>
+    <div class="auth-modules">Prayer · Habits · Fitness · Goals<br>Projects · Media · Notes</div>
     <div class="auth-sub">Sign in to sync across devices</div>
     <div class="auth-tabs">
       <button class="auth-tab active" onclick="setAuthMode('login',this)">Sign In</button>
@@ -537,9 +585,15 @@ main{flex:1; padding:26px 44px 60px;}
   <img class="hero-img" id="heroImg" src="" alt="">
   <div class="hero-overlay"></div>
   <div class="hero-content">
-    <div class="hero-title">
-      <h1 id="appTitle" contenteditable="true" spellcheck="false">AOS</h1>
-      <div class="sub" id="appSub" contenteditable="true" spellcheck="false">Kuwait · Fall 2026</div>
+    <div class="hero-left">
+      <div class="hero-avatar-wrap">
+        <div id="heroAvatar" class="hero-avatar"></div>
+        <input id="heroUsernameInp" class="hero-username-inp" placeholder="@username" onchange="saveUsername(this.value)">
+      </div>
+      <div class="hero-title">
+        <h1 id="appTitle" contenteditable="true" spellcheck="false">AOS</h1>
+        <div class="sub" id="appSub" contenteditable="true" spellcheck="false">Kuwait · Fall 2026</div>
+      </div>
     </div>
     <div class="hero-right">
       <div class="date-badge" id="dateBadge"></div>
@@ -798,5 +852,10 @@ main{flex:1; padding:26px 44px 60px;}
 <script src="./Renderer/media.js"></script>
 <script src="./Renderer/modals.js"></script>
 <script src="./Renderer/app.js"></script>
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
+</script>
 </body>
 </html>

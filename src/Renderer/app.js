@@ -1,5 +1,40 @@
 'use strict';
 
+/* ══ PROFILE ══ */
+function renderHeroProfile(){
+  const av = eid('heroAvatar');
+  const un = eid('heroUsernameInp');
+  if(!av || !un) return;
+  const meta = (typeof currentUser !== 'undefined' && currentUser?.user_metadata) || {};
+  const avatarUrl = meta.avatar_url || '';
+  const username  = meta.username  || '';
+  const initials  = (username || (typeof currentUser !== 'undefined' && currentUser?.email) || '?')[0].toUpperCase();
+  av.innerHTML = avatarUrl
+    ? `<img src="${escapeAttr(avatarUrl)}" alt=""><input type="file" accept="image/*" onchange="uploadAvatar(this)">`
+    : `<span>${escapeHtml(initials)}</span><input type="file" accept="image/*" onchange="uploadAvatar(this)">`;
+  un.value = username;
+}
+
+async function uploadAvatar(input){
+  const f = input.files[0];
+  if(!f || typeof currentUser === 'undefined' || !currentUser) return;
+  try{
+    const url = await uploadAsset('avatar', f);
+    await sb.auth.updateUser({ data:{ avatar_url: url } });
+    if(currentUser.user_metadata) currentUser.user_metadata.avatar_url = url;
+    renderHeroProfile();
+    toast('Avatar updated');
+  } catch { toast('Could not upload avatar'); }
+}
+
+async function saveUsername(val){
+  if(typeof currentUser === 'undefined' || !currentUser) return;
+  const username = val.trim().replace(/[^a-zA-Z0-9_]/g,'').slice(0,30);
+  await sb.auth.updateUser({ data:{ username } });
+  if(currentUser.user_metadata) currentUser.user_metadata.username = username;
+  toast('Username saved');
+}
+
 /* ══ HERO ══ */
 async function uploadHero(input){
   const f = input.files[0];
@@ -147,6 +182,7 @@ async function initApp(){
   await loadFromSupabase();
   eid('dateBadge').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   setupInlineEdits();
+  renderHeroProfile();
   renderAll();
 }
 

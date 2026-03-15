@@ -1,0 +1,24 @@
+{
+  "name": "AOS — Personal Life OS",
+  "short_name": "AOS",
+  "description": "Prayer, habits, fitness, goals, projects, and media — all in one place.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a0a0f",
+  "theme_color": "#1a0a0f",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
