@@ -30,7 +30,7 @@ function setAuthMode(mode, btn) {
   authMode = mode;
   document.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  eid('authBtn').textContent = mode === 'login' ? 'Sign In' : 'Create Account';
+  eid('authBtn').textContent = mode === 'login' ? t('sign_in') : t('create_account');
   eid('authMsg').textContent = '';
 }
 
@@ -39,7 +39,7 @@ async function doAuth() {
   const pass = eid('authPass').value;
 
   if (!email || !pass) {
-    showAuthMsg('Please fill in both fields.', true);
+    showAuthMsg(t('fill_both_fields'), true);
     return;
   }
 
@@ -60,7 +60,7 @@ async function doAuth() {
   }
 
   eid('authBtn').disabled = false;
-  eid('authBtn').textContent = authMode === 'login' ? 'Sign In' : 'Create Account';
+  eid('authBtn').textContent = authMode === 'login' ? t('sign_in') : t('create_account');
 
   if (res.error) {
     showAuthMsg(res.error.message, true);
@@ -68,7 +68,7 @@ async function doAuth() {
   }
 
   if (authMode === 'signup' && !res.data.session) {
-    showAuthMsg('Check your email to confirm your account, then sign in.', false);
+    showAuthMsg(t('check_email'), false);
     return;
   }
 

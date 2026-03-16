@@ -1,13 +1,19 @@
 'use strict';
 
 const PRAYERS = ['fajr','dhuhr','asr','maghrib','isha'];
-const PRAYER_LABEL = {fajr:'Fajr',dhuhr:'Dhuhr',asr:'Asr',maghrib:'Maghrib',isha:'Isha'};
+/* PRAYER_LABEL resolves translations at call time */
+const PRAYER_LABEL = new Proxy({}, {
+  get(_, key) {
+    if (typeof t === 'function' && PRAYERS.includes(key)) return t(key);
+    return {fajr:'Fajr',dhuhr:'Dhuhr',asr:'Asr',maghrib:'Maghrib',isha:'Isha'}[key] || key;
+  }
+});
 
 function togglePrayer(name){
-  const t=today();
+  const d=today();
   if(!S.prayerLog) S.prayerLog={};
-  if(!S.prayerLog[t]) S.prayerLog[t]={};
-  S.prayerLog[t][name]=!S.prayerLog[t][name];
+  if(!S.prayerLog[d]) S.prayerLog[d]={};
+  S.prayerLog[d][name]=!S.prayerLog[d][name];
   scheduleSave();
   renderPrayer();
   if(typeof renderTodaySummary==='function') renderTodaySummary();
@@ -36,7 +42,7 @@ function renderPrayer(){
         </div>`;
       }).join('')}
     </div>
-    ${allDone?`<div style="text-align:center;margin-top:12px;font-size:0.68rem;color:var(--gold-lt);font-family:'Cormorant Garamond',serif;font-style:italic;letter-spacing:0.04em;">All five — complete.</div>`:''}
+    ${allDone?`<div style="text-align:center;margin-top:12px;font-size:0.68rem;color:var(--gold-lt);font-family:'Cormorant Garamond',serif;font-style:italic;letter-spacing:0.04em;">${t('all_five_complete')}</div>`:''}
   `;
 }
 
@@ -72,12 +78,20 @@ function toggleH(id,date){
   if(!h)return;
   if(!h.days)h.days={};
   h.days[date]=!h.days[date];
+
+  /* sync gym log when toggling a gym-type habit */
+  if(hmatch(h,'gym','lift','workout','training','weights')){
+    if(!S.gymLog) S.gymLog={};
+    S.gymLog[date]=!!h.days[date];
+    if(typeof renderGymWeek==='function') renderGymWeek();
+  }
+
   scheduleSave();
   renderHabits();
 }
 
 function delHabit(id){
-  if(!confirm('Remove habit?'))return;
+  if(!confirm(t('remove_habit')))return;
   S.habits=S.habits.filter(h=>h.id!==id);
   scheduleSave();
   renderHabits();
@@ -123,11 +137,11 @@ function prayerStreak(){
 }
 
 const STREAK_DEFS=[
-  {key:'prayer',label:'Prayer',val:()=>prayerStreak()},
-  {key:'cardio',label:'Cardio',val:()=>streakOf(hfind('cardio','walk','run','jog','cycle'))},
-  {key:'gym',label:'Gym',val:()=>streakOf(hfind('gym','lift','workout','training','weights'))},
-  {key:'read',label:'Reading',val:()=>streakOf(hfind('read','reading','book'))},
-  {key:'study',label:'Study',val:()=>streakOf(hfind('study','deep work','revision','research'))}
+  {key:'prayer',labelKey:'prayer',val:()=>prayerStreak()},
+  {key:'cardio',labelKey:'cardio',val:()=>streakOf(hfind('cardio','walk','run','jog','cycle'))},
+  {key:'gym',labelKey:'gym',val:()=>streakOf(hfind('gym','lift','workout','training','weights'))},
+  {key:'read',labelKey:'reading_streak',val:()=>streakOf(hfind('read','reading','book'))},
+  {key:'study',labelKey:'study',val:()=>streakOf(hfind('study','deep work','revision','research'))}
 ];
 
 function updateStreaks(){
@@ -137,7 +151,7 @@ function updateStreaks(){
     if(p[s.key]===false)return;
     const row=document.createElement('div');
     row.className='streak-row';
-    row.innerHTML=`<span class="streak-lbl">${s.label}</span><span class="streak-val">${s.val()}d</span>`;
+    row.innerHTML=`<span class="streak-lbl">${typeof t==='function'?t(s.labelKey):(s.labelKey)}</span><span class="streak-val">${s.val()}d</span>`;
     c.appendChild(row);
   });
 }

@@ -74,7 +74,7 @@ function renderGymWeek() {
         onclick="event.stopPropagation();toggleRestDay(${i})"
         title="${isRest ? 'Mark as training day' : 'Mark as rest day'}"
         style="margin-top:5px;background:none;border:1px solid ${isRest ? 'rgba(192,96,122,0.18)' : 'rgba(192,96,122,0.35)'};border-radius:5px;color:${isRest ? 'var(--muted)' : 'var(--blush)'};font-size:0.5rem;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;padding:2px 5px;cursor:pointer;transition:all 0.15s;"
-      >${isRest ? 'gym' : 'rest'}</button>
+      >${isRest ? t('gym') : t('rest')}</button>
     `;
 
     div.addEventListener('click', () => {
@@ -173,14 +173,14 @@ function renderWorkoutCards() {
               <div style="display:flex;align-items:center;gap:6px;margin-top:7px;padding-left:14px;">
                 <input class="add-inp" id="logW-${ex.id}" type="number" step="0.5" placeholder="kg" style="width:78px;flex:none;">
                 <input class="add-inp" id="logR-${ex.id}" type="number" placeholder="reps" style="width:78px;flex:none;">
-                <button class="btn btn-g" style="font-size:0.66rem;padding:4px 9px" onclick="logExercise(${wc.id},${ex.id})">Log</button>
+                <button class="btn btn-g" style="font-size:0.66rem;padding:4px 9px" onclick="logExercise(${wc.id},${ex.id})">${t('log')}</button>
               </div>
 
               <div style="margin-top:6px;padding-left:14px;font-size:0.64rem;color:var(--muted-lt);font-family:'DM Mono',monospace;">
                 ${
                   last
-                    ? `Last: ${last.weight}kg × ${last.reps}${pct !== null ? ` <span style="color:var(--gold-lt)">${fmtPct(pct)}</span>` : ''}`
-                    : 'No log yet'
+                    ? `${t('last_colon')} ${last.weight}kg × ${last.reps}${pct !== null ? ` <span style="color:var(--gold-lt)">${fmtPct(pct)}</span>` : ''}`
+                    : t('no_log_yet')
                 }
               </div>
             </div>
@@ -191,12 +191,12 @@ function renderWorkoutCards() {
       <div class="add-ex-row" style="margin-top:9px">
         <input class="add-inp" id="exN-${wc.id}" placeholder="Exercise…" style="flex:1">
         <input class="add-inp" id="exS-${wc.id}" placeholder="3×10" style="width:56px;flex:none">
-        <button class="btn btn-g" style="font-size:0.68rem;padding:4px 9px" onclick="addEx(${wc.id})">+ Add</button>
+        <button class="btn btn-g" style="font-size:0.68rem;padding:4px 9px" onclick="addEx(${wc.id})">+ ${t('add')}</button>
       </div>
 
       <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;">
-        <button class="btn btn-d" style="font-size:0.66rem;padding:4px 9px" onclick="delWorkoutCard(${wc.id})">Remove</button>
-        <button class="btn btn-p" style="font-size:0.68rem;padding:5px 10px" onclick="logWorkoutSession(${wc.id})">Log Session</button>
+        <button class="btn btn-d" style="font-size:0.66rem;padding:4px 9px" onclick="delWorkoutCard(${wc.id})">${t('remove')}</button>
+        <button class="btn btn-p" style="font-size:0.68rem;padding:5px 10px" onclick="logWorkoutSession(${wc.id})">${t('log_session')}</button>
       </div>
     `;
 
@@ -215,11 +215,11 @@ function renderTrainingLog(){
 
   const sec = document.createElement('div');
   sec.className = 'sec';
-  sec.innerHTML = `Training Log <span class="lbl">${hist.length} session${hist.length!==1?'s':''}</span>`;
+  sec.innerHTML = `${t('training_log')} <span class="lbl">${hist.length} ${hist.length!==1?t('sessions_plural_s'):t('sessions_plural')}</span>`;
   c.appendChild(sec);
 
   if(!hist.length){
-    c.innerHTML += `<div style="text-align:center;padding:40px 24px"><div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:10px">◆</div><div style="font-size:0.66rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">No sessions logged yet</div></div>`;
+    c.innerHTML += `<div style="text-align:center;padding:40px 24px"><div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:10px">◆</div><div style="font-size:0.66rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">${t('no_sessions')}</div></div>`;
     return;
   }
 

@@ -153,7 +153,7 @@ function calmInsight(t, habitsDone, habitsTotal, gymDone, cardioMins){
 
   if(gymDone && cardioMins >= 30) return 'Gym and cardio both done. Rest well tonight.';
   if(gymDone) return 'Gym done. The work is in.';
-  if(cardioMins >= 30) return `${cardioMins} min of cardio — goal met.`;
+  if(cardioMins >= 30) return `${cardioMins} ${t('min')} of cardio — goal met.`;
 
   const readH = (typeof hfind !== 'undefined') ? hfind('read','reading','book') : null;
   const readStr = readH ? calcStreak(readH.days||{}) : 0;
@@ -161,9 +161,9 @@ function calmInsight(t, habitsDone, habitsTotal, gymDone, cardioMins){
   if(readStr >= 3) return `${readStr} days of reading in a row.`;
 
   if(habitsTotal && habitsDone === 0 && hour >= 15) return 'Nothing logged yet — the day still has room.';
-  if(hour < 10) return 'Morning. The day is open.';
-  if(hour < 17) return 'Afternoon. Build on what you started.';
-  return 'Evening. Reflect, rest, reset.';
+  if(hour < 10) return t('morning_msg');
+  if(hour < 17) return t('afternoon_msg');
+  return t('evening_msg');
 }
 
 function renderTodaySummary(){
@@ -181,17 +181,17 @@ function renderTodaySummary(){
   const insight     = calmInsight(t, habitsDone, habitsTotal, gymDone, cardioMins);
 
   const stats = [
-    {label:'Habits',  val: habitsTotal ? `${habitsDone} / ${habitsTotal}` : '—'},
-    {label:'Gym',     val: gymDone ? '✓ done' : 'not logged'},
-    ...(cardioMins>0 ? [{label:'Cardio', val:`${cardioMins} min`}] : []),
-    ...(activeMedia   ? [{label: activeMedia.mediaType==='book' ? 'Reading' : 'Watching', val:activeMedia.title}] : []),
-    ...(activeGoals>0 ? [{label:'Goals',    val:`${activeGoals} active`}] : []),
-    ...(activeProjs>0 ? [{label:'Projects', val:`${activeProjs} active`}] : []),
+    {label:t('habits'),  val: habitsTotal ? `${habitsDone} / ${habitsTotal}` : '—'},
+    {label:t('gym'),     val: gymDone ? `✓ ${t('done')}` : t('not_logged')},
+    ...(cardioMins>0 ? [{label:t('cardio'), val:`${cardioMins} ${t('min')}`}] : []),
+    ...(activeMedia   ? [{label: activeMedia.mediaType==='book' ? t('reading') : t('watching'), val:activeMedia.title}] : []),
+    ...(activeGoals>0 ? [{label:t('goals'),    val:`${activeGoals} ${t('active')}`}] : []),
+    ...(activeProjs>0 ? [{label:t('projects'), val:`${activeProjs} ${t('active')}`}] : []),
   ];
 
   c.innerHTML = `
     <div class="card" style="padding:14px 20px">
-      <div style="font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--blush);font-family:'DM Mono',monospace;margin-bottom:12px">Today at a Glance</div>
+      <div style="font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--blush);font-family:'DM Mono',monospace;margin-bottom:12px">${t('today_glance')}</div>
       <div style="display:flex;gap:28px;flex-wrap:wrap">
         ${stats.map(s=>`
           <div>

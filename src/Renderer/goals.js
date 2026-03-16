@@ -18,7 +18,7 @@ function renderGoals() {
   const cats = Object.keys(grouped);
 
   if (!cats.length) {
-    c.innerHTML = `<div style="grid-column:span 2;text-align:center;padding:48px 24px"><div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:10px">◆</div><div style="font-size:0.66rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">No goals yet</div></div>`;
+    c.innerHTML = `<div style="grid-column:span 2;text-align:center;padding:48px 24px"><div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:10px">◆</div><div style="font-size:0.66rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">${t('no_goals')}</div></div>`;
     return;
   }
 
@@ -55,6 +55,10 @@ function renderGoals() {
           <input class="editable" style="font-size:0.62rem;color:var(--blush);font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;width:50%" value="${escapeAttr(g.type||'')}" placeholder="type" onchange="updateGoalField(${g.id},'type',this.value)">
           <input class="editable" style="font-size:0.62rem;color:var(--blush);font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;width:50%" value="${escapeAttr(g.context||'')}" placeholder="context" onchange="updateGoalField(${g.id},'context',this.value)">
         </div>
+        <select class="editable" style="font-size:0.62rem;color:var(--muted-lt);font-family:'DM Mono',monospace;width:100%;margin-bottom:6px;background:transparent;border:1px solid var(--border);border-radius:5px;padding:3px 6px;" onchange="updateGoalField(${g.id},'projectId',this.value||null)">
+          <option value="">${t('no_project')}</option>
+          ${(S.projects||[]).map(p=>`<option value="${p.id}"${String(g.projectId)===String(p.id)?' selected':''}>${escapeHtml(p.title)}</option>`).join('')}
+        </select>
 
         <textarea class="editable-area" style="font-size:0.72rem;color:var(--muted);margin-bottom:7px;min-height:42px;" placeholder="Notes…" onchange="updateGoalField(${g.id},'notes',this.value)">${escapeHtml(g.notes||'')}</textarea>
 
@@ -135,7 +139,7 @@ function setGoalPct(id, value) {
 }
 
 function delGoal(id) {
-  if (!confirm('Delete this project/goal?')) return;
+  if (!confirm(t('remove_project'))) return;
 
   S.goals = S.goals.filter(x => x.id !== id);
   scheduleSave();
@@ -163,7 +167,7 @@ function saveGoal() {
   closeModal('mGoal');
   scheduleSave();
   renderGoals();
-  toast('Goal added');
+  toast(t('goal_added'));
 }
 
 function resetGoalModal() {

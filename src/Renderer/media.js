@@ -8,25 +8,25 @@ let activeBookId = null;
 const MEDIA_TYPES = ['book','show','anime','film','other'];
 
 function mediaStatusLabel(status, mediaType) {
-  if (mediaType === 'film') return {unread:'Queued', reading:'—', done:'Watched'}[status] || 'Queued';
-  if (mediaType === 'book') return {unread:'To Read', reading:'Reading', done:'Finished'}[status] || 'To Read';
-  return {unread:'Queued', reading:'Watching', done:'Finished'}[status] || 'Queued';
+  if (mediaType === 'film') return {unread:t('queued'), reading:'—', done:t('watched')}[status] || t('queued');
+  if (mediaType === 'book') return {unread:t('to_read'), reading:t('reading'), done:t('finished')}[status] || t('to_read');
+  return {unread:t('queued'), reading:t('watching'), done:t('finished')}[status] || t('queued');
 }
 
-function mediaTypeLabel(t) {
-  return {book:'Book', show:'Show', anime:'Anime', film:'Film', other:'Other'}[t] || 'Other';
+function mediaTypeLabel(mt) {
+  return {book:t('book'), show:t('show'), anime:t('anime'), film:t('film'), other:t('other')}[mt] || t('other');
 }
 
-function mediaCreatorLabel(t) {
-  return t === 'film' ? 'Director' : t === 'book' ? 'Author' : 'Creator';
+function mediaCreatorLabel(mt) {
+  return mt === 'film' ? t('director') : mt === 'book' ? t('author') : t('creator');
 }
 
-function mediaUnitLabel(t) {
-  return (t === 'show' || t === 'anime') ? 'Episode' : 'Page';
+function mediaUnitLabel(mt) {
+  return (mt === 'show' || mt === 'anime') ? t('episode') : t('page');
 }
 
-function mediaNotesLabel(t) {
-  return (t === 'show' || t === 'anime') ? 'Episode Notes' : t === 'film' ? 'Notes' : 'Chapter Notes';
+function mediaNotesLabel(mt) {
+  return (mt === 'show' || mt === 'anime') ? t('episode_notes') : mt === 'film' ? t('notes') : t('chapter_notes');
 }
 
 function getBookPct(item) {
@@ -49,7 +49,7 @@ function renderBooks() {
   if (bookF !== 'all') list = list.filter(b => b.status === bookF);
 
   if (!list.length) {
-    c.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px 24px"><div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:10px">◆</div><div style="font-size:0.66rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">Nothing here yet</div></div>`;
+    c.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px 24px"><div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:10px">◆</div><div style="font-size:0.66rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">${t('nothing_here')}</div></div>`;
     return;
   }
 
@@ -73,7 +73,7 @@ function renderBooks() {
           ? `<img src="${escapeAttr(b.coverUrl)}" alt="">`
           : `<div class="book-cover-ph"><div class="ph-icon">◆</div><div>${escapeHtml(b.title)}</div></div>`}
         <div class="book-cover-overlay" onclick="event.stopPropagation()">
-          <span>Add Cover</span>
+          <span>${t('add_cover')}</span>
           <input type="file" accept="image/*" onchange="event.stopPropagation();uploadCover(${b.id},this)">
         </div>
       </div>
@@ -126,6 +126,8 @@ function cycleBook(id) {
     const rh = hfind('read','reading','book','watch');
     if (rh) rh.days[today()] = true;
   }
+  if (b.status === 'done' && !b.finishedOn) b.finishedOn = today();
+  if (b.status !== 'done') b.finishedOn = null;
   scheduleSave();
   renderBooks();
   renderHabits();
@@ -152,7 +154,7 @@ async function uploadCover(id, input) {
 }
 
 function delBook(id) {
-  if (!confirm('Remove this item?')) return;
+  if (!confirm(t('remove_item'))) return;
   S.media = (S.media||[]).filter(b => b.id !== id);
   if (activeBookId === id) { activeBookId = null; closeModal('mBookDetails'); }
   scheduleSave();
@@ -212,10 +214,10 @@ function renderBookDetails() {
   const statusSel = eid('bdStatus');
   const opts = statusSel.options;
   const labels = b.mediaType === 'book'
-    ? ['To Read','Reading','Finished']
+    ? [t('to_read'), t('reading'), t('finished')]
     : b.mediaType === 'film'
-    ? ['Queued','—','Watched']
-    : ['Queued','Watching','Finished'];
+    ? [t('queued'), '—', t('watched')]
+    : [t('queued'), t('watching'), t('finished')];
   for (let i = 0; i < opts.length; i++) opts[i].text = labels[i];
 
   const pct = getBookPct(b);
@@ -258,6 +260,8 @@ function updateActiveBookStatus(value) {
     if (rh) rh.days[today()] = true;
     renderHabits();
   }
+  if (b.status === 'done' && !b.finishedOn) b.finishedOn = today();
+  if (b.status !== 'done') b.finishedOn = null;
   scheduleSave(); renderBooks(); renderBookDetails();
 }
 
@@ -276,7 +280,10 @@ function updateActiveBookPages() {
   eid('bdCurrentPage').value = b.currentPage;
   eid('bdTotalPages').value  = b.totalPages;
   if (b.currentPage > 0 && b.status === 'unread') b.status = 'reading';
-  if (b.totalPages > 0 && b.currentPage >= b.totalPages) b.status = 'done';
+  if (b.totalPages > 0 && b.currentPage >= b.totalPages) {
+    if (b.status !== 'done') b.finishedOn = today();
+    b.status = 'done';
+  }
   if (b.status === 'reading') {
     const rh = hfind('read','reading','book','watch');
     if (rh) rh.days[today()] = true;

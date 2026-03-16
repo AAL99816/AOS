@@ -109,7 +109,8 @@ function makeMedia(m={}){
     coverUrl: m.coverUrl ?? '',
     currentPage: Number.isFinite(+m.currentPage) ? +m.currentPage : 0,
     totalPages: Number.isFinite(+m.totalPages) ? +m.totalPages : 0,
-    chapterNotes: Array.isArray(m.chapterNotes) ? m.chapterNotes : []
+    chapterNotes: Array.isArray(m.chapterNotes) ? m.chapterNotes : [],
+    finishedOn: m.finishedOn || null
   };
 }
 
@@ -130,7 +131,8 @@ function makeGoal(g={}){
     context: g.context ?? '',
     deadline: g.deadline ?? '',
     progress: Number.isFinite(+g.progress) ? Math.max(0, Math.min(100, +g.progress)) : 0,
-    notes: g.notes ?? ''
+    notes: g.notes ?? '',
+    projectId: g.projectId ?? null
   };
 }
   

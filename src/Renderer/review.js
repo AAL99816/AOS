@@ -1,6 +1,6 @@
 'use strict';
 
-let reviewWeekOffset = 0;
+let reviewWeekOffset = parseInt(sessionStorage.getItem('reviewWeekOffset') || '0', 10);
 
 function weekStartFor(offsetWeeks) {
   const d = new Date();
@@ -22,6 +22,7 @@ function weekDaysFor(start) {
 function changeReviewWeek(delta) {
   reviewWeekOffset += delta;
   if (reviewWeekOffset > 0) reviewWeekOffset = 0;
+  sessionStorage.setItem('reviewWeekOffset', reviewWeekOffset);
   renderWeeklyReview();
 }
 
@@ -65,6 +66,7 @@ function renderWeeklyReview() {
 
   /* ── Media ── */
   const activeMedia = (S.media||[]).filter(m => m.status === 'reading');
+  const finishedMedia = (S.media||[]).filter(m => m.status === 'done' && days.includes(m.finishedOn));
 
   /* ── Reflection ── */
   const reflection = (S.weeklyReflections||{})[start] || '';
@@ -74,7 +76,7 @@ function renderWeeklyReview() {
       <button class="btn btn-g" onclick="changeReviewWeek(-1)" style="padding:5px 14px">←</button>
       <div style="text-align:center">
         <div class="review-week-lbl">${fmt(start)} — ${fmt(end)}</div>
-        ${isCurr ? `<div style="font-size:0.55rem;color:var(--blush);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;margin-top:2px">This Week</div>` : ''}
+        ${isCurr ? `<div style="font-size:0.55rem;color:var(--blush);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;margin-top:2px">${t('this_week')}</div>` : ''}
       </div>
       <button class="btn btn-g" onclick="changeReviewWeek(1)" style="padding:5px 14px"${isCurr?' disabled':''}>→</button>
     </div>
@@ -82,7 +84,7 @@ function renderWeeklyReview() {
     <div class="review-grid">
 
       <div class="review-block">
-        <div class="review-kicker">Prayer · ${fullDays}/7 complete days</div>
+        <div class="review-kicker">${t('prayer')} · ${fullDays}/7 ${t('complete_days')}</div>
         ${prayerCounts.map(p => `
           <div class="review-prayer-row">
             <div class="review-prayer-name">${escapeHtml(p.label)}</div>
@@ -92,21 +94,21 @@ function renderWeeklyReview() {
       </div>
 
       <div class="review-block">
-        <div class="review-kicker">Fitness</div>
+        <div class="review-kicker">${t('nav_fitness')}</div>
         <div style="margin-bottom:12px">
-          <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px">Gym · ${gymDays} day${gymDays!==1?'s':''}</div>
+          <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px">${t('gym')} · ${gymDays} ${t('day_s')}</div>
           ${gymSessions.length
             ? gymSessions.map(s=>`<div style="font-size:0.76rem;color:var(--mist);padding:3px 0;border-bottom:1px solid rgba(192,96,122,0.07);cursor:pointer" onclick="openSessionDetail(${s.id})">${escapeHtml(s.date.slice(5))} · ${escapeHtml(s.title)}</div>`).join('')
-            : `<div style="font-size:0.7rem;color:var(--muted)">No sessions logged</div>`}
+            : `<div style="font-size:0.7rem;color:var(--muted)">${t('no_sessions_logged')}</div>`}
         </div>
-        <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Cardio</div>
+        <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">${t('cardio')}</div>
         <div style="font-size:0.9rem;color:${cardioTotal>0?'var(--gold-lt)':'var(--muted)'};font-family:'DM Mono',monospace">${cardioTotal>0?cardioTotal+' min':'—'}</div>
       </div>
 
     </div>
 
     <div class="review-block" style="margin-bottom:16px">
-      <div class="review-kicker">Habits</div>
+      <div class="review-kicker">${t('habits')}</div>
       ${habitStats.length
         ? habitStats.map(h => {
             const pct = Math.round(h.count / 7 * 100);
@@ -116,22 +118,29 @@ function renderWeeklyReview() {
               <div class="review-pct">${h.count}/7</div>
             </div>`;
           }).join('')
-        : `<div style="font-size:0.72rem;color:var(--muted)">No habits set</div>`}
+        : `<div style="font-size:0.72rem;color:var(--muted)">${t('no_habits_set')}</div>`}
     </div>
 
     ${activeMedia.length ? `
     <div class="review-block" style="margin-bottom:16px">
-      <div class="review-kicker">In Progress</div>
+      <div class="review-kicker">${t('in_progress')}</div>
       ${activeMedia.map(m=>`<div style="font-size:0.8rem;color:var(--mist);padding:3px 0">${escapeHtml(m.title)}<span style="color:var(--muted);font-size:0.65rem"> — ${escapeHtml(m.author||'')}</span></div>`).join('')}
     </div>` : ''}
 
+    ${finishedMedia.length ? `
+    <div class="review-block" style="margin-bottom:16px">
+      <div class="review-kicker">${t('finished_this_week')}</div>
+      ${finishedMedia.map(m=>`<div style="font-size:0.8rem;color:var(--gold-lt);padding:3px 0">✓ ${escapeHtml(m.title)}<span style="color:var(--muted);font-size:0.65rem"> — ${escapeHtml(m.author||'')}</span>${m.rating?`<span style="color:var(--gold);font-size:0.65rem;margin-left:6px">${'★'.repeat(m.rating)}</span>`:''}</div>`).join('')}
+    </div>` : ''}
+
     <div class="review-block">
-      <div class="review-kicker">Reflection</div>
+      <div class="review-kicker">${t('reflection')}</div>
       <textarea class="editable-area" rows="5"
-        placeholder="How was this week? What worked, what didn't, what carries forward…"
-        onchange="saveReflection(this.value)"
+        placeholder="How was this week? What worked, what didn't, what carries forward… (supports **bold**, *italic*, # headings, - lists)"
+        oninput="saveReflection(this.value)"
         style="font-size:0.8rem;color:var(--mist);line-height:1.65;"
       >${escapeHtml(reflection)}</textarea>
+      ${reflection ? `<div style="margin-top:8px;padding:10px 12px;background:rgba(192,96,122,0.05);border-radius:7px;font-size:0.78rem;color:var(--mist);line-height:1.7;">${renderMd(reflection)}</div>` : ''}
     </div>
   `;
 }

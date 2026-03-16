@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --check \"c:/Users/AI AL/Desktop/I am smart/AOS/AOS/src/Renderer/i18n.js\")",
+      "Bash(node --check \"c:/Users/AI AL/Desktop/I am smart/AOS/AOS/src/Renderer/utils.js\")",
+      "Bash(node --check \"c:/Users/AI AL/Desktop/I am smart/AOS/AOS/src/Renderer/habits.js\")",
+      "Bash(node --check \"c:/Users/AI AL/Desktop/I am smart/AOS/AOS/src/Renderer/fitness.js\")",
+      "Bash(node --check \"c:/Users/AI AL/Desktop/I am smart/AOS/AOS/src/Renderer/goals.js\")",
+      "Bash(node --check \"c:/Users/AI AL/Desktop/I am smart/AOS/AOS/src/Renderer/projects.js\")",
+      "Bash(node --check \"c:/Users/AI AL/Desktop/I am smart/AOS/AOS/src/Renderer/media.js\")",
+      "Bash(node --check \"c:/Users/AI AL/Desktop/I am smart/AOS/AOS/src/Renderer/review.js\")",
+      "Bash(node --check \"c:/Users/AI AL/Desktop/I am smart/AOS/AOS/src/Renderer/app.js\")",
+      "Bash(node --check \"c:/Users/AI AL/Desktop/I am smart/AOS/AOS/src/Renderer/auth.js\")",
+      "Bash(node.exe --check \"c:/Users/AI AL/Desktop/I am smart/AOS/AOS/src/Renderer/i18n.js\")",
+      "Bash(cmd /c \"node --version\")",
+      "Bash(cmd /c \"where node\")",
+      "Bash(cmd /c \"C:\\\\Program Files\\\\nodejs\\\\node.exe --check \"\"c:\\\\Users\\\\AI AL\\\\Desktop\\\\I am smart\\\\AOS\\\\AOS\\\\src\\\\Renderer\\\\i18n.js\"\" && echo i18n_OK\")",
+      "Bash(cmd /c \"npx --yes acorn --ecma2020 --module \"\"c:\\\\Users\\\\AI AL\\\\Desktop\\\\I am smart\\\\AOS\\\\AOS\\\\src\\\\Renderer\\\\i18n.js\"\" > nul 2>&1 && echo OK || echo FAIL\")"
+    ]
+  }
+}

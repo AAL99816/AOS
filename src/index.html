@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="/icons/icon.svg">
 <!-- Supabase JS client — loaded from CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500&family=DM+Mono:wght@300;400&family=Cairo:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root {
   --ink:       #1a0a0f;
@@ -584,6 +584,46 @@ main{flex:1; padding:26px 44px 60px;}
   main{padding:18px 18px 80px;}
   .today-top{gap:12px;}
 }
+
+/* ══ RTL / Arabic ══ */
+[dir="rtl"] body { font-family: 'Cairo', 'Jost', sans-serif; }
+[dir="rtl"] nav { direction: rtl; }
+[dir="rtl"] .hero-content { direction: rtl; }
+[dir="rtl"] .hero-left { flex-direction: row-reverse; }
+[dir="rtl"] .hero-right { flex-direction: row-reverse; }
+[dir="rtl"] .nav-right { margin-left: 0; margin-right: auto; flex-direction: row-reverse; }
+[dir="rtl"] .sec { direction: rtl; }
+[dir="rtl"] .habit-row { flex-direction: row-reverse; }
+[dir="rtl"] .habit-days { flex-direction: row-reverse; }
+[dir="rtl"] .add-row { flex-direction: row-reverse; }
+[dir="rtl"] .prayer-grid { flex-direction: row-reverse; }
+[dir="rtl"] .review-week-nav { flex-direction: row-reverse; }
+[dir="rtl"] .review-habit-row { flex-direction: row-reverse; }
+[dir="rtl"] .modal { direction: rtl; text-align: right; }
+[dir="rtl"] .modal h2 { text-align: right; }
+[dir="rtl"] .mf label { text-align: right; }
+[dir="rtl"] .modal-acts { flex-direction: row-reverse; }
+[dir="rtl"] .auth-box { direction: rtl; }
+[dir="rtl"] .auth-box h1 { text-align: center; }
+[dir="rtl"] .auth-tabs { flex-direction: row-reverse; }
+[dir="rtl"] .prog-top { flex-direction: row-reverse; }
+[dir="rtl"] .book-detail-actions { flex-direction: row-reverse; }
+[dir="rtl"] .wk-head { flex-direction: row-reverse; }
+[dir="rtl"] .goal-head { flex-direction: row-reverse; }
+[dir="rtl"] .goal-footer { flex-direction: row-reverse; }
+[dir="rtl"] .sbar { flex-direction: row-reverse; }
+[dir="rtl"] .sbar span:first-child { margin-right: 0; margin-left: auto; }
+[dir="rtl"] .book-row { flex-direction: row-reverse; }
+[dir="rtl"] .cardio-bar { flex-direction: row-reverse; }
+[dir="rtl"] .cardio-right { flex-direction: row-reverse; margin-left: 0; margin-right: auto; }
+[dir="rtl"] .streak-card h3 { text-align: right; }
+[dir="rtl"] .streak-row { flex-direction: row-reverse; }
+[dir="rtl"] .review-prayer-row { flex-direction: row-reverse; }
+[dir="rtl"] #toast { right: auto; left: 20px; }
+[dir="rtl"] .goal-del { right: auto; left: 10px; }
+[dir="rtl"] .book-del { right: auto; left: 7px; top: 7px; }
+[dir="rtl"] .prog-filters { flex-direction: row-reverse; }
+[dir="rtl"] .book-filters { flex-direction: row-reverse; }
 </style>
 </head>
 <body>
@@ -593,22 +633,22 @@ main{flex:1; padding:26px 44px 60px;}
 <div id="authScreen">
   <div class="auth-box">
     <h1>AOS</h1>
-    <div class="auth-tagline">Personal Life OS</div>
+    <div class="auth-tagline" data-i18n="personal_life_os">Personal Life OS</div>
     <div class="auth-modules">Prayer · Habits · Fitness · Goals<br>Projects · Media · Notes</div>
     <div class="auth-sub">Sign in to sync across devices</div>
     <div class="auth-tabs">
-      <button class="auth-tab active" onclick="setAuthMode('login',this)">Sign In</button>
-      <button class="auth-tab" onclick="setAuthMode('signup',this)">Create Account</button>
+      <button class="auth-tab active" onclick="setAuthMode('login',this)" data-i18n="sign_in">Sign In</button>
+      <button class="auth-tab" onclick="setAuthMode('signup',this)" data-i18n="create_account">Create Account</button>
     </div>
     <div class="auth-field">
-      <label>Email</label>
+      <label data-i18n="email">Email</label>
       <input type="email" id="authEmail" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doAuth()">
     </div>
     <div class="auth-field">
-      <label>Password</label>
+      <label data-i18n="password">Password</label>
       <input type="password" id="authPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doAuth()">
     </div>
-    <button class="auth-submit" onclick="doAuth()" id="authBtn">Sign In</button>
+    <button class="auth-submit" onclick="doAuth()" id="authBtn" data-i18n="sign_in">Sign In</button>
     <div class="auth-msg" id="authMsg"></div>
   </div>
 </div>
@@ -637,17 +677,18 @@ main{flex:1; padding:26px 44px 60px;}
 
 <!-- ══ NAV ══ -->
 <nav>
-  <button class="tab active" onclick="go('today',this)">Today</button>
-  <button class="tab" onclick="go('fitness',this)">Fitness</button>
-  <button class="tab" onclick="go('goals',this)">Goals</button>
-  <button class="tab" onclick="go('projects',this)">Projects</button>
-  <button class="tab" onclick="go('media',this)">Media</button>
-  <button class="tab" onclick="go('review',this)">Review</button>
+  <button class="tab active" onclick="go('today',this)" data-i18n="nav_today">Today</button>
+  <button class="tab" onclick="go('fitness',this)" data-i18n="nav_fitness">Fitness</button>
+  <button class="tab" onclick="go('goals',this)" data-i18n="nav_goals">Goals</button>
+  <button class="tab" onclick="go('projects',this)" data-i18n="nav_projects">Projects</button>
+  <button class="tab" onclick="go('media',this)" data-i18n="nav_media">Media</button>
+  <button class="tab" onclick="go('review',this)" data-i18n="nav_review">Review</button>
   <div class="nav-right">
     <div class="sync-dot" id="syncDot" title="Sync status"></div>
-    <button class="nav-btn" onclick="doExport()">Export</button>
-    <button class="nav-btn" onclick="doImport()">Import</button>
-    <button class="nav-btn signout" onclick="signOut()">Sign Out</button>
+    <button class="nav-btn" onclick="setLang(currentLang==='en'?'ar':'en')" id="langToggle" style="font-weight:500;letter-spacing:0.06em">AR</button>
+    <button class="nav-btn" onclick="doExport()" data-i18n="export">Export</button>
+    <button class="nav-btn" onclick="doImport()" data-i18n="import">Import</button>
+    <button class="nav-btn signout" onclick="signOut()" data-i18n="sign_out">Sign Out</button>
   </div>
 </nav>
 
@@ -663,26 +704,26 @@ main{flex:1; padding:26px 44px 60px;}
       </div>
       <div class="card streak-card">
         <div style="display:flex;align-items:center;justify-content:space-between">
-          <h3>Streaks</h3>
+          <h3 data-i18n="streaks">Streaks</h3>
           <button class="btn btn-g" style="padding:3px 8px;font-size:0.62rem" onclick="openStreaks()">Edit</button>
          </div>
         <div id="streakList"></div>
       </div>
     </div>
     <div id="todaySummary" style="margin-bottom:22px"></div>
-    <div class="sec">Prayer <span class="lbl">Today</span></div>
+    <div class="sec"><span data-i18n="prayer">Prayer</span> <span class="lbl" data-i18n="nav_today">Today</span></div>
     <div class="card" style="margin-bottom:18px">
       <div id="prayerRow"></div>
     </div>
-    <div class="sec">Daily Habits <span class="lbl">This Week</span></div>
+    <div class="sec"><span data-i18n="daily_habits">Daily Habits</span> <span class="lbl" data-i18n="this_week">This Week</span></div>
     <div class="card" style="margin-bottom:18px">
       <div class="habit-list" id="habitList"></div>
       <div class="add-row" style="margin-top:10px">
-        <input class="add-inp" id="newHabitName" placeholder="Add a habit…" onkeydown="if(event.key==='Enter')addHabit()">
-        <button class="btn btn-p" onclick="addHabit()">+ Add</button>
+        <input class="add-inp" id="newHabitName" data-i18n-ph="habit_name_ph" placeholder="Add a habit…" onkeydown="if(event.key==='Enter')addHabit()">
+        <button class="btn btn-p" onclick="addHabit()" data-i18n="add">+ Add</button>
       </div>
     </div>
-    <div class="sec">Daily Notes <span class="lbl">Today</span></div>
+    <div class="sec">Daily Notes <span class="lbl" data-i18n="nav_today">Today</span></div>
     <div class="card">
       <textarea id="dailyNotes" class="editable-area" rows="5" placeholder="Thoughts, tasks, reflections…" oninput="S.notes[today()]=this.value;scheduleSave()"></textarea>
     </div>
@@ -692,18 +733,18 @@ main{flex:1; padding:26px 44px 60px;}
   <div id="panel-fitness" class="panel">
     <div class="cardio-bar">
       <div>
-        <div class="cardio-label">Daily Cardio</div>
+        <div class="cardio-label" data-i18n="daily_cardio">Daily Cardio</div>
         <input id="cardioTarget" class="editable cardio-target-inp" placeholder="e.g. 30 min run" oninput="S.cardioTarget=this.value;scheduleSave()">
       </div>
       <div class="cardio-right">
         <input type="number" id="cardioMins" value="0" min="0" max="300">
-        <span class="mins-lbl">min</span>
-        <button class="btn btn-g" onclick="logCardio()">Log</button>
+        <span class="mins-lbl" data-i18n="min">min</span>
+        <button class="btn btn-g" onclick="logCardio()" data-i18n="log">Log</button>
         <span id="cardioToday"></span>
       </div>
     </div>
     <div class="sec" style="justify-content:space-between">
-      <span>Training Week <span class="lbl">Click day to check off · Click type to rename</span></span>
+      <span data-i18n="training_week">Training Week</span>
       <button class="btn btn-g" style="font-size:0.68rem" onclick="addWorkoutCard()">+ Card</button>
     </div>
     <div class="gym-week" id="gymWeek"></div>
@@ -714,8 +755,8 @@ main{flex:1; padding:26px 44px 60px;}
   <!-- GOALS -->
   <div id="panel-goals" class="panel">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-      <div class="sec" style="margin:0">Goals <span class="lbl">Click any text to edit</span></div>
-      <button class="btn btn-p" onclick="openModal('mGoal')">+ New Goal</button>
+      <div class="sec" style="margin:0"><span data-i18n="goals">Goals</span></div>
+      <button class="btn btn-p" onclick="openModal('mGoal')">+ <span data-i18n="new_goal">New Goal</span></button>
     </div>
     <div class="goals-grid" id="goalsGrid"></div>
   </div>
@@ -723,16 +764,16 @@ main{flex:1; padding:26px 44px 60px;}
   <!-- PROJECTS -->
   <div id="panel-projects" class="panel">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div class="sec" style="margin:0">Projects <span class="lbl">Tracks & Focus Areas</span></div>
-      <button class="btn btn-p" onclick="openModal('mProject')">+ Add Project</button>
+      <div class="sec" style="margin:0"><span data-i18n="projects">Projects</span></div>
+      <button class="btn btn-p" onclick="openModal('mProject')">+ <span data-i18n="add_project">Add Project</span></button>
     </div>
     <div class="prog-filters" id="projectFilters">
       <button class="fpill active" onclick="setProjectF('all',this)">All</button>
-      <button class="fpill" onclick="setProjectF('Active',this)">Active</button>
-      <button class="fpill" onclick="setProjectF('Planning',this)">Planning</button>
-      <button class="fpill" onclick="setProjectF('Paused',this)">Paused</button>
-      <button class="fpill" onclick="setProjectF('Complete',this)">Complete</button>
-      <button class="fpill" onclick="setProjectF('Dropped',this)">Dropped</button>
+      <button class="fpill" onclick="setProjectF('Active',this)" data-i18n="active">Active</button>
+      <button class="fpill" onclick="setProjectF('Planning',this)" data-i18n="planning">Planning</button>
+      <button class="fpill" onclick="setProjectF('Paused',this)" data-i18n="paused">Paused</button>
+      <button class="fpill" onclick="setProjectF('Complete',this)" data-i18n="complete">Complete</button>
+      <button class="fpill" onclick="setProjectF('Dropped',this)" data-i18n="dropped">Dropped</button>
     </div>
     <div class="progs-grid" id="projectsGrid"></div>
   </div>
@@ -740,22 +781,22 @@ main{flex:1; padding:26px 44px 60px;}
   <!-- MEDIA -->
   <div id="panel-media" class="panel">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div class="sec" style="margin:0">Media <span class="lbl">Hover to add cover</span></div>
-      <button class="btn btn-p" onclick="openModal('mBook')">+ Add</button>
+      <div class="sec" style="margin:0"><span data-i18n="library">Library</span></div>
+      <button class="btn btn-p" onclick="openModal('mBook')">+ <span data-i18n="add">Add</span></button>
     </div>
     <div class="book-type-filters book-filters">
       <button class="fpill active" onclick="setMediaTypeF('all',this)">All</button>
-      <button class="fpill" onclick="setMediaTypeF('book',this)">Books</button>
-      <button class="fpill" onclick="setMediaTypeF('show',this)">Shows</button>
-      <button class="fpill" onclick="setMediaTypeF('anime',this)">Anime</button>
-      <button class="fpill" onclick="setMediaTypeF('film',this)">Films</button>
-      <button class="fpill" onclick="setMediaTypeF('other',this)">Other</button>
+      <button class="fpill" onclick="setMediaTypeF('book',this)" data-i18n="book">Book</button>
+      <button class="fpill" onclick="setMediaTypeF('show',this)" data-i18n="show">Show</button>
+      <button class="fpill" onclick="setMediaTypeF('anime',this)" data-i18n="anime">Anime</button>
+      <button class="fpill" onclick="setMediaTypeF('film',this)" data-i18n="film">Film</button>
+      <button class="fpill" onclick="setMediaTypeF('other',this)" data-i18n="other">Other</button>
     </div>
     <div class="book-status-filters book-filters" style="margin-top:6px">
       <button class="fpill active" onclick="setBookF('all',this)">All</button>
-      <button class="fpill" onclick="setBookF('unread',this)">Queued</button>
-      <button class="fpill" onclick="setBookF('reading',this)">In Progress</button>
-      <button class="fpill" onclick="setBookF('done',this)">Finished</button>
+      <button class="fpill" onclick="setBookF('unread',this)" data-i18n="queued">Queued</button>
+      <button class="fpill" onclick="setBookF('reading',this)" data-i18n="in_progress">In Progress</button>
+      <button class="fpill" onclick="setBookF('done',this)" data-i18n="finished">Finished</button>
     </div>
     <div class="books-grid" id="mediaGrid" style="margin-top:14px"></div>
   </div>
@@ -764,7 +805,7 @@ main{flex:1; padding:26px 44px 60px;}
   <!-- REVIEW -->
   <div id="panel-review" class="panel">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-      <div class="sec" style="margin:0">Weekly Review <span class="lbl">Reflect &amp; Track</span></div>
+      <div class="sec" style="margin:0"><span data-i18n="weekly_review">Weekly Review</span></div>
     </div>
     <div id="reviewContent"></div>
   </div>
@@ -779,37 +820,37 @@ main{flex:1; padding:26px 44px 60px;}
 
 <!-- MODALS -->
 <div class="modal-bg" id="mGoal"><div class="modal">
-  <h2>New Goal</h2>
-  <div class="mf"><label>Goal</label><input id="gText" placeholder="What do you want to achieve?"></div>
+  <h2 data-i18n="new_goal">New Goal</h2>
+  <div class="mf"><label data-i18n="goals">Goal</label><input id="gText" placeholder="What do you want to achieve?"></div>
   <div class="mf"><label>Category</label><select id="gCat"><option>Academic</option><option>Career</option><option>Health</option><option>Personal</option><option>Creative</option></select></div>
-  <div class="mf"><label>Type</label><input id="gType" placeholder="e.g. Long-term, Milestone, Habit"></div>
-  <div class="mf"><label>Context</label><input id="gCtx" placeholder="e.g. Career, Kuwait, Q1 2026"></div>
-  <div class="mf"><label>Deadline</label><input id="gDl" type="date"></div>
+  <div class="mf"><label data-i18n="type">Type</label><input id="gType" placeholder="e.g. Long-term, Milestone, Habit"></div>
+  <div class="mf"><label data-i18n="context">Context</label><input id="gCtx" placeholder="e.g. Career, Kuwait, Q1 2026"></div>
+  <div class="mf"><label data-i18n="deadline">Deadline</label><input id="gDl" type="date"></div>
   <div class="mf"><label>Progress — <span id="gPLbl">0</span>%</label><input id="gPct" type="range" min="0" max="100" value="0" oninput="eid('gPLbl').textContent=this.value"></div>
-  <div class="mf"><label>Notes</label><textarea id="gNotes" placeholder="Notes…"></textarea></div>
-  <div class="modal-acts"><button class="btn btn-g" onclick="closeModal('mGoal')">Cancel</button><button class="btn btn-p" onclick="saveGoal()">Save</button></div>
+  <div class="mf"><label data-i18n="notes">Notes</label><textarea id="gNotes" placeholder="Notes…"></textarea></div>
+  <div class="modal-acts"><button class="btn btn-g" onclick="closeModal('mGoal')" data-i18n="cancel">Cancel</button><button class="btn btn-p" onclick="saveGoal()" data-i18n="save">Save</button></div>
 </div></div>
 
 <div class="modal-bg" id="mProject"><div class="modal">
-  <h2>Add Project</h2>
-  <div class="mf"><label>Title</label><input id="pTitle" placeholder="e.g. Economics Applications"></div>
-  <div class="mf"><label>Type</label><input id="pType" placeholder="e.g. Academic, Business, Creative"></div>
-  <div class="mf"><label>Context</label><input id="pCtx" placeholder="e.g. Fall 2026 / Kuwait / Personal"></div>
-  <div class="mf"><label>Status</label><select id="pStat"><option>Active</option><option>Planning</option><option>Paused</option><option>Complete</option><option>Dropped</option></select></div>
-  <div class="mf"><label>Target Date</label><input id="pDl" type="date"></div>
-  <div class="mf"><label>Notes</label><textarea id="pNotes" placeholder="What this area is for, key tasks, next steps…"></textarea></div>
-  <div class="modal-acts"><button class="btn btn-g" onclick="closeModal('mProject')">Cancel</button><button class="btn btn-p" onclick="saveProject()">Save</button></div>
+  <h2 data-i18n="add_project">Add Project</h2>
+  <div class="mf"><label>Title</label><input id="pTitle" data-i18n-ph="project_title_ph" placeholder="Project title"></div>
+  <div class="mf"><label data-i18n="type">Type</label><input id="pType" placeholder="e.g. Academic, Business, Creative"></div>
+  <div class="mf"><label data-i18n="context">Context</label><input id="pCtx" placeholder="e.g. Fall 2026 / Kuwait / Personal"></div>
+  <div class="mf"><label>Status</label><select id="pStat"><option data-i18n="active">Active</option><option data-i18n="planning">Planning</option><option data-i18n="paused">Paused</option><option data-i18n="complete">Complete</option><option data-i18n="dropped">Dropped</option></select></div>
+  <div class="mf"><label data-i18n="deadline">Target Date</label><input id="pDl" type="date"></div>
+  <div class="mf"><label data-i18n="notes">Notes</label><textarea id="pNotes" data-i18n-ph="notes_next_steps" placeholder="Notes, next steps..."></textarea></div>
+  <div class="modal-acts"><button class="btn btn-g" onclick="closeModal('mProject')" data-i18n="cancel">Cancel</button><button class="btn btn-p" onclick="saveProject()" data-i18n="save">Save</button></div>
 </div></div>
 
 <div class="modal-bg" id="mBook"><div class="modal">
-  <h2>Add Media</h2>
-  <div class="mf"><label>Type</label><select id="bkType"><option value="book">Book</option><option value="show">Show</option><option value="anime">Anime</option><option value="film">Film</option><option value="other">Other</option></select></div>
+  <h2 data-i18n="library">Library</h2>
+  <div class="mf"><label data-i18n="type">Type</label><select id="bkType"><option value="book" data-i18n="book">Book</option><option value="show" data-i18n="show">Show</option><option value="anime" data-i18n="anime">Anime</option><option value="film" data-i18n="film">Film</option><option value="other" data-i18n="other">Other</option></select></div>
   <div class="mf"><label>Title</label><input id="bkT" placeholder="Title"></div>
   <div class="mf"><label>Author / Creator</label><input id="bkA" placeholder="Author, director, studio…"></div>
-  <div class="mf"><label>Status</label><select id="bkS"><option value="unread">Queue</option><option value="reading">In Progress</option><option value="done">Finished</option></select></div>
+  <div class="mf"><label>Status</label><select id="bkS"><option value="unread" data-i18n="queued">Queued</option><option value="reading" data-i18n="in_progress">In Progress</option><option value="done" data-i18n="finished">Finished</option></select></div>
   <div class="mf"><label>Rating (1–5)</label><input id="bkR" type="number" min="1" max="5" placeholder="—"></div>
-  <div class="mf"><label>Notes</label><textarea id="bkN" placeholder="Thoughts…"></textarea></div>
-  <div class="modal-acts"><button class="btn btn-g" onclick="closeModal('mBook')">Cancel</button><button class="btn btn-p" onclick="saveBook()">Save</button></div>
+  <div class="mf"><label data-i18n="notes">Notes</label><textarea id="bkN" placeholder="Thoughts…"></textarea></div>
+  <div class="modal-acts"><button class="btn btn-g" onclick="closeModal('mBook')" data-i18n="cancel">Cancel</button><button class="btn btn-p" onclick="saveBook()" data-i18n="save">Save</button></div>
 </div></div>
 
 <div class="modal-bg" id="mBookDetails"><div class="modal book-detail-modal">
@@ -853,7 +894,7 @@ main{flex:1; padding:26px 44px 60px;}
 </div></div>
 
 <div class="modal-bg" id="mOnboard"><div class="modal" style="width:480px">
-  <h2 style="margin-bottom:6px">Welcome to AOS</h2>
+  <h2 style="margin-bottom:6px" data-i18n="welcome_aos">Welcome to AOS</h2>
   <div style="font-size:0.72rem;color:var(--muted);margin-bottom:18px">Let's set up your personal dashboard in 3 steps.</div>
   <div class="onboard-progress">
     <div class="onboard-pip done"></div>
@@ -864,24 +905,24 @@ main{flex:1; padding:26px 44px 60px;}
   <div class="onboard-step active">
     <div class="mf"><label>Your Name</label><input id="onboardName" placeholder="e.g. Abdullah"></div>
     <div class="mf"><label>Username</label><input id="onboardUsername" placeholder="@handle — letters, numbers, _"></div>
-    <div class="modal-acts"><button class="btn btn-p" onclick="showOnboardStep(2)">Next →</button></div>
+    <div class="modal-acts"><button class="btn btn-p" onclick="showOnboardStep(2)" data-i18n="next">Next →</button></div>
   </div>
   <!-- Step 2 -->
   <div class="onboard-step">
-    <div style="font-size:0.76rem;color:var(--muted);margin-bottom:8px">Choose the habits that matter to you:</div>
+    <div style="font-size:0.76rem;color:var(--muted);margin-bottom:8px" data-i18n="choose_habits">Choose your habits</div>
     <div class="onboard-habits" id="onboardHabits"></div>
     <div class="modal-acts">
       <button class="btn btn-g" onclick="showOnboardStep(1)">← Back</button>
-      <button class="btn btn-p" onclick="showOnboardStep(3)">Next →</button>
+      <button class="btn btn-p" onclick="showOnboardStep(3)" data-i18n="next">Next →</button>
     </div>
   </div>
   <!-- Step 3 -->
   <div class="onboard-step">
-    <div class="mf"><label>Your First Goal</label><input id="onboardGoal" placeholder="What do you want to achieve?"></div>
+    <div class="mf"><label data-i18n="first_goal">Your First Goal</label><input id="onboardGoal" placeholder="What do you want to achieve?"></div>
     <div class="mf"><label>Category</label><select id="onboardGoalCat"><option>Personal</option><option>Academic</option><option>Career</option><option>Health</option><option>Creative</option></select></div>
     <div class="modal-acts">
       <button class="btn btn-g" onclick="showOnboardStep(2)">← Back</button>
-      <button class="btn btn-p" onclick="finishOnboarding()">Build My Dashboard</button>
+      <button class="btn btn-p" onclick="finishOnboarding()" data-i18n="get_started">Get Started</button>
     </div>
   </div>
 </div></div>
@@ -894,13 +935,13 @@ main{flex:1; padding:26px 44px 60px;}
 </div></div>
 
 <div class="modal-bg" id="mStreaks"><div class="modal">
-  <h2>Edit Streaks</h2>
-  <div class="mf"><label><input type="checkbox" id="st-prayer" onchange="toggleStreakOption('prayer',this.checked)"> Prayer (All 5)</label></div>
-  <div class="mf"><label><input type="checkbox" id="st-cardio" onchange="toggleStreakOption('cardio',this.checked)"> Cardio</label></div>
-  <div class="mf"><label><input type="checkbox" id="st-gym" onchange="toggleStreakOption('gym',this.checked)"> Gym</label></div>
-  <div class="mf"><label><input type="checkbox" id="st-read" onchange="toggleStreakOption('read',this.checked)"> Reading</label></div>
+  <h2 data-i18n="streaks">Edit Streaks</h2>
+  <div class="mf"><label><input type="checkbox" id="st-prayer" onchange="toggleStreakOption('prayer',this.checked)"> <span data-i18n="prayer">Prayer</span></label></div>
+  <div class="mf"><label><input type="checkbox" id="st-cardio" onchange="toggleStreakOption('cardio',this.checked)"> <span data-i18n="cardio">Cardio</span></label></div>
+  <div class="mf"><label><input type="checkbox" id="st-gym" onchange="toggleStreakOption('gym',this.checked)"> <span data-i18n="gym">Gym</span></label></div>
+  <div class="mf"><label><input type="checkbox" id="st-read" onchange="toggleStreakOption('read',this.checked)"> <span data-i18n="reading_streak">Reading</span></label></div>
   <div class="mf"><label><input type="checkbox" id="st-study" onchange="toggleStreakOption('study',this.checked)"> Study</label></div>
-  <div class="modal-acts"><button class="btn btn-p" onclick="closeModal('mStreaks')">Done</button></div>
+  <div class="modal-acts"><button class="btn btn-p" onclick="closeModal('mStreaks')" data-i18n="close">Done</button></div>
 </div></div>
   
 <div id="toast"></div>
@@ -923,6 +964,7 @@ main{flex:1; padding:26px 44px 60px;}
   </div>
 </div>
 
+<script src="./Renderer/i18n.js"></script>
 <script src="./Renderer/web-api.js"></script>
 <script src="./Renderer/utils.js"></script>
 <script src="./Renderer/state.js"></script>
