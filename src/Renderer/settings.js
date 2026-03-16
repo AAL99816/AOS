@@ -7,13 +7,15 @@ const ACCENT_THEMES = {
   midnight: { '--blush':'#9090b0','--rose':'#5a5a7a','--petal':'#c0c0d8','--mist':'#e0e0ec','--cream':'#f5f5fa','--gold':'#c9b06a','--gold-lt':'#e8cc90','--muted':'#606078','--muted-lt':'#909098' },
   ember:    { '--blush':'#c08040','--rose':'#8b5220','--petal':'#e8c0a0','--mist':'#f5e0d0','--cream':'#fdf5ef','--gold':'#c9956a','--gold-lt':'#e8b990','--muted':'#8a6040','--muted-lt':'#b09070' }
 };
-const BOX_THEMES = {
-  obsidian: { '--panel':'#1a0a0f','--ink':'#120608','--mid':'#2d1019','--deep':'#0d0306' },
-  void:     { '--panel':'#111111','--ink':'#0a0a0a','--mid':'#1a1a1a','--deep':'#050505' },
-  charcoal: { '--panel':'#1c1c1c','--ink':'#111111','--mid':'#262626','--deep':'#080808' },
-  slate:    { '--panel':'#141c24','--ink':'#0c1118','--mid':'#1c2a38','--deep':'#080d14' },
-  coffee:   { '--panel':'#1e1408','--ink':'#120d04','--mid':'#2a1c0c','--deep':'#09060202' }
+const APP_THEMES = {
+  obsidian: { '--panel':'#1a0a0f','--ink':'#120608','--mid':'#2d1019','--deep':'#0d0306','--border':'rgba(192,96,122,0.18)','--border-lt':'rgba(232,160,176,0.30)' },
+  void:     { '--panel':'#111111','--ink':'#0a0a0a','--mid':'#1a1a1a','--deep':'#050505','--border':'rgba(160,160,170,0.16)','--border-lt':'rgba(210,210,220,0.24)' },
+  charcoal: { '--panel':'#1c1c1c','--ink':'#111111','--mid':'#262626','--deep':'#080808','--border':'rgba(160,160,160,0.16)','--border-lt':'rgba(210,210,210,0.24)' },
+  slate:    { '--panel':'#141c24','--ink':'#0c1118','--mid':'#1c2a38','--deep':'#080d14','--border':'rgba(80,140,200,0.20)','--border-lt':'rgba(110,170,230,0.30)' },
+  coffee:   { '--panel':'#1e1408','--ink':'#120d04','--mid':'#2a1c0c','--deep':'#090602','--border':'rgba(190,140,70,0.18)','--border-lt':'rgba(220,170,90,0.28)' }
 };
+/* Keep BOX_THEMES alias for any legacy references */
+const BOX_THEMES = APP_THEMES;
 /* Keep THEMES alias for any legacy references */
 const THEMES = {
   rose:     { ...ACCENT_THEMES.rose,     '--mid':'#4a1a28', '--deep':'#230d14', '--panel':'#2d1019', '--ink':'#1a0a0f' },
@@ -36,7 +38,7 @@ function applyAccentTheme(key) {
   document.querySelectorAll('.theme-opt').forEach(b => b.classList.toggle('active', b.dataset.theme === key));
 }
 function applyBoxTheme(key) {
-  const t2 = BOX_THEMES[key] || BOX_THEMES.obsidian;
+  const t2 = APP_THEMES[key] || APP_THEMES.obsidian;
   const root = document.documentElement;
   Object.entries(t2).forEach(([k, v]) => root.style.setProperty(k, v));
   document.querySelectorAll('.box-theme-opt').forEach(b => b.classList.toggle('active', b.dataset.boxTheme === key));
