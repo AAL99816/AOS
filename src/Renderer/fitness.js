@@ -135,6 +135,15 @@ function renderWorkoutCards() {
   const c = eid('workoutCards');
   c.innerHTML = '';
 
+  if (!S.workoutCards.length) {
+    c.innerHTML = `<div style="text-align:center;padding:48px 24px;grid-column:span 2">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:10px">◆</div>
+      <div style="font-size:0.66rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px">${t('no_workout_cards')}</div>
+      <div style="font-size:0.72rem;color:var(--muted-lt);max-width:240px;margin:0 auto;line-height:1.6">${t('no_workout_cards_hint')}</div>
+    </div>`;
+    return;
+  }
+
   S.workoutCards.forEach(wc => {
     const div = document.createElement('div');
     div.className = 'card';

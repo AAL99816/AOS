@@ -52,7 +52,7 @@ const LANG = {
 
     /* Goals */
     goals:             'Goals',
-    no_goals:          'No goals yet',
+    no_goals:          'No goals yet — tap + to add your first',
     notes:             'Notes',
     deadline:          'Deadline',
     add_goal:          'Add Goal',
@@ -65,7 +65,7 @@ const LANG = {
 
     /* Projects */
     projects:          'Projects',
-    no_projects:       'No projects here yet',
+    no_projects:       'No projects yet — tap + to add one',
     project_title_ph:  'Project title',
     type:              'Type',
     context:           'Context',
@@ -108,7 +108,9 @@ const LANG = {
     chapter_notes:     'Chapter Notes',
     episode_notes:     'Episode Notes',
     add_cover:         'Add Cover',
-    nothing_here:      'Nothing here yet',
+    nothing_here:      'Nothing here yet — tap + to add one',
+    no_workout_cards:  'No workout configs yet',
+    no_workout_cards_hint: 'Tap + to create your first workout — add exercises, sets, and weights.',
     remove_item:       'Remove this item?',
     tracks:            'tracks',
     tracklist:         'Tracklist',
@@ -328,7 +330,7 @@ const LANG = {
 
     /* Goals */
     goals:             'الأهداف',
-    no_goals:          'لا توجد أهداف بعد',
+    no_goals:          'لا توجد أهداف بعد — اضغط + للإضافة',
     notes:             'ملاحظات',
     deadline:          'الموعد النهائي',
     add_goal:          'إضافة هدف',
@@ -341,7 +343,7 @@ const LANG = {
 
     /* Projects */
     projects:          'المشاريع',
-    no_projects:       'لا توجد مشاريع بعد',
+    no_projects:       'لا توجد مشاريع بعد — اضغط + للإضافة',
     project_title_ph:  'عنوان المشروع',
     type:              'النوع',
     context:           'السياق',
@@ -384,7 +386,9 @@ const LANG = {
     chapter_notes:     'ملاحظات الفصول',
     episode_notes:     'ملاحظات الحلقات',
     add_cover:         'إضافة غلاف',
-    nothing_here:      'لا يوجد شيء هنا بعد',
+    nothing_here:      'لا يوجد شيء هنا بعد — اضغط + للإضافة',
+    no_workout_cards:  'لا توجد تمارين بعد',
+    no_workout_cards_hint: 'اضغط + لإنشاء أول تمرين — أضف تمارين وأوزاناً.',
     remove_item:       'حذف هذا العنصر؟',
     tracks:            'مقاطع',
     tracklist:         'قائمة المقاطع',

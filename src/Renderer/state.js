@@ -15,48 +15,13 @@ const DS = {
     {id:8,name:'Journal / Reflect',days:{}}
   ],
   workout:[
-    {type:'Upper',rest:false},{type:'Lower',rest:false},{type:'Full Body',rest:false},
-    {type:'Rest',rest:true},{type:'Upper',rest:false},{type:'Lower',rest:false},{type:'Full Body',rest:false},
+    {type:'',rest:true},{type:'',rest:true},{type:'',rest:true},{type:'',rest:true},
+    {type:'',rest:true},{type:'',rest:true},{type:'',rest:true}
   ],
-  workoutCards:[
-    {id:1,title:'Upper Body',subtitle:'Push & Pull',exercises:[
-      {id:101,name:'Bench Press',sets:'4×8'},{id:102,name:'Barbell Row',sets:'4×8'},
-      {id:103,name:'Overhead Press',sets:'3×10'},{id:104,name:'Lat Pulldown',sets:'3×10'},
-      {id:105,name:'Dumbbell Curl',sets:'3×12'},{id:106,name:'Tricep Pushdown',sets:'3×12'},
-      {id:107,name:'Face Pull',sets:'3×15'},
-    ]},
-    {id:2,title:'Lower Body',subtitle:'Strength',exercises:[
-      {id:201,name:'Squat',sets:'4×6'},{id:202,name:'Romanian Deadlift',sets:'3×10'},
-      {id:203,name:'Leg Press',sets:'3×12'},{id:204,name:'Leg Curl',sets:'3×12'},
-      {id:205,name:'Leg Extension',sets:'3×12'},{id:206,name:'Calf Raise',sets:'4×15'},
-    ]},
-    {id:3,title:'Full Body',subtitle:'Compound',exercises:[
-      {id:301,name:'Deadlift',sets:'4×5'},{id:302,name:'Incline Press',sets:'3×10'},
-      {id:303,name:'Weighted Pull-up',sets:'3×8'},{id:304,name:'Bulgarian Split Squat',sets:'3×10'},
-      {id:305,name:'Cable Row',sets:'3×12'},{id:306,name:'Ab Rollout',sets:'3×10'},
-    ]},
-  ],
-goals:[
-  {id:1,text:'Customize this dashboard into your own Life OS',category:'Personal',deadline:'',progress:15,notes:'Edit titles, add sections, and shape the system around your real life.'},
-  {id:2,text:'Set up your main recurring habits',category:'Health',deadline:'',progress:10,notes:'Prayer, gym, study, reading, sleep, walking — whatever matters most.'}
-],  
-projects:[
-  {id:1,title:'Graduate Applications',type:'Academic Track',context:'Fall 2026',status:'Active',deadline:'',notes:'Use this for projects, life tracks, applications, business areas, or any long-term focus area.'},
-  {id:2,title:'Aqarna',type:'Business / Product',context:'Kuwait',status:'Active',deadline:'',notes:'Rename, repurpose, or remove this card. Projects can represent anything ongoing in your life.'}
-],
-media:[
-  {id:1,mediaType:'book',title:'1984',author:'George Orwell',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-  {id:2,mediaType:'book',title:'The Blade Itself',author:'Joe Abercrombie',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-  {id:3,mediaType:'book',title:'The World as Will and Idea',author:'Arthur Schopenhauer',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-  {id:4,mediaType:'book',title:'Essays of Arthur Schopenhauer',author:'Arthur Schopenhauer',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-  {id:5,mediaType:'book',title:'Critique of Pure & Practical Reason',author:'Immanuel Kant',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-  {id:6,mediaType:'book',title:'Fundamental Principles of the Metaphysic of Morals',author:'Immanuel Kant',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-  {id:7,mediaType:'book',title:'Crime and Punishment',author:'Fyodor Dostoevsky',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-  {id:8,mediaType:'book',title:'The Prince',author:'Niccolo Machiavelli',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-  {id:9,mediaType:'book',title:'Moby Dick',author:'Herman Melville',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-  {id:10,mediaType:'book',title:'Animal Farm',author:'George Orwell',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-  {id:11,mediaType:'book',title:'The Brothers Karamazov',author:'Fyodor Dostoevsky',status:'unread',rating:null,notes:'',coverUrl:'',currentPage:0,totalPages:0,chapterNotes:[]},
-],
+  workoutCards:[],
+  goals:[],
+  projects:[],
+  media:[],
 gymLog:{},
 cardioLog:{},
 prayerLog:{},
