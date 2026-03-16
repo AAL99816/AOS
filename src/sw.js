@@ -1,12 +1,13 @@
 'use strict';
 
-const CACHE = 'aos-v1';
+const CACHE = 'aos-v2';
 
 const SHELL = [
   '/',
   '/index.html',
   '/manifest.json',
   '/icons/icon.svg',
+  '/Renderer/i18n.js',
   '/Renderer/web-api.js',
   '/Renderer/utils.js',
   '/Renderer/state.js',
@@ -18,6 +19,8 @@ const SHELL = [
   '/Renderer/goals.js',
   '/Renderer/projects.js',
   '/Renderer/media.js',
+  '/Renderer/review.js',
+  '/Renderer/settings.js',
   '/Renderer/modals.js',
   '/Renderer/app.js',
 ];
