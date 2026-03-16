@@ -455,32 +455,82 @@ function logWorkoutSession(wcId) {
 }
 
 /* ══ CARDIO ══ */
-function logCardio() {
-  ensureFitnessState();
-
-  const mins = parseInt(eid('cardioMins').value, 10) || 0;
-  if (mins <= 0) return;
-
-  S.cardioLog[today()] = (S.cardioLog[today()] || 0) + mins;
-
-  if (S.cardioLog[today()] >= 30) {
-    const ch = hfind('cardio','walk','run','jog','cycle');
-    if (ch) ch.days[today()] = true;
-  }
-
-  scheduleSave();
-  if (typeof renderHabits === 'function') renderHabits();
-  if (typeof renderTodaySummary === 'function') renderTodaySummary();
-  updateCardioDisplay();
-
-  eid('cardioMins').value = 0;
-  toast(`${mins} ${t('cardio_logged')} ${S.cardioLog[today()]} ${t('min')}`);
+function renderCardioSection() {
+  renderCardioHistory();
+  renderCalorieBar();
 }
 
-function updateCardioDisplay() {
+function renderCardioHistory() {
+  const c = eid('cardioHistory');
+  if (!c) return;
   ensureFitnessState();
-  const mins = S.cardioLog[today()] || 0;
-  eid('cardioToday').textContent = mins > 0 ? `${mins} ${t('min_today')}` : '';
+  const hist = [...(S.cardioHistory || [])].reverse();
+  if (!hist.length) {
+    c.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted);font-size:0.7rem;font-family:'DM Mono',monospace">${t('no_cardio_sessions')}</div>`;
+    return;
+  }
+  c.innerHTML = hist.slice(0, 20).map(s => `
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid rgba(192,96,122,0.07)">
+      <div style="display:flex;gap:10px;align-items:baseline;flex:1">
+        <span style="font-size:0.6rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${escapeHtml(s.date||'')}</span>
+        <span style="font-size:0.8rem;color:var(--mist)">${escapeHtml(s.activity||'Cardio')}</span>
+        ${s.duration ? `<span style="font-size:0.68rem;color:var(--muted)">${escapeHtml(s.duration)}</span>` : ''}
+      </div>
+      <button class="habit-del" style="opacity:0.4" onclick="deleteCardioSession(${s.id})">✕</button>
+    </div>
+  `).join('');
+}
+
+function logCardioSession() {
+  ensureFitnessState();
+  const activity = (eid('cardioActivity').value || '').trim();
+  const duration = (eid('cardioDuration').value || '').trim();
+  const dateVal  = eid('cardioDate').value || today();
+  if (!activity) return;
+  if (!S.cardioHistory) S.cardioHistory = [];
+  S.cardioHistory.push(makeCardioSession({ activity, duration, date: dateVal }));
+  scheduleSave();
+  eid('cardioActivity').value = '';
+  eid('cardioDuration').value = '';
+  eid('cardioDate').value = today();
+  renderCardioHistory();
+  if (typeof renderHabits === 'function') renderHabits();
+  toast(t('cardio_logged'));
+}
+
+function deleteCardioSession(id) {
+  S.cardioHistory = (S.cardioHistory || []).filter(s => s.id !== id);
+  scheduleSave();
+  renderCardioHistory();
+}
+
+function renderCalorieBar() {
+  const el = eid('calorieToday');
+  if (!el) return;
+  ensureFitnessState();
+  const val = S.calorieLog[today()] || '';
+  el.value = val;
+  const targetEl = eid('calorieTarget');
+  if (targetEl) targetEl.value = S.calorieTarget || '';
+}
+
+function logCalories() {
+  ensureFitnessState();
+  const val = parseInt(eid('calorieInp').value, 10);
+  if (!val || val <= 0) return;
+  S.calorieLog[today()] = val;
+  scheduleSave();
+  eid('calorieInp').value = '';
+  eid('calorieToday').value = val;
+  toast(t('calories_logged'));
+}
+
+function setCalorieDay(dateStr, val) {
+  ensureFitnessState();
+  const n = parseInt(val, 10);
+  if (n > 0) S.calorieLog[dateStr] = n;
+  else delete S.calorieLog[dateStr];
+  scheduleSave();
 }
 
 /* ══ WORKOUT PRESETS ══ */

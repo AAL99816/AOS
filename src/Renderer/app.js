@@ -81,7 +81,7 @@ function go(name,btn){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   eid('panel-'+name).classList.add('active');if(btn)btn.classList.add('active');
-  if(name==='review' && typeof renderWeeklyReview==='function') renderWeeklyReview();
+  if((name==='summary'||name==='review') && typeof renderWeeklyReview==='function') renderWeeklyReview();
 }
 
 /* ══ ONBOARDING ══ */
@@ -237,9 +237,10 @@ function renderAll(){
 
   eid('quoteText').value = S.quote.text;
   eid('quoteAuthor').value = S.quote.author;
-  eid('cardioTarget').value = S.cardioTarget || '';
+  if(eid('cardioTarget')) eid('cardioTarget').value = S.cardioTarget || '';
   eid('dailyNotes').value=S.notes[today()]||'';
 
+  if(eid('cardioDate')) eid('cardioDate').value = today();
   renderTodaySummary();
   renderHabits();
   renderPrayer();
@@ -249,7 +250,8 @@ function renderAll(){
   renderGoals();
   renderProjects();
   renderBooks();
-  updateCardioDisplay();
+  if (typeof renderCardioSection === 'function') renderCardioSection();
+  applyReflectionVisibility();
 }
 
 /* ══ INLINE TITLE EDITING ══ */

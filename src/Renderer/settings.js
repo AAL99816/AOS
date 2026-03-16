@@ -1,11 +1,26 @@
 'use strict';
 
+const ACCENT_THEMES = {
+  rose:     { '--blush':'#c0607a','--rose':'#8b3252','--petal':'#e8a0b0','--mist':'#f0ccd5','--cream':'#faf0f2','--gold':'#c9956a','--gold-lt':'#e8b990','--muted':'#8a5060','--muted-lt':'#b07888' },
+  ocean:    { '--blush':'#5a9fbf','--rose':'#2d6a8a','--petal':'#a0d0e8','--mist':'#d0eaf5','--cream':'#f0f8fc','--gold':'#6ab0c9','--gold-lt':'#90cde8','--muted':'#4a7890','--muted-lt':'#70a0b8' },
+  forest:   { '--blush':'#6aaa7a','--rose':'#3a7a4a','--petal':'#a0d0a8','--mist':'#d0ead5','--cream':'#f0f8f2','--gold':'#c9a96a','--gold-lt':'#e8c890','--muted':'#4a7858','--muted-lt':'#70a078' },
+  midnight: { '--blush':'#9090b0','--rose':'#5a5a7a','--petal':'#c0c0d8','--mist':'#e0e0ec','--cream':'#f5f5fa','--gold':'#c9b06a','--gold-lt':'#e8cc90','--muted':'#606078','--muted-lt':'#909098' },
+  ember:    { '--blush':'#c08040','--rose':'#8b5220','--petal':'#e8c0a0','--mist':'#f5e0d0','--cream':'#fdf5ef','--gold':'#c9956a','--gold-lt':'#e8b990','--muted':'#8a6040','--muted-lt':'#b09070' }
+};
+const BOX_THEMES = {
+  obsidian: { '--panel':'#1a0a0f','--ink':'#120608','--mid':'#2d1019','--deep':'#0d0306' },
+  void:     { '--panel':'#111111','--ink':'#0a0a0a','--mid':'#1a1a1a','--deep':'#050505' },
+  charcoal: { '--panel':'#1c1c1c','--ink':'#111111','--mid':'#262626','--deep':'#080808' },
+  slate:    { '--panel':'#141c24','--ink':'#0c1118','--mid':'#1c2a38','--deep':'#080d14' },
+  coffee:   { '--panel':'#1e1408','--ink':'#120d04','--mid':'#2a1c0c','--deep':'#09060202' }
+};
+/* Keep THEMES alias for any legacy references */
 const THEMES = {
-  rose:     { '--blush':'#c0607a', '--rose':'#8b3252', '--mid':'#4a1a28', '--deep':'#230d14', '--panel':'#2d1019', '--ink':'#1a0a0f', '--petal':'#e8a0b0', '--mist':'#f0ccd5', '--cream':'#faf0f2', '--gold':'#c9956a', '--gold-lt':'#e8b990', '--muted':'#8a5060', '--muted-lt':'#b07888' },
-  ocean:    { '--blush':'#5a9fbf', '--rose':'#2d6a8a', '--mid':'#1a3a4a', '--deep':'#0d2030', '--panel':'#152838', '--ink':'#0a1520', '--petal':'#a0d0e8', '--mist':'#d0eaf5', '--cream':'#f0f8fc', '--gold':'#6ab0c9', '--gold-lt':'#90cde8', '--muted':'#4a7890', '--muted-lt':'#70a0b8' },
-  forest:   { '--blush':'#6aaa7a', '--rose':'#3a7a4a', '--mid':'#1a3a22', '--deep':'#0d2014', '--panel':'#152818', '--ink':'#0a150c', '--petal':'#a0d0a8', '--mist':'#d0ead5', '--cream':'#f0f8f2', '--gold':'#c9a96a', '--gold-lt':'#e8c890', '--muted':'#4a7858', '--muted-lt':'#70a078' },
-  midnight: { '--blush':'#9090b0', '--rose':'#5a5a7a', '--mid':'#2a2a3a', '--deep':'#151520', '--panel':'#1e1e2a', '--ink':'#0f0f18', '--petal':'#c0c0d8', '--mist':'#e0e0ec', '--cream':'#f5f5fa', '--gold':'#c9b06a', '--gold-lt':'#e8cc90', '--muted':'#606078', '--muted-lt':'#909098' },
-  ember:    { '--blush':'#c08040', '--rose':'#8b5220', '--mid':'#4a2a10', '--deep':'#231508', '--panel':'#2d1c0a', '--ink':'#1a0f05', '--petal':'#e8c0a0', '--mist':'#f5e0d0', '--cream':'#fdf5ef', '--gold':'#c9956a', '--gold-lt':'#e8b990', '--muted':'#8a6040', '--muted-lt':'#b09070' }
+  rose:     { ...ACCENT_THEMES.rose,     '--mid':'#4a1a28', '--deep':'#230d14', '--panel':'#2d1019', '--ink':'#1a0a0f' },
+  ocean:    { ...ACCENT_THEMES.ocean,    '--mid':'#1a3a4a', '--deep':'#0d2030', '--panel':'#152838', '--ink':'#0a1520' },
+  forest:   { ...ACCENT_THEMES.forest,   '--mid':'#1a3a22', '--deep':'#0d2014', '--panel':'#152818', '--ink':'#0a150c' },
+  midnight: { ...ACCENT_THEMES.midnight, '--mid':'#2a2a3a', '--deep':'#151520', '--panel':'#1e1e2a', '--ink':'#0f0f18' },
+  ember:    { ...ACCENT_THEMES.ember,    '--mid':'#4a2a10', '--deep':'#231508', '--panel':'#2d1c0a', '--ink':'#1a0f05' }
 };
 
 const FONTS = {
@@ -14,12 +29,20 @@ const FONTS = {
   sharp:   { body: "'DM Mono', monospace", heading: "'DM Mono', monospace",       mono: "'DM Mono', monospace" }
 };
 
-function applyTheme(themeKey) {
-  const theme = THEMES[themeKey] || THEMES.rose;
+function applyAccentTheme(key) {
+  const t2 = ACCENT_THEMES[key] || ACCENT_THEMES.rose;
   const root = document.documentElement;
-  Object.entries(theme).forEach(([k, v]) => root.style.setProperty(k, v));
-  document.querySelectorAll('.theme-opt').forEach(b => b.classList.toggle('active', b.dataset.theme === themeKey));
+  Object.entries(t2).forEach(([k, v]) => root.style.setProperty(k, v));
+  document.querySelectorAll('.theme-opt').forEach(b => b.classList.toggle('active', b.dataset.theme === key));
 }
+function applyBoxTheme(key) {
+  const t2 = BOX_THEMES[key] || BOX_THEMES.obsidian;
+  const root = document.documentElement;
+  Object.entries(t2).forEach(([k, v]) => root.style.setProperty(k, v));
+  document.querySelectorAll('.box-theme-opt').forEach(b => b.classList.toggle('active', b.dataset.boxTheme === key));
+}
+/* Keep applyTheme as alias for accent (used in existing onclick handlers) */
+function applyTheme(key) { applyAccentTheme(key); }
 
 function applyFont(fontKey) {
   const font = FONTS[fontKey] || FONTS.elegant;
@@ -37,6 +60,7 @@ async function saveSettings() {
   const displayName = eid('stDisplayName').value.trim();
   const theme       = document.querySelector('.theme-opt.active')?.dataset.theme || 'rose';
   const font        = document.querySelector('.font-opt.active')?.dataset.font   || 'elegant';
+  const boxTheme    = document.querySelector('.box-theme-opt.active')?.dataset.boxTheme || 'obsidian';
 
   const update = { id: currentUser.id, email: currentUser.email };
   if (username)    update.username     = username;
@@ -55,9 +79,10 @@ async function saveSettings() {
   currentProfile.theme = theme;
   currentProfile.font  = font;
 
-  // Save theme/font preference locally too for fast load
+  // Save theme/font/box preference locally too for fast load
   localStorage.setItem('aos_theme', theme);
   localStorage.setItem('aos_font',  font);
+  localStorage.setItem('aos_box_theme', boxTheme);
 
   renderHeroProfile();
   renderAll();
@@ -82,8 +107,13 @@ function openSettings() {
 
   const savedTheme = currentProfile.theme || localStorage.getItem('aos_theme') || 'rose';
   const savedFont  = currentProfile.font  || localStorage.getItem('aos_font')  || 'elegant';
+  const savedBox   = localStorage.getItem('aos_box_theme') || 'obsidian';
   applyTheme(savedTheme);
   applyFont(savedFont);
+  applyBoxTheme(savedBox);
+
+  const stRef = eid('st-reflection');
+  if (stRef) stRef.checked = S.appPrefs?.showReflection !== false;
 
   eid('stLangToggle').textContent = currentLang === 'en' ? 'AR' : 'EN';
   openModal('mSettings');
@@ -110,10 +140,24 @@ async function uploadAvatarFromSettings(input) {
   }
 }
 
+function toggleReflection(on) {
+  if (!S.appPrefs) S.appPrefs = {};
+  S.appPrefs.showReflection = on;
+  scheduleSave();
+  applyReflectionVisibility();
+}
+
+function applyReflectionVisibility() {
+  const el = eid('reflectionCard');
+  if (el) el.style.display = (S.appPrefs && S.appPrefs.showReflection !== false) ? '' : 'none';
+}
+
 /* Called on app boot to restore saved theme/font */
 function restoreAppearance() {
-  const theme = localStorage.getItem('aos_theme') || 'rose';
-  const font  = localStorage.getItem('aos_font')  || 'elegant';
+  const theme    = localStorage.getItem('aos_theme')     || 'rose';
+  const font     = localStorage.getItem('aos_font')      || 'elegant';
+  const boxTheme = localStorage.getItem('aos_box_theme') || 'obsidian';
   applyTheme(theme);
   applyFont(font);
+  applyBoxTheme(boxTheme);
 }

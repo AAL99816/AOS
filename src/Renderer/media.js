@@ -1,6 +1,16 @@
 'use strict';
 
 /* ══ MEDIA ══ */
+function renderStars(rating) {
+  if (!rating) return '';
+  let html = '';
+  for (let i = 1; i <= 10; i++) {
+    if (rating >= i) html += '★';
+    else if (rating >= i - 0.5) html += '⯨';
+    else html += '☆';
+  }
+  return html;
+}
 let bookF      = 'all';
 let mediaTypeF = 'book';   // default tab — no more 'all'
 let activeBookId = null;
@@ -92,7 +102,7 @@ function buildBookCard(b, idx) {
   div.onclick = () => openBookDetails(b.id);
 
   const pal = PALS[idx % PALS.length];
-  const stars = b.rating ? '★'.repeat(b.rating) + '☆'.repeat(5 - b.rating) : '';
+  const stars = renderStars(b.rating);
   const slbl = mediaStatusLabel(b.status, 'book');
   const pct = getBookPct(b);
   const progressText = (b.totalPages || b.currentPage)
@@ -131,7 +141,7 @@ function buildFilmCard(b, idx) {
 
   const pal = PALS[idx % PALS.length];
   const watched = b.status === 'done';
-  const stars = b.rating ? '★'.repeat(b.rating) + '☆'.repeat(5 - b.rating) : '';
+  const stars = renderStars(b.rating);
 
   div.innerHTML = `
     <div class="book-cover" style="background:${pal}; height:130px">
@@ -166,7 +176,7 @@ function buildShowCard(b, idx) {
 
   const pal = PALS[idx % PALS.length];
   const slbl = mediaStatusLabel(b.status, b.mediaType);
-  const stars = b.rating ? '★'.repeat(b.rating) + '☆'.repeat(5 - b.rating) : '';
+  const stars = renderStars(b.rating);
   const seBadge = `S${b.currentSeason} E${b.currentEpisode}`;
   const pct = getBookPct(b);
   const progressBar = b.totalEpisodes
@@ -207,7 +217,7 @@ function buildAlbumCard(b, idx) {
 
   const pal = PALS[idx % PALS.length];
   const avgRating = getAlbumRating(b);
-  const stars = avgRating ? '★'.repeat(Math.round(avgRating)) + '☆'.repeat(5 - Math.round(avgRating)) : '';
+  const stars = renderStars(avgRating);
   const trackCount = (b.tracks || []).length;
 
   div.innerHTML = `
@@ -356,7 +366,7 @@ function saveBook() {
     title,
     author: eid('bkA').value.trim(),
     status: eid('bkS').value,
-    rating: parseInt(eid('bkR').value) || null,
+    rating: parseFloat(eid('bkR').value) || null,
     notes: eid('bkN').value.trim()
   }));
   eid('bkT').value=''; eid('bkA').value=''; eid('bkN').value=''; eid('bkR').value='';
@@ -492,8 +502,8 @@ function updateActiveBookStatus(value) {
 
 function updateActiveBookRating(value) {
   const b = getActiveBook(); if (!b) return;
-  const n = parseInt(value);
-  b.rating = n >= 1 && n <= 5 ? n : null;
+  const n = parseFloat(value);
+  b.rating = n >= 0.5 && n <= 10 ? n : null;
   scheduleSave(); renderBooks(); renderBookDetails();
 }
 
@@ -603,7 +613,7 @@ function renderAlbumDetail() {
       <input class="editable track-title-inp" value="${escapeAttr(tr.title)}" placeholder="${t('track_title_ph')}" oninput="updateTrack(${b.id},${tr.id},'title',this.value)">
       <input class="editable track-dur-inp" value="${escapeAttr(tr.duration)}" placeholder="0:00" oninput="updateTrack(${b.id},${tr.id},'duration',this.value)">
       <div class="track-stars">
-        ${[1,2,3,4,5].map(n => `<span class="track-star${tr.rating>=n?' lit':''}" onclick="rateTrack(${b.id},${tr.id},${n})">${tr.rating>=n?'★':'☆'}</span>`).join('')}
+        ${[1,2,3,4,5,6,7,8,9,10].map(n => `<span class="track-star${tr.rating>=n?' lit':''}" onclick="rateTrack(${b.id},${tr.id},${n})">${tr.rating>=n?'★':'☆'}</span>`).join('')}
       </div>
       <button class="habit-del" onclick="deleteTrack(${b.id},${tr.id})">✕</button>
       <textarea class="editable-area track-review-inp" rows="2" placeholder="${t('track_review_ph')}" oninput="updateTrack(${b.id},${tr.id},'review',this.value)">${escapeHtml(tr.review||'')}</textarea>
@@ -652,8 +662,8 @@ function saveAlbumDetails() {
   b.author = eid('adArtist').value.trim() || b.author;
   b.notes  = eid('adNotes').value;
   b.status = eid('adStatus').value;
-  const r  = parseInt(eid('adRating').value);
-  b.rating = r >= 1 && r <= 5 ? r : null;
+  const r  = parseFloat(eid('adRating').value);
+  b.rating = r >= 0.5 && r <= 10 ? r : null;
   if (b.status === 'done' && !b.finishedOn) b.finishedOn = today();
   scheduleSave(); renderBooks(); renderAlbumDetail();
   toast(t('settings_saved'));

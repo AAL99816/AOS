@@ -24,11 +24,15 @@ const DS = {
   media:[],
 gymLog:{},
 cardioLog:{},
+cardioHistory:[],
+calorieLog:{},
+calorieTarget:2000,
 prayerLog:{},
 notes:{},
 workoutHistory:[],
 exerciseHistory:{},
 weeklyReflections:{},
+appPrefs:{ showReflection: true },
 onboarded:false
 
 };
@@ -48,6 +52,16 @@ function deepMerge(base,over){
     else r[k] = over[k];
   }
   return r;
+}
+
+function makeCardioSession(s={}) {
+  return {
+    id: s.id ?? Date.now() + Math.random(),
+    date: s.date ?? today(),
+    activity: s.activity ?? '',
+    duration: s.duration ?? '',
+    notes: s.notes ?? ''
+  };
 }
 
 function makeWorkoutDay(w={}){
@@ -142,10 +156,14 @@ function normalizeAppState(raw={}){
   out.notes = out.notes && typeof out.notes === 'object' ? out.notes : {};
   out.gymLog = out.gymLog && typeof out.gymLog === 'object' ? out.gymLog : {};
   out.cardioLog = out.cardioLog && typeof out.cardioLog === 'object' ? out.cardioLog : {};
+  out.cardioHistory = (Array.isArray(out.cardioHistory) ? out.cardioHistory : []).map(makeCardioSession);
+  out.calorieLog = out.calorieLog && typeof out.calorieLog === 'object' ? out.calorieLog : {};
+  out.calorieTarget = out.calorieTarget || 2000;
   out.workoutHistory = (Array.isArray(out.workoutHistory) ? out.workoutHistory : []).map(makeWorkoutSession);
   out.exerciseHistory = out.exerciseHistory && typeof out.exerciseHistory === 'object' ? out.exerciseHistory : {};
   out.prayerLog = out.prayerLog && typeof out.prayerLog === 'object' ? out.prayerLog : {};
   out.weeklyReflections = out.weeklyReflections && typeof out.weeklyReflections === 'object' ? out.weeklyReflections : {};
+  out.appPrefs = deepMerge(DS.appPrefs, out.appPrefs || {});
   out.onboarded = typeof src.onboarded === 'boolean' ? src.onboarded : false;
 
   out.habits = (Array.isArray(out.habits) ? out.habits : clone(DS.habits)).map(makeHabit);
