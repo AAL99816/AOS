@@ -140,14 +140,13 @@ function renderWorkoutCards() {
     div.className = 'card';
 
     div.innerHTML = `
-      <div class="wk-head">
-        <input
-          class="editable wk-title-inp"
-          value="${escapeHtml(wc.title || '')}"
-          onchange="updateWCF(${wc.id},'title',this.value)"
-          title="Edit title"
-        >
-      </div>
+      <input
+        class="editable wk-title-inp"
+        value="${escapeHtml(wc.title || '')}"
+        onchange="updateWCF(${wc.id},'title',this.value)"
+        title="Edit title"
+        style="margin-bottom:12px;display:block;width:100%"
+      >
 
       <div class="exlist">
         ${(wc.exercises || []).map(ex => {

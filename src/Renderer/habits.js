@@ -136,14 +136,25 @@ function prayerStreak(){
   return streakOf(hfind('prayer','salah','salat','صلاة','صلاه'));
 }
 
-/* Schedule-aware gym streak: rest days are skipped, only missed training days break it */
+/* Schedule-aware gym streak: rest days are skipped, only missed training days break it.
+   If today is a training day but not yet logged, start counting from yesterday so the
+   streak reflects what you've built rather than showing 0 all morning. */
 function calcGymStreak(){
   if(!S.gymLog) return 0;
-  let n=0, d=new Date(), guard=365;
+  let d=new Date();
+
+  // If today is an unlogged training day, start from yesterday
+  const todayStr=dStr(d);
+  const todayIdx=d.getDay()===0?6:d.getDay()-1;
+  const todayWd=S.workout && S.workout[todayIdx];
+  if(!(todayWd && todayWd.rest) && !S.gymLog[todayStr]){
+    d.setDate(d.getDate()-1);
+  }
+
+  let n=0, guard=365;
   while(guard-->0){
     const dateStr=dStr(d);
-    const jsDay=d.getDay(); // 0=Sun
-    const idx=jsDay===0?6:jsDay-1; // Mon=0 … Sun=6
+    const idx=d.getDay()===0?6:d.getDay()-1;
     const wd=S.workout && S.workout[idx];
     if(wd && wd.rest){ d.setDate(d.getDate()-1); continue; }
     if(S.gymLog[dateStr]){ n++; d.setDate(d.getDate()-1); }
