@@ -1,10 +1,8 @@
 'use strict';
 
-const CACHE = 'aos-v11';
+const CACHE = 'aos-v12';
 
 const SHELL = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/icons/icon.svg',
   '/Renderer/i18n.js',
@@ -41,9 +39,22 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
+
   /* Pass through: Supabase, Google Fonts, CDNs */
   if (url.hostname !== self.location.hostname) return;
-  /* Cache-first for app shell */
+
+  /* Navigation requests (HTML page loads) — always go to network.
+     This ensures the browser always gets fresh HTML and can detect
+     a new sw.js version without needing a hard refresh.
+     Falls back to cached index.html if offline. */
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request).catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+
+  /* JS / CSS / assets — cache-first for fast loads */
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request))
   );
