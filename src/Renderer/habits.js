@@ -136,10 +136,26 @@ function prayerStreak(){
   return streakOf(hfind('prayer','salah','salat','صلاة','صلاه'));
 }
 
+/* Schedule-aware gym streak: rest days are skipped, only missed training days break it */
+function calcGymStreak(){
+  if(!S.gymLog) return 0;
+  let n=0, d=new Date(), guard=365;
+  while(guard-->0){
+    const dateStr=dStr(d);
+    const jsDay=d.getDay(); // 0=Sun
+    const idx=jsDay===0?6:jsDay-1; // Mon=0 … Sun=6
+    const wd=S.workout && S.workout[idx];
+    if(wd && wd.rest){ d.setDate(d.getDate()-1); continue; }
+    if(S.gymLog[dateStr]){ n++; d.setDate(d.getDate()-1); }
+    else break;
+  }
+  return n;
+}
+
 const STREAK_DEFS=[
   {key:'prayer',labelKey:'prayer',val:()=>prayerStreak()},
   {key:'cardio',labelKey:'cardio',val:()=>streakOf(hfind('cardio','walk','run','jog','cycle'))},
-  {key:'gym',labelKey:'gym',val:()=>streakOf(hfind('gym','lift','workout','training','weights'))},
+  {key:'gym',labelKey:'gym_schedule',val:()=>calcGymStreak()},
   {key:'read',labelKey:'reading_streak',val:()=>streakOf(hfind('read','reading','book'))},
   {key:'study',labelKey:'study',val:()=>streakOf(hfind('study','deep work','revision','research'))}
 ];

@@ -147,13 +147,6 @@ function renderWorkoutCards() {
           onchange="updateWCF(${wc.id},'title',this.value)"
           title="Edit title"
         >
-        <input
-          class="editable wk-badge-inp"
-          value="${escapeHtml(wc.subtitle || '')}"
-          onchange="updateWCF(${wc.id},'subtitle',this.value)"
-          title="Edit subtitle"
-          style="background:var(--rose);padding:2px 7px;border-radius:20px;font-size:0.58rem;width:auto;"
-        >
       </div>
 
       <div class="exlist">
@@ -183,7 +176,7 @@ function renderWorkoutCards() {
               <div style="display:flex;align-items:center;gap:6px;margin-top:7px;padding-left:14px;">
                 <input class="add-inp" id="logW-${ex.id}" type="number" step="0.5" placeholder="${t('weight_ph')}" style="width:68px;flex:none;" value="${last?.weight ?? ''}">
                 <input class="add-inp" id="logR-${ex.id}" type="number" placeholder="${t('reps_ph')}" style="width:68px;flex:none;" value="${last?.reps ?? ''}">
-                <input class="add-inp" id="logSets-${ex.id}" type="number" min="1" placeholder="sets" style="width:46px;flex:none;" value="1" title="Number of sets">
+                <input class="add-inp" id="logSets-${ex.id}" type="number" min="1" placeholder="sets" style="width:58px;flex:none;padding-right:14px;" value="1" title="Number of sets">
                 <button class="btn btn-g" style="font-size:0.66rem;padding:4px 9px" onclick="logExercise(${wc.id},${ex.id})">${t('log')}</button>
               </div>
 

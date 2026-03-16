@@ -273,6 +273,9 @@ const LANG = {
 
     /* Training log full view */
     view_all:           'View all →',
+
+    /* Gym streak */
+    gym_schedule:       'Gym Schedule',
   },
 
   ar: {
@@ -545,6 +548,9 @@ const LANG = {
 
     /* Training log full view */
     view_all:           'عرض الكل ←',
+
+    /* Gym streak */
+    gym_schedule:       'جدول الجيم',
   }
 };
 
