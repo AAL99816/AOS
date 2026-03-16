@@ -258,6 +258,21 @@ const LANG = {
     username_lbl:  'Username',
     save_settings: 'Save',
     settings_saved:'Settings saved',
+
+    /* Past Notes */
+    past_notes:         'Past Notes',
+    past_notes_btn:     'Past',
+    no_past_notes:      'No past notes',
+
+    /* Project detail */
+    open_detail:        'Open →',
+    tasks_label:        'Tasks',
+    linked_goals:       'Linked Goals',
+    no_tasks:           'No tasks yet',
+    no_linked_goals:    'No linked goals',
+
+    /* Training log full view */
+    view_all:           'View all →',
   },
 
   ar: {
@@ -515,6 +530,21 @@ const LANG = {
     username_lbl:  'اسم المستخدم',
     save_settings: 'حفظ',
     settings_saved:'تم حفظ الإعدادات',
+
+    /* Past Notes */
+    past_notes:         'ملاحظات سابقة',
+    past_notes_btn:     'سابق',
+    no_past_notes:      'لا توجد ملاحظات سابقة',
+
+    /* Project detail */
+    open_detail:        'فتح ←',
+    tasks_label:        'المهام',
+    linked_goals:       'أهداف مرتبطة',
+    no_tasks:           'لا توجد مهام بعد',
+    no_linked_goals:    'لا توجد أهداف مرتبطة',
+
+    /* Training log full view */
+    view_all:           'عرض الكل ←',
   }
 };
 

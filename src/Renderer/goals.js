@@ -111,6 +111,10 @@ function updateGoalField(id, field, value) {
   if (field === 'notes' || field === 'type' || field === 'context' || field === 'category') {
     renderGoals();
   }
+  if (field === 'projectId') {
+    renderGoals();
+    renderProjects();
+  }
 }
 
 function nudgeGoal(id) {

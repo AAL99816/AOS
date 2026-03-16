@@ -45,7 +45,10 @@ function renderProjects() {
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px;">
         <input class="editable goal-dl-inp" type="date" value="${escapeAttr(p.deadline||'')}" onchange="updateProjectField(${p.id},'deadline',this.value)">
-        <button class="btn btn-d" style="font-size:0.68rem;padding:3px 9px" onclick="deleteProject(${p.id})">${t('remove')}</button>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-g" style="font-size:0.68rem;padding:3px 9px" onclick="openProjectDetail(${p.id})">${t('open_detail')}</button>
+          <button class="btn btn-d" style="font-size:0.68rem;padding:3px 9px" onclick="deleteProject(${p.id})">${t('remove')}</button>
+        </div>
       </div>
     `;
 
@@ -112,4 +115,77 @@ function resetProjectModal() {
   eid('pStat').value = 'Active';
   eid('pDl').value = '';
   eid('pNotes').value = '';
+}
+
+/* ══ PROJECT DETAIL (life-session) ══ */
+let _activeProjectId = null;
+
+function openProjectDetail(id) {
+  const p = ensureProjects().find(x => x.id === id);
+  if (!p) return;
+  _activeProjectId = id;
+
+  eid('pdTitle').textContent = p.title || '';
+  eid('pdStatus').textContent = p.status || 'Active';
+  eid('pdNotes').value = p.richNotes || '';
+  eid('pdNotesPreview').innerHTML = renderMd(p.richNotes || '');
+
+  renderPdTasks(p);
+
+  const linked = (S.goals || []).filter(g => String(g.projectId) === String(id));
+  eid('pdLinkedGoals').innerHTML = linked.length
+    ? linked.map(g => `<div style="padding:5px 0;border-bottom:1px solid var(--border);font-size:0.8rem;color:var(--mist)">${escapeHtml(g.text||'')}</div>`).join('')
+    : `<div style="font-size:0.72rem;color:var(--muted)">${t('no_linked_goals')}</div>`;
+
+  openModal('mProjectDetail');
+}
+
+function renderPdTasks(p) {
+  const tasks = p.tasks || [];
+  eid('pdTasks').innerHTML = tasks.length
+    ? tasks.map(tk => `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+          <input type="checkbox" ${tk.done ? 'checked' : ''} onchange="toggleProjectTask(${p.id},${tk.id})">
+          <span style="flex:1;font-size:0.8rem;color:var(--mist);${tk.done ? 'text-decoration:line-through;opacity:0.45' : ''}">${escapeHtml(tk.text||'')}</span>
+          <button class="habit-del" style="opacity:0.4" onclick="deleteProjectTask(${p.id},${tk.id})">✕</button>
+        </div>`).join('')
+    : `<div style="font-size:0.72rem;color:var(--muted);padding:6px 0">${t('no_tasks')}</div>`;
+}
+
+function addProjectTask() {
+  const text = (eid('pdNewTask').value || '').trim();
+  if (!text || !_activeProjectId) return;
+  const p = ensureProjects().find(x => x.id === _activeProjectId);
+  if (!p) return;
+  if (!Array.isArray(p.tasks)) p.tasks = [];
+  p.tasks.push({ id: Date.now(), text, done: false });
+  eid('pdNewTask').value = '';
+  scheduleSave();
+  renderPdTasks(p);
+}
+
+function toggleProjectTask(id, taskId) {
+  const p = ensureProjects().find(x => x.id === id);
+  if (!p) return;
+  const tk = (p.tasks || []).find(t => t.id === taskId);
+  if (!tk) return;
+  tk.done = !tk.done;
+  scheduleSave();
+  renderPdTasks(p);
+}
+
+function deleteProjectTask(id, taskId) {
+  const p = ensureProjects().find(x => x.id === id);
+  if (!p) return;
+  p.tasks = (p.tasks || []).filter(t => t.id !== taskId);
+  scheduleSave();
+  renderPdTasks(p);
+}
+
+function previewProjectNotes() {
+  const val = eid('pdNotes').value || '';
+  eid('pdNotesPreview').innerHTML = renderMd(val);
+  if (!_activeProjectId) return;
+  const p = ensureProjects().find(x => x.id === _activeProjectId);
+  if (p) { p.richNotes = val; scheduleSave(); }
 }

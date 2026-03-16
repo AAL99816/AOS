@@ -818,7 +818,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
         <button class="btn btn-p" onclick="addHabit()" data-i18n="add">+ Add</button>
       </div>
     </div>
-    <div class="sec"><span data-i18n="daily_notes_lbl">Daily Notes</span> <span class="lbl" data-i18n="nav_today">Today</span></div>
+    <div class="sec" style="display:flex;align-items:center;gap:8px"><span data-i18n="daily_notes_lbl">Daily Notes</span> <span class="lbl" data-i18n="nav_today">Today</span><button class="btn btn-g" style="font-size:0.6rem;padding:2px 8px;margin-left:auto" onclick="openPastNotes()" data-i18n="past_notes_btn">Past</button></div>
     <div class="card">
       <textarea id="dailyNotes" class="editable-area" rows="5" placeholder="Write anything…" data-i18n-ph="daily_notes_ph" oninput="S.notes[today()]=this.value;scheduleSave()"></textarea>
     </div>
@@ -939,6 +939,25 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   <div class="mf"><label data-i18n="deadline">Target Date</label><input id="pDl" type="date"></div>
   <div class="mf"><label data-i18n="notes">Notes</label><textarea id="pNotes" data-i18n-ph="notes_next_steps" placeholder="Notes, next steps..."></textarea></div>
   <div class="modal-acts"><button class="btn btn-g" onclick="closeModal('mProject')" data-i18n="cancel">Cancel</button><button class="btn btn-p" onclick="saveProject()" data-i18n="save">Save</button></div>
+</div></div>
+
+<div class="modal-bg" id="mProjectDetail" onclick="if(event.target===this)closeModal('mProjectDetail')"><div class="modal" style="max-width:520px">
+  <h2 id="pdTitle" style="margin-bottom:3px"></h2>
+  <div id="pdStatus" style="font-size:0.6rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--blush);font-family:'DM Mono',monospace;margin-bottom:16px"></div>
+  <div class="mf">
+    <label data-i18n="notes">Notes</label>
+    <textarea id="pdNotes" class="editable-area" rows="5" style="width:100%" oninput="previewProjectNotes()" placeholder="Markdown supported — **bold**, *italic*, # heading, - list"></textarea>
+  </div>
+  <div id="pdNotesPreview" style="font-size:0.78rem;color:var(--muted-lt);line-height:1.6;padding:8px 10px;background:rgba(192,96,122,0.05);border-radius:8px;min-height:24px;margin-bottom:14px"></div>
+  <div style="font-size:0.6rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px" data-i18n="tasks_label">Tasks</div>
+  <div id="pdTasks" style="margin-bottom:10px"></div>
+  <div style="display:flex;gap:6px;margin-bottom:16px">
+    <input class="add-inp" id="pdNewTask" placeholder="New task…" style="flex:1" onkeydown="if(event.key==='Enter')addProjectTask()">
+    <button class="btn btn-g" style="font-size:0.68rem" onclick="addProjectTask()">+ Add</button>
+  </div>
+  <div style="font-size:0.6rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px" data-i18n="linked_goals">Linked Goals</div>
+  <div id="pdLinkedGoals" style="margin-bottom:14px"></div>
+  <div class="modal-acts"><button class="btn btn-p" onclick="closeModal('mProjectDetail')" data-i18n="done_btn">Done</button></div>
 </div></div>
 
 <div class="modal-bg" id="mBook"><div class="modal">
@@ -1110,6 +1129,26 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   <div id="sdDate" style="font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px"></div>
   <div id="sdExercises"></div>
   <div class="modal-acts"><button class="btn btn-p" onclick="closeModal('mSessionDetail')">Done</button></div>
+</div></div>
+
+<div class="modal-bg" id="mPastNotes" onclick="if(event.target===this)closeModal('mPastNotes')"><div class="modal" style="max-width:480px">
+  <h2 data-i18n="past_notes">Past Notes</h2>
+  <div id="pnList" style="max-height:55vh;overflow-y:auto"></div>
+  <div id="pnDetail" style="display:none">
+    <div id="pnDetailDate" style="font-size:0.62rem;color:var(--blush);font-family:'DM Mono',monospace;margin-bottom:8px"></div>
+    <div id="pnDetailContent" style="font-size:0.82rem;color:var(--mist);white-space:pre-wrap;line-height:1.6;max-height:50vh;overflow-y:auto"></div>
+    <div style="margin-top:12px"><button class="btn btn-g" style="font-size:0.68rem" onclick="eid('pnDetail').style.display='none';eid('pnList').style.display=''">← Back</button></div>
+  </div>
+  <div class="modal-acts"><button class="btn btn-p" onclick="closeModal('mPastNotes')" data-i18n="close">Close</button></div>
+</div></div>
+
+<div class="modal-bg" id="mTrainingFull" onclick="if(event.target===this)closeModal('mTrainingFull')"><div class="modal" style="max-width:600px;width:94vw">
+  <h2 data-i18n="training_log">Training Log</h2>
+  <div style="margin-bottom:12px">
+    <input class="add-inp" id="tfSearch" placeholder="Search sessions or exercises…" oninput="filterTrainingFull(this.value)" style="width:100%">
+  </div>
+  <div id="tfList" style="max-height:62vh;overflow-y:auto"></div>
+  <div class="modal-acts"><button class="btn btn-p" onclick="closeModal('mTrainingFull')" data-i18n="close">Close</button></div>
 </div></div>
 
 <div class="modal-bg" id="mStreaks"><div class="modal">

@@ -288,4 +288,36 @@ async function bootApp(){
   }
 }
 
+/* ══ PAST NOTES ══ */
+function openPastNotes() {
+  const todayStr = today();
+  const entries = Object.entries(S.notes || {})
+    .filter(([d, v]) => d !== todayStr && v && v.trim())
+    .sort((a, b) => b[0].localeCompare(a[0]));
+
+  const list = eid('pnList');
+  const detail = eid('pnDetail');
+  detail.style.display = 'none';
+  list.style.display = '';
+
+  if (!entries.length) {
+    list.innerHTML = `<div style="text-align:center;padding:32px 0;font-size:0.72rem;color:var(--muted)">${t('no_past_notes')}</div>`;
+  } else {
+    list.innerHTML = entries.map(([d, v]) => `
+      <div style="cursor:pointer;padding:10px 0;border-bottom:1px solid var(--border)" onclick="showPastNoteDetail('${escapeAttr(d)}')">
+        <div style="font-size:0.62rem;color:var(--blush);font-family:'DM Mono',monospace;margin-bottom:3px">${escapeHtml(d)}</div>
+        <div style="font-size:0.78rem;color:var(--muted-lt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml((v||'').slice(0,120))}</div>
+      </div>`).join('');
+  }
+  openModal('mPastNotes');
+}
+
+function showPastNoteDetail(dateStr) {
+  const v = (S.notes || {})[dateStr] || '';
+  eid('pnDetailDate').textContent = dateStr;
+  eid('pnDetailContent').textContent = v;
+  eid('pnDetail').style.display = '';
+  eid('pnList').style.display = 'none';
+}
+
 // Booted by auth.js after session restore or login.

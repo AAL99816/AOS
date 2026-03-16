@@ -60,21 +60,30 @@ function renderGymWeek() {
     const div = document.createElement('div');
     div.className = `gym-day${isRest ? ' rest' : ''}${done ? ' done' : ''}`;
 
+    const cardOptions = (S.workoutCards||[]).map(wc =>
+      `<option value="${wc.id}"${wd.cardId==wc.id?' selected':''}>${escapeHtml(wc.title||'')}</option>`
+    ).join('');
+
     div.innerHTML = `
       <div class="dn">${DAY_SHORT[i]}</div>
-      <input
-        class="editable wt-inp"
-        value="${escapeHtml(wd.type || '')}"
-        onchange="updateWDay(${i},this.value)"
-        onclick="event.stopPropagation()"
-        title="${t('click_rename')}"
-      >
+      ${wd.cardId
+        ? `<div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap;justify-content:center">
+             <span style="font-size:0.52rem;background:var(--rose);padding:2px 6px;border-radius:20px;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px">${escapeHtml(wd.type||'')}</span>
+             <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.75rem;line-height:1;padding:0 2px" onclick="event.stopPropagation();unlinkPreset(${i})" title="Unlink preset">×</button>
+           </div>`
+        : `<input class="editable wt-inp" value="${escapeHtml(wd.type || '')}" onchange="updateWDay(${i},this.value)" onclick="event.stopPropagation()" title="${t('click_rename')}">`
+      }
       <div class="ck">${done ? '✓' : isRest ? '—' : '○'}</div>
+      ${!isRest ? `<select style="font-size:0.48rem;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--muted);margin-top:3px;width:100%;padding:1px 2px;max-width:80px" onchange="event.stopPropagation();assignPreset(${i},this.value)" onclick="event.stopPropagation()">
+        <option value="">— preset —</option>
+        ${cardOptions}
+      </select>` : ''}
       <button
         onclick="event.stopPropagation();toggleRestDay(${i})"
         title="${isRest ? t('mark_training') : t('mark_rest')}"
-        style="margin-top:5px;background:none;border:1px solid ${isRest ? 'rgba(192,96,122,0.18)' : 'rgba(192,96,122,0.35)'};border-radius:5px;color:${isRest ? 'var(--muted)' : 'var(--blush)'};font-size:0.5rem;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;padding:2px 5px;cursor:pointer;transition:all 0.15s;"
+        style="margin-top:4px;background:none;border:1px solid ${isRest ? 'rgba(192,96,122,0.18)' : 'rgba(192,96,122,0.35)'};border-radius:5px;color:${isRest ? 'var(--muted)' : 'var(--blush)'};font-size:0.5rem;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;padding:2px 5px;cursor:pointer;transition:all 0.15s;"
       >${isRest ? t('gym') : t('rest')}</button>
+      ${!isRest && wd.cardId ? `<button onclick="event.stopPropagation();scrollToCard(${wd.cardId})" style="margin-top:3px;background:none;border:1px solid rgba(192,96,122,0.35);border-radius:5px;color:var(--blush);font-size:0.5rem;font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;padding:2px 5px;cursor:pointer">Log →</button>` : ''}
     `;
 
     div.addEventListener('click', () => {
@@ -110,9 +119,10 @@ function toggleRestDay(i){
 function updateWDay(i, val) {
   ensureFitnessState();
 
-  if (!S.workout[i]) S.workout[i] = { type: '', rest: false };
+  if (!S.workout[i]) S.workout[i] = { type: '', rest: false, cardId: null };
   S.workout[i].type = val;
   S.workout[i].rest = String(val).trim().toLowerCase() === 'rest';
+  S.workout[i].cardId = null; // clear preset link when manually renaming
 
   scheduleSave();
   renderGymWeek();
@@ -171,15 +181,16 @@ function renderWorkoutCards() {
               </div>
 
               <div style="display:flex;align-items:center;gap:6px;margin-top:7px;padding-left:14px;">
-                <input class="add-inp" id="logW-${ex.id}" type="number" step="0.5" placeholder="${t('weight_ph')}" style="width:78px;flex:none;">
-                <input class="add-inp" id="logR-${ex.id}" type="number" placeholder="${t('reps_ph')}" style="width:78px;flex:none;">
+                <input class="add-inp" id="logW-${ex.id}" type="number" step="0.5" placeholder="${t('weight_ph')}" style="width:68px;flex:none;" value="${last?.weight ?? ''}">
+                <input class="add-inp" id="logR-${ex.id}" type="number" placeholder="${t('reps_ph')}" style="width:68px;flex:none;" value="${last?.reps ?? ''}">
+                <input class="add-inp" id="logSets-${ex.id}" type="number" min="1" placeholder="sets" style="width:46px;flex:none;" value="1" title="Number of sets">
                 <button class="btn btn-g" style="font-size:0.66rem;padding:4px 9px" onclick="logExercise(${wc.id},${ex.id})">${t('log')}</button>
               </div>
 
               <div style="margin-top:6px;padding-left:14px;font-size:0.64rem;color:var(--muted-lt);font-family:'DM Mono',monospace;">
                 ${
                   last
-                    ? `${t('last_colon')} ${last.weight}kg × ${last.reps}${pct !== null ? ` <span style="color:var(--gold-lt)">${fmtPct(pct)}</span>` : ''}`
+                    ? `${t('last_colon')} ${last.sets > 1 ? last.sets + ' × ' : ''}${last.weight}kg × ${last.reps}${pct !== null ? ` <span style="color:var(--gold-lt)">${fmtPct(pct)}</span>` : ''}`
                     : t('no_log_yet')
                 }
               </div>
@@ -215,7 +226,8 @@ function renderTrainingLog(){
 
   const sec = document.createElement('div');
   sec.className = 'sec';
-  sec.innerHTML = `${t('training_log')} <span class="lbl">${hist.length} ${hist.length!==1?t('sessions_plural_s'):t('sessions_plural')}</span>`;
+  sec.style.cssText = 'display:flex;align-items:center;gap:8px';
+  sec.innerHTML = `${t('training_log')} <span class="lbl">${hist.length} ${hist.length!==1?t('sessions_plural_s'):t('sessions_plural')}</span><button class="btn btn-g" style="font-size:0.6rem;padding:2px 8px;margin-left:auto" onclick="openTrainingFull()" data-i18n="view_all">View all →</button>`;
   c.appendChild(sec);
 
   if(!hist.length){
@@ -367,6 +379,8 @@ function logExercise(wcId, exId) {
 
   const weight = parseFloat(eid(`logW-${exId}`).value);
   const reps = parseInt(eid(`logR-${exId}`).value, 10);
+  const setsEl = eid(`logSets-${exId}`);
+  const setsCount = setsEl ? (parseInt(setsEl.value, 10) || 1) : 1;
 
   if (!weight || weight <= 0) {
     toast(t('enter_weight'));
@@ -376,14 +390,16 @@ function logExercise(wcId, exId) {
   const entry = {
     date: today(),
     weight,
-    reps: reps || 0
+    reps: reps || 0,
+    sets: setsCount
   };
 
   const hist = getExerciseHistory(ex.name);
   hist.push(entry);
 
-  eid(`logW-${exId}`).value = '';
-  eid(`logR-${exId}`).value = '';
+  eid(`logW-${exId}`).value = weight;
+  eid(`logR-${exId}`).value = reps || '';
+  if (setsEl) setsEl.value = '1';
 
   scheduleSave();
   renderWorkoutCards();
@@ -464,4 +480,104 @@ function updateCardioDisplay() {
   ensureFitnessState();
   const mins = S.cardioLog[today()] || 0;
   eid('cardioToday').textContent = mins > 0 ? `${mins} ${t('min_today')}` : '';
+}
+
+/* ══ WORKOUT PRESETS ══ */
+function assignPreset(dayIndex, cardId) {
+  ensureFitnessState();
+  const id = parseInt(cardId, 10);
+  if (!id) return;
+  const wc = (S.workoutCards || []).find(w => w.id === id);
+  if (!wc) return;
+  if (!S.workout[dayIndex]) S.workout[dayIndex] = { type: '', rest: false, cardId: null };
+  S.workout[dayIndex].cardId = wc.id;
+  S.workout[dayIndex].type = wc.title || '';
+  S.workout[dayIndex].rest = false;
+  scheduleSave();
+  renderGymWeek();
+}
+
+function unlinkPreset(dayIndex) {
+  ensureFitnessState();
+  if (!S.workout[dayIndex]) return;
+  S.workout[dayIndex].cardId = null;
+  scheduleSave();
+  renderGymWeek();
+}
+
+function scrollToCard(cardId) {
+  go('fitness', document.querySelector('.tab[onclick*="fitness"]'));
+  setTimeout(() => {
+    const idx = (S.workoutCards || []).findIndex(w => w.id === cardId);
+    const cards = eid('workoutCards');
+    if (idx >= 0 && cards && cards.children[idx]) {
+      cards.children[idx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, 60);
+}
+
+/* ══ FULL TRAINING LOG ══ */
+function openTrainingFull() {
+  eid('tfSearch').value = '';
+  renderTrainingFullList('');
+  openModal('mTrainingFull');
+}
+
+function filterTrainingFull(query) {
+  renderTrainingFullList(query.toLowerCase().trim());
+}
+
+function renderTrainingFullList(query) {
+  const hist = [...(S.workoutHistory || [])].reverse();
+  const filtered = query
+    ? hist.filter(item =>
+        (item.title || '').toLowerCase().includes(query) ||
+        (item.exercises || []).some(e => (e.name || '').toLowerCase().includes(query))
+      )
+    : hist;
+
+  const grouped = {};
+  filtered.forEach(item => {
+    const month = (item.date || '').slice(0, 7);
+    if (!grouped[month]) grouped[month] = [];
+    grouped[month].push(item);
+  });
+
+  const c = eid('tfList');
+  c.innerHTML = '';
+
+  if (!filtered.length) {
+    c.innerHTML = `<div style="text-align:center;padding:32px 0;font-size:0.72rem;color:var(--muted)">${t('no_sessions')}</div>`;
+    return;
+  }
+
+  Object.keys(grouped).sort().reverse().forEach(month => {
+    const lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--blush);font-family:"DM Mono",monospace;padding:10px 0 6px;border-bottom:1px solid var(--border);margin-bottom:4px;';
+    const d = new Date(month + '-02');
+    lbl.textContent = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    c.appendChild(lbl);
+
+    grouped[month].forEach(item => {
+      const row = document.createElement('div');
+      row.style.cssText = 'border-bottom:1px solid var(--border);';
+      row.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;cursor:pointer;gap:8px" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+          <div style="display:flex;gap:10px;align-items:baseline;min-width:0">
+            <span style="font-size:0.62rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${escapeHtml(item.date||'')}</span>
+            <span style="font-size:0.82rem;color:var(--mist);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(item.title||'Workout')}</span>
+          </div>
+          <span style="font-size:0.68rem;color:var(--muted);flex-shrink:0">▸</span>
+        </div>
+        <div style="display:none;padding:6px 0 10px 12px">
+          ${(item.exercises||[]).map(e=>`
+            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.76rem">
+              <span style="color:var(--mist)">${escapeHtml(e.name||'')}</span>
+              <span style="color:var(--muted-lt);font-family:'DM Mono',monospace">${[e.sets,e.weight!=null?e.weight+'kg':null,e.reps!=null?e.reps+' reps':null].filter(Boolean).join(' · ')}</span>
+            </div>`).join('')}
+          ${!(item.exercises||[]).length?`<div style="font-size:0.72rem;color:var(--muted)">${escapeHtml(item.summary||'')}</div>`:''}
+        </div>`;
+      c.appendChild(row);
+    });
+  });
 }

@@ -85,6 +85,14 @@ function deepMerge(base,over){
   return r;
 }
 
+function makeWorkoutDay(w={}){
+  return {
+    type:   w.type   ?? '',
+    rest:   !!w.rest,
+    cardId: w.cardId ?? null
+  };
+}
+
 function makeProject(p={}){
   return {
     id: p.id ?? Date.now() + Math.random(),
@@ -93,7 +101,13 @@ function makeProject(p={}){
     context: p.context ?? p.location ?? '',
     status:  p.status  ?? 'Active',
     deadline: p.deadline ?? '',
-    notes: p.notes ?? ''
+    notes: p.notes ?? '',
+    richNotes: p.richNotes ?? '',
+    tasks: Array.isArray(p.tasks) ? p.tasks.map(tk => ({
+      id: tk.id ?? Date.now() + Math.random(),
+      text: tk.text ?? '',
+      done: !!tk.done
+    })) : []
   };
 }
 
@@ -171,7 +185,7 @@ function normalizeAppState(raw={}){
 
   out.habits = (Array.isArray(out.habits) ? out.habits : clone(DS.habits)).map(makeHabit);
   out.goals = (Array.isArray(out.goals) ? out.goals : clone(DS.goals)).map(makeGoal);
-  out.workout = Array.isArray(out.workout) ? out.workout : clone(DS.workout);
+  out.workout = (Array.isArray(out.workout) ? out.workout : clone(DS.workout)).map(makeWorkoutDay);
   out.workoutCards = Array.isArray(out.workoutCards) ? out.workoutCards : clone(DS.workoutCards);
 
 const rawProjects =
