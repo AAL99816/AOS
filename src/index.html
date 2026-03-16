@@ -440,6 +440,36 @@ main{flex:1; padding:26px 44px 60px;}
     grid-template-columns:1fr;
   }
 }
+
+/* Album / Show card overrides */
+.media-show-card .book-cover,
+.media-film-card .book-cover { height: 130px; }
+.media-album-card .book-cover { height: 140px; }
+
+/* Track row in album detail */
+.track-row {
+  display: grid;
+  grid-template-columns: 24px 1fr 60px auto 20px;
+  grid-template-rows: auto auto;
+  gap: 4px 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.track-num {
+  font-size: 0.58rem; color: var(--muted); font-family: 'DM Mono', monospace;
+  text-align: right;
+}
+.track-title-inp { font-size: 0.82rem; color: var(--mist); }
+.track-dur-inp   { font-size: 0.68rem; color: var(--muted); font-family: 'DM Mono', monospace; }
+.track-stars     { display: flex; gap: 2px; }
+.track-star      { cursor: pointer; font-size: 0.9rem; color: var(--muted); transition: color 0.1s; }
+.track-star.lit  { color: var(--gold-lt); }
+.track-star:hover { color: var(--gold); }
+.track-review-inp {
+  grid-column: 1 / -1;
+  font-size: 0.72rem; color: var(--muted); min-height: 36px;
+}
   
 /* ══ MODALS ══ */
 .modal-bg{display:none; position:fixed; inset:0; background:rgba(26,10,15,0.86); backdrop-filter:blur(8px); z-index:200; align-items:center; justify-content:center;}
@@ -849,20 +879,24 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <div class="sec" style="margin:0"><span data-i18n="library">Library</span></div>
       <button class="btn btn-p" onclick="openModal('mBook')">+ <span data-i18n="add">Add</span></button>
     </div>
+
+    <!-- Type tabs -->
     <div class="book-type-filters book-filters">
-      <button class="fpill active" onclick="setMediaTypeF('all',this)" data-i18n="filter_all">All</button>
-      <button class="fpill" onclick="setMediaTypeF('book',this)" data-i18n="book">Book</button>
-      <button class="fpill" onclick="setMediaTypeF('show',this)" data-i18n="show">Show</button>
-      <button class="fpill" onclick="setMediaTypeF('anime',this)" data-i18n="anime">Anime</button>
-      <button class="fpill" onclick="setMediaTypeF('film',this)" data-i18n="film">Film</button>
-      <button class="fpill" onclick="setMediaTypeF('other',this)" data-i18n="other">Other</button>
+      <button class="fpill active" data-type="book"  onclick="setMediaTypeF('book',this)"  data-i18n="book">Books</button>
+      <button class="fpill"        data-type="film"  onclick="setMediaTypeF('film',this)"  data-i18n="film">Films</button>
+      <button class="fpill"        data-type="show"  onclick="setMediaTypeF('show',this)"  data-i18n="show">Shows</button>
+      <button class="fpill"        data-type="anime" onclick="setMediaTypeF('anime',this)" data-i18n="anime">Anime</button>
+      <button class="fpill"        data-type="album" onclick="setMediaTypeF('album',this)" data-i18n="album">Albums</button>
     </div>
+
+    <!-- Status filters (labels update dynamically per type) -->
     <div class="book-status-filters book-filters" style="margin-top:6px">
-      <button class="fpill active" onclick="setBookF('all',this)" data-i18n="filter_all">All</button>
-      <button class="fpill" onclick="setBookF('unread',this)" data-i18n="queued">Queued</button>
-      <button class="fpill" onclick="setBookF('reading',this)" data-i18n="in_progress">In Progress</button>
-      <button class="fpill" onclick="setBookF('done',this)" data-i18n="finished">Finished</button>
+      <button class="fpill active" data-status="all"     onclick="setBookF('all',this)"     data-i18n="filter_all">All</button>
+      <button class="fpill"        data-status="unread"  onclick="setBookF('unread',this)"  >Queued</button>
+      <button class="fpill"        data-status="reading" onclick="setBookF('reading',this)" >In Progress</button>
+      <button class="fpill"        data-status="done"    onclick="setBookF('done',this)"    >Finished</button>
     </div>
+
     <div class="books-grid" id="mediaGrid" style="margin-top:14px"></div>
   </div>
 
@@ -909,37 +943,76 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 
 <div class="modal-bg" id="mBook"><div class="modal">
   <h2 data-i18n="library">Library</h2>
-  <div class="mf"><label data-i18n="type">Type</label><select id="bkType"><option value="book" data-i18n="book">Book</option><option value="show" data-i18n="show">Show</option><option value="anime" data-i18n="anime">Anime</option><option value="film" data-i18n="film">Film</option><option value="other" data-i18n="other">Other</option></select></div>
-  <div class="mf"><label>Title</label><input id="bkT" placeholder="Title"></div>
-  <div class="mf"><label>Author / Creator</label><input id="bkA" placeholder="Author, director, studio…"></div>
-  <div class="mf"><label>Status</label><select id="bkS"><option value="unread" data-i18n="queued">Queued</option><option value="reading" data-i18n="in_progress">In Progress</option><option value="done" data-i18n="finished">Finished</option></select></div>
-  <div class="mf"><label>Rating (1–5)</label><input id="bkR" type="number" min="1" max="5" placeholder="—"></div>
+  <div class="mf"><label data-i18n="type">Type</label>
+    <select id="bkType">
+      <option value="book"  data-i18n="book">Book</option>
+      <option value="film"  data-i18n="film">Film</option>
+      <option value="show"  data-i18n="show">Show</option>
+      <option value="anime" data-i18n="anime">Anime</option>
+      <option value="album" data-i18n="album">Album</option>
+    </select>
+  </div>
+  <div class="mf"><label data-i18n="title_lbl">Title</label><input id="bkT" placeholder="Title"></div>
+  <div class="mf"><label id="bkCreatorLabel" data-i18n="author">Author / Creator</label><input id="bkA" placeholder="Author, director, artist…"></div>
+  <div class="mf"><label data-i18n="status_label">Status</label>
+    <select id="bkS">
+      <option value="unread"  data-i18n="queued">Queued</option>
+      <option value="reading" data-i18n="in_progress">In Progress</option>
+      <option value="done"    data-i18n="finished">Finished</option>
+    </select>
+  </div>
+  <div class="mf"><label data-i18n="rating_lbl">Rating (1–5)</label><input id="bkR" type="number" min="1" max="5" placeholder="—"></div>
   <div class="mf"><label data-i18n="notes">Notes</label><textarea id="bkN" placeholder="Thoughts…"></textarea></div>
-  <div class="modal-acts"><button class="btn btn-g" onclick="closeModal('mBook')" data-i18n="cancel">Cancel</button><button class="btn btn-p" onclick="saveBook()" data-i18n="save">Save</button></div>
+  <div class="modal-acts">
+    <button class="btn btn-g" onclick="closeModal('mBook')" data-i18n="cancel">Cancel</button>
+    <button class="btn btn-p" onclick="saveBook()" data-i18n="save">Save</button>
+  </div>
 </div></div>
 
 <div class="modal-bg" id="mBookDetails"><div class="modal book-detail-modal">
-  <h2>Media Details</h2>
+  <h2 data-i18n="media_details">Media Details</h2>
 
   <div class="book-detail-grid">
     <div class="book-detail-block">
-      <div class="book-detail-kicker">Details</div>
-      <div class="mf"><label>Title</label><input id="bdTitle" placeholder="Title" oninput="updateActiveBookField('title', this.value)"></div>
+      <div class="book-detail-kicker" data-i18n="details_section">Details</div>
+      <div class="mf"><label data-i18n="title_lbl">Title</label><input id="bdTitle" placeholder="Title" oninput="updateActiveBookField('title', this.value)"></div>
       <div class="mf"><label id="bdCreatorLabel">Author</label><input id="bdAuthor" placeholder="Author / creator" oninput="updateActiveBookField('author', this.value)"></div>
       <div class="book-progress-row">
-        <div class="mf" style="margin-bottom:0"><label>Status</label><select id="bdStatus" onchange="updateActiveBookStatus(this.value)"><option value="unread">To Read</option><option value="reading">Reading</option><option value="done">Finished</option></select></div>
-        <div class="mf" style="margin-bottom:0"><label>Rating (1–5)</label><input id="bdRating" type="number" min="1" max="5" placeholder="—" onchange="updateActiveBookRating(this.value)"></div>
+        <div class="mf" style="margin-bottom:0"><label data-i18n="status_label">Status</label><select id="bdStatus" onchange="updateActiveBookStatus(this.value)"><option value="unread">To Read</option><option value="reading">Reading</option><option value="done">Finished</option></select></div>
+        <div class="mf" style="margin-bottom:0"><label data-i18n="rating_lbl">Rating (1–5)</label><input id="bdRating" type="number" min="1" max="5" placeholder="—" onchange="updateActiveBookRating(this.value)"></div>
       </div>
     </div>
 
-    <div class="book-detail-block">
-      <div class="book-detail-kicker">Progress</div>
+    <!-- Book progress block -->
+    <div class="book-detail-block" id="bdProgressBlock">
+      <div class="book-detail-kicker" data-i18n="progress_section">Progress</div>
       <div class="book-progress-row">
         <div class="mf" style="margin-bottom:0"><label id="bdCurrentPageLabel">Current Page</label><input id="bdCurrentPage" type="number" min="0" placeholder="0" oninput="updateActiveBookPages()"></div>
         <div class="mf" style="margin-bottom:0"><label id="bdTotalPagesLabel">Total Pages</label><input id="bdTotalPages" type="number" min="0" placeholder="0" oninput="updateActiveBookPages()"></div>
       </div>
       <div class="book-progress-bar"><div id="bdProgressFill" class="book-progress-fill"></div></div>
       <div id="bdProgressText" class="book-progress-text">0%</div>
+    </div>
+
+    <!-- Show / Anime S/E block -->
+    <div class="book-detail-block" id="bdShowBlock" style="display:none">
+      <div class="book-detail-kicker" data-i18n="progress_section">Progress</div>
+      <div class="book-progress-row">
+        <div class="mf" style="margin-bottom:0"><label data-i18n="season">Season</label><input id="bdCurrentSeason" type="number" min="1" placeholder="1" oninput="updateShowProgress()"></div>
+        <div class="mf" style="margin-bottom:0"><label data-i18n="episode">Episode</label><input id="bdCurrentEpisode" type="number" min="0" placeholder="0" oninput="updateShowProgress()"></div>
+      </div>
+      <div class="book-progress-row" style="margin-top:8px">
+        <div class="mf" style="margin-bottom:0"><label data-i18n="total_seasons">Total Seasons</label><input id="bdTotalSeasons" type="number" min="0" placeholder="—" oninput="updateShowProgress()"></div>
+        <div class="mf" style="margin-bottom:0"><label data-i18n="total_episodes">Total Episodes</label><input id="bdTotalEpisodes" type="number" min="0" placeholder="—" oninput="updateShowProgress()"></div>
+      </div>
+      <div id="bdShowProgress" style="font-size:0.72rem;color:var(--muted-lt);font-family:'DM Mono',monospace;margin-top:8px"></div>
+    </div>
+
+    <!-- Film block -->
+    <div class="book-detail-block" id="bdFilmBlock" style="display:none">
+      <div class="book-detail-kicker" data-i18n="details_section">Details</div>
+      <div class="mf"><label data-i18n="runtime">Runtime</label><input id="bdRuntime" placeholder="2h 15m" oninput="updateFilmDetails()"></div>
+      <div class="mf"><label data-i18n="watch_count">Times Watched</label><input id="bdWatchCount" type="number" min="0" placeholder="0" oninput="updateFilmDetails()"></div>
     </div>
   </div>
 
@@ -948,13 +1021,49 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
     <textarea id="bdNotes" class="editable-area" rows="6" placeholder="Thoughts, themes, quotes, reactions…" oninput="updateActiveBookNotes(this.value)"></textarea>
   </div>
 
-  <div class="book-detail-block">
+  <div class="book-detail-block" id="bdChapterBlock">
     <div class="book-detail-kicker" id="bdChapterNotesLabel">Chapter Notes</div>
     <div id="bdChapterNotes" class="chapter-notes"></div>
     <div class="book-detail-actions">
       <button class="btn btn-g" onclick="addChapterNote()" data-i18n="add_note">+ Add Note</button>
       <button class="btn btn-g" onclick="closeModal('mBookDetails')" data-i18n="done_btn">Done</button>
     </div>
+  </div>
+</div></div>
+
+<div class="modal-bg" id="mAlbumDetail"><div class="modal book-detail-modal">
+  <h2 data-i18n="album_details">Album Details</h2>
+
+  <div style="display:flex;gap:10px;margin-bottom:16px">
+    <div style="flex:1">
+      <div class="mf"><label data-i18n="title_lbl">Title</label><input id="adTitle" placeholder="Album title" oninput="updateBF(activeBookId,'title',this.value)"></div>
+      <div class="mf"><label data-i18n="artist">Artist</label><input id="adArtist" placeholder="Artist name" oninput="updateBF(activeBookId,'author',this.value)"></div>
+    </div>
+    <div style="width:130px">
+      <div class="mf"><label data-i18n="rating_lbl">Rating (1–5)</label><input id="adRating" type="number" min="1" max="5" placeholder="—" onchange="saveAlbumDetails()"></div>
+      <div class="mf"><label data-i18n="status_label">Status</label>
+        <select id="adStatus" onchange="saveAlbumDetails()">
+          <option value="unread">Not Started</option>
+          <option value="reading">Listening</option>
+          <option value="done">Finished</option>
+        </select>
+      </div>
+      <div id="adAvgRating" style="font-size:0.65rem;color:var(--gold-lt);font-family:'DM Mono',monospace;margin-top:4px"></div>
+    </div>
+  </div>
+
+  <div class="mf" style="margin-bottom:14px">
+    <label data-i18n="notes">Notes</label>
+    <textarea id="adNotes" class="editable-area" rows="3" placeholder="Overall impressions…" oninput="updateBF(activeBookId,'notes',this.value)"></textarea>
+  </div>
+
+  <div class="book-detail-kicker" style="margin-bottom:8px" data-i18n="tracklist">Tracklist</div>
+  <div id="adTracks"></div>
+
+  <div class="book-detail-actions" style="margin-top:12px">
+    <button class="btn btn-g" onclick="addTrack(activeBookId)" data-i18n="add_track">+ Add Track</button>
+    <button class="btn btn-p" onclick="saveAlbumDetails()" data-i18n="save">Save</button>
+    <button class="btn btn-g" onclick="closeModal('mAlbumDetail')" data-i18n="done_btn">Done</button>
   </div>
 </div></div>
 

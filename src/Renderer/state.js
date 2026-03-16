@@ -102,15 +102,32 @@ function makeMedia(m={}){
     id: m.id ?? Date.now() + Math.random(),
     mediaType: m.mediaType ?? 'book',
     title: m.title ?? '',
-    author: m.author ?? '',
+    author: m.author ?? '',       // used as Artist for albums
     status: m.status ?? 'unread',
     rating: m.rating ?? null,
     notes: m.notes ?? '',
     coverUrl: m.coverUrl ?? '',
+    finishedOn: m.finishedOn || null,
+    // Books
     currentPage: Number.isFinite(+m.currentPage) ? +m.currentPage : 0,
-    totalPages: Number.isFinite(+m.totalPages) ? +m.totalPages : 0,
+    totalPages:  Number.isFinite(+m.totalPages)  ? +m.totalPages  : 0,
     chapterNotes: Array.isArray(m.chapterNotes) ? m.chapterNotes : [],
-    finishedOn: m.finishedOn || null
+    // Shows / Anime
+    currentSeason:  Number.isFinite(+m.currentSeason)  ? +m.currentSeason  : 1,
+    currentEpisode: Number.isFinite(+m.currentEpisode) ? +m.currentEpisode : 0,
+    totalSeasons:   Number.isFinite(+m.totalSeasons)   ? +m.totalSeasons   : 0,
+    totalEpisodes:  Number.isFinite(+m.totalEpisodes)  ? +m.totalEpisodes  : 0,
+    // Films
+    runtime:    m.runtime    ?? '',
+    watchCount: Number.isFinite(+m.watchCount) ? +m.watchCount : 0,
+    // Albums
+    tracks: Array.isArray(m.tracks) ? m.tracks.map(tr => ({
+      id:     tr.id     ?? Date.now() + Math.random(),
+      title:  tr.title  ?? '',
+      duration: tr.duration ?? '',
+      rating: Number.isFinite(+tr.rating) ? +tr.rating : 0,
+      review: tr.review ?? ''
+    })) : []
   };
 }
 
