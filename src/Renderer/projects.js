@@ -31,17 +31,17 @@ function renderProjects() {
     div.innerHTML = `
       <div class="prog-top">
         <div style="flex:1">
-          <input class="editable prog-school-inp" value="${escapeAttr(p.title||'')}" onchange="updateProjectField(${p.id},'title',this.value)" placeholder="Project title">
-          <input class="editable prog-name-inp" value="${escapeAttr(p.type||'')}" onchange="updateProjectField(${p.id},'type',this.value)" placeholder="Type">
-          ${p.deadline ? `<div style="font-size:0.6rem;color:var(--muted);margin-top:4px;font-family:'DM Mono',monospace">Target: ${escapeHtml(p.deadline)}</div>` : ''}
+          <input class="editable prog-school-inp" value="${escapeAttr(p.title||'')}" onchange="updateProjectField(${p.id},'title',this.value)" placeholder="${t('project_title_ph')}">
+          <input class="editable prog-name-inp" value="${escapeAttr(p.type||'')}" onchange="updateProjectField(${p.id},'type',this.value)" placeholder="${t('type_ph')}">
+          ${p.deadline ? `<div style="font-size:0.6rem;color:var(--muted);margin-top:4px;font-family:'DM Mono',monospace">${t('target_label')} ${escapeHtml(p.deadline)}</div>` : ''}
           ${linkedGoals > 0 ? `<div style="font-size:0.58rem;color:var(--gold-lt);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.06em">${linkedGoals} ${linkedGoals!==1?t('goals_linked'):t('goal_linked')}</div>` : ''}
         </div>
         <span class="spill s-${status.toLowerCase()}" onclick="cycleProjectStatus(${p.id})" title="Click to change">${escapeHtml(status)}</span>
       </div>
 
-      <input class="editable prog-name-inp" value="${escapeAttr(p.context||'')}" onchange="updateProjectField(${p.id},'context',this.value)" placeholder="Context" style="margin-bottom:6px;">
+      <input class="editable prog-name-inp" value="${escapeAttr(p.context||'')}" onchange="updateProjectField(${p.id},'context',this.value)" placeholder="${t('context_ph')}" style="margin-bottom:6px;">
 
-      <textarea class="editable-area prog-notes-inp" placeholder="Notes, next steps, sub-focus..." onchange="updateProjectField(${p.id},'notes',this.value)" rows="3" style="font-size:0.72rem;color:var(--muted);line-height:1.55;">${escapeHtml(p.notes||'')}</textarea>
+      <textarea class="editable-area prog-notes-inp" placeholder="${t('notes_next_steps')}" onchange="updateProjectField(${p.id},'notes',this.value)" rows="3" style="font-size:0.72rem;color:var(--muted);line-height:1.55;">${escapeHtml(p.notes||'')}</textarea>
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px;">
         <input class="editable goal-dl-inp" type="date" value="${escapeAttr(p.deadline||'')}" onchange="updateProjectField(${p.id},'deadline',this.value)">

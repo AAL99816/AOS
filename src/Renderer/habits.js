@@ -29,7 +29,7 @@ function prayerStreakFor(name){
 function renderPrayer(){
   const c=eid('prayerRow');
   if(!c) return;
-  const t=today(), log=(S.prayerLog&&S.prayerLog[t])||{};
+  const todayStr=today(), log=(S.prayerLog&&S.prayerLog[todayStr])||{};
   const allDone=PRAYERS.every(p=>!!log[p]);
   c.innerHTML=`
     <div class="prayer-grid">
@@ -107,7 +107,7 @@ function addHabit(){
   eid('newHabitName').value='';
   scheduleSave();
   renderHabits();
-  toast(`"${name}" added`);
+  toast(`"${name}" ${t('added')}`);
 }
 
 function hnorm(v){return String(v||'').toLowerCase().trim();}

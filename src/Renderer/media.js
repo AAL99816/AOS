@@ -178,7 +178,7 @@ function saveBook() {
   scheduleSave();
   renderBooks();
   closeModal('mBook');
-  toast(`"${title}" added`);
+  toast(`"${title}" ${t('added')}`);
 }
 
 /* ══ MEDIA DETAILS ══ */
@@ -224,12 +224,12 @@ function renderBookDetails() {
   eid('bdProgressFill').style.width = `${pct}%`;
   eid('bdProgressText').textContent = b.totalPages > 0
     ? `${b.currentPage} / ${b.totalPages} ${unitLbl.toLowerCase()}s · ${pct}%`
-    : `Set total ${unitLbl.toLowerCase()}s to track progress`;
+    : t('set_total_pages');
 
   const wrap = eid('bdChapterNotes');
   wrap.innerHTML = '';
   if (!b.chapterNotes.length) {
-    wrap.innerHTML = `<div style="color:var(--muted);font-size:0.76rem">No notes yet.</div>`;
+    wrap.innerHTML = `<div style="color:var(--muted);font-size:0.76rem">${t('no_notes_yet')}</div>`;
     return;
   }
   b.chapterNotes.forEach(n => {
@@ -240,7 +240,7 @@ function renderBookDetails() {
         <input class="editable" value="${escapeAttr(n.label||'')}" onchange="updateChapterLabel(${n.id},this.value)">
         <button class="chapter-note-del" onclick="deleteChapterNote(${n.id})">✕</button>
       </div>
-      <textarea class="editable-area" rows="4" placeholder="Notes…" oninput="updateChapterNote(${n.id},this.value)">${escapeHtml(n.note||'')}</textarea>
+      <textarea class="editable-area" rows="4" placeholder="${t('notes_ph')}" oninput="updateChapterNote(${n.id},this.value)">${escapeHtml(n.note||'')}</textarea>
     `;
     wrap.appendChild(card);
   });

@@ -1,6 +1,6 @@
 /* ══ DEFAULT STATE ══ */
 const DS = {
-  appTitle:'AOS', appSub:'Kuwait · Fall 2026', heroImg:'',
+  appTitle:'AOS', appSub:'', heroImg:'',
   quote:{ text:'Welcome to AOS. Edit any heading, click habits to mark them, and use the + buttons to shape this into your own system.', author:'— Begin anywhere' },
   streakPrefs:{prayer:false,cardio:true,gym:true,read:true,study:true},
   cardioTarget:'30 min cardio — run, walk, or cycle',

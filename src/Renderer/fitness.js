@@ -67,12 +67,12 @@ function renderGymWeek() {
         value="${escapeHtml(wd.type || '')}"
         onchange="updateWDay(${i},this.value)"
         onclick="event.stopPropagation()"
-        title="Click to rename"
+        title="${t('click_rename')}"
       >
       <div class="ck">${done ? '✓' : isRest ? '—' : '○'}</div>
       <button
         onclick="event.stopPropagation();toggleRestDay(${i})"
-        title="${isRest ? 'Mark as training day' : 'Mark as rest day'}"
+        title="${isRest ? t('mark_training') : t('mark_rest')}"
         style="margin-top:5px;background:none;border:1px solid ${isRest ? 'rgba(192,96,122,0.18)' : 'rgba(192,96,122,0.35)'};border-radius:5px;color:${isRest ? 'var(--muted)' : 'var(--blush)'};font-size:0.5rem;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;padding:2px 5px;cursor:pointer;transition:all 0.15s;"
       >${isRest ? t('gym') : t('rest')}</button>
     `;
@@ -171,8 +171,8 @@ function renderWorkoutCards() {
               </div>
 
               <div style="display:flex;align-items:center;gap:6px;margin-top:7px;padding-left:14px;">
-                <input class="add-inp" id="logW-${ex.id}" type="number" step="0.5" placeholder="kg" style="width:78px;flex:none;">
-                <input class="add-inp" id="logR-${ex.id}" type="number" placeholder="reps" style="width:78px;flex:none;">
+                <input class="add-inp" id="logW-${ex.id}" type="number" step="0.5" placeholder="${t('weight_ph')}" style="width:78px;flex:none;">
+                <input class="add-inp" id="logR-${ex.id}" type="number" placeholder="${t('reps_ph')}" style="width:78px;flex:none;">
                 <button class="btn btn-g" style="font-size:0.66rem;padding:4px 9px" onclick="logExercise(${wc.id},${ex.id})">${t('log')}</button>
               </div>
 
@@ -189,8 +189,8 @@ function renderWorkoutCards() {
       </div>
 
       <div class="add-ex-row" style="margin-top:9px">
-        <input class="add-inp" id="exN-${wc.id}" placeholder="Exercise…" style="flex:1">
-        <input class="add-inp" id="exS-${wc.id}" placeholder="3×10" style="width:56px;flex:none">
+        <input class="add-inp" id="exN-${wc.id}" placeholder="${t('exercise_ph')}" style="flex:1">
+        <input class="add-inp" id="exS-${wc.id}" placeholder="${t('sets_ph')}" style="width:56px;flex:none">
         <button class="btn btn-g" style="font-size:0.68rem;padding:4px 9px" onclick="addEx(${wc.id})">+ ${t('add')}</button>
       </div>
 
@@ -274,7 +274,7 @@ function openSessionDetail(id){
         </span>
       </div>`).join('');
   } else {
-    ex.innerHTML = `<div style="font-size:0.75rem;color:var(--muted);text-align:center;padding:20px">${escapeHtml(s.summary||'No exercise data')}</div>`;
+    ex.innerHTML = `<div style="font-size:0.75rem;color:var(--muted);text-align:center;padding:20px">${escapeHtml(s.summary||t('no_exercise_data'))}</div>`;
   }
   openModal('mSessionDetail');
 }
@@ -287,13 +287,13 @@ function deleteWorkoutSession(id){
 
 function addWorkoutCard(){
   ensureFitnessState();
-  S.workoutCards.push({id:Date.now(),title:'New Block',subtitle:'',exercises:[]});
+  S.workoutCards.push({id:Date.now(),title:t('new_block'),subtitle:'',exercises:[]});
   scheduleSave();
   renderWorkoutCards();
 }
 
 function delWorkoutCard(id){
-  if(!confirm('Remove this workout card?'))return;
+  if(!confirm(t('remove_workout_card')))return;
   S.workoutCards=S.workoutCards.filter(w=>w.id!==id);
   scheduleSave();
   renderWorkoutCards();
@@ -369,7 +369,7 @@ function logExercise(wcId, exId) {
   const reps = parseInt(eid(`logR-${exId}`).value, 10);
 
   if (!weight || weight <= 0) {
-    toast('Enter a weight first');
+    toast(t('enter_weight'));
     return;
   }
 
@@ -391,8 +391,8 @@ function logExercise(wcId, exId) {
   const prev = hist.length >= 2 ? hist[hist.length - 2] : null;
   const pct = prev ? calcPctIncrease(prev.weight, entry.weight) : null;
 
-  if (pct !== null && pct > 0) toast(`${ex.name}: ${fmtPct(pct)} from last log`);
-  else toast(`${ex.name} logged`);
+  if (pct !== null && pct > 0) toast(`${ex.name}: ${fmtPct(pct)} ${t('from_last_log')}`);
+  else toast(`${ex.name} ${t('exercise_logged')}`);
 }
 
 function logWorkoutSession(wcId) {
@@ -434,7 +434,7 @@ function logWorkoutSession(wcId) {
   renderTrainingLog();
   if (typeof renderHabits === 'function') renderHabits();
 
-  toast(`${wc.title || 'Workout'} saved to history`);
+  toast(`${wc.title || t('workout')} ${t('workout_saved')}`);
 }
 
 /* ══ CARDIO ══ */
@@ -457,11 +457,11 @@ function logCardio() {
   updateCardioDisplay();
 
   eid('cardioMins').value = 0;
-  toast(`${mins} min logged — total today: ${S.cardioLog[today()]} min`);
+  toast(`${mins} ${t('cardio_logged')} ${S.cardioLog[today()]} ${t('min')}`);
 }
 
 function updateCardioDisplay() {
   ensureFitnessState();
-  const t = S.cardioLog[today()] || 0;
-  eid('cardioToday').textContent = t > 0 ? `${t} min today` : '';
+  const mins = S.cardioLog[today()] || 0;
+  eid('cardioToday').textContent = mins > 0 ? `${mins} ${t('min_today')}` : '';
 }

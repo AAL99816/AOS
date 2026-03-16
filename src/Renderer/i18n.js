@@ -149,6 +149,93 @@ const LANG = {
     cancel:            'Cancel',
     study:             'Study',
     reading_streak:    'Reading',
+
+    /* Toasts & feedback */
+    avatar_updated:       'Avatar updated',
+    avatar_upload_error:  'Could not upload avatar',
+    username_saved:       'Username saved',
+    backup_exported:      'Backup exported!',
+    data_imported:        'Data imported!',
+    file_read_error:      'Could not read file.',
+    welcome_toast:        'Welcome to AOS',
+    signin_success:       'Signed in successfully',
+    email_confirmed:      'Email confirmed and signed in',
+    signin_link_error:    'Could not finish sign-in from email link.',
+    email_verify_error:   'Could not verify email link.',
+    added:                'added',
+    workout_saved:        'saved to history',
+    exercise_logged:      'logged',
+    from_last_log:        'from last log',
+    enter_weight:         'Enter a weight first',
+    cardio_logged:        'min logged — total today:',
+    min_today:            'min today',
+    remove_workout_card:  'Remove this workout card?',
+    no_exercise_data:     'No exercise data',
+    new_block:            'New Block',
+    remove_goal_confirm:  'Delete this goal?',
+    remove_item_confirm:  'Remove this item?',
+    click_rename:         'Click to rename',
+    mark_training:        'Mark as training day',
+    mark_rest:            'Mark as rest day',
+    no_notes_yet:         'No notes yet.',
+    set_total_pages:      'Set total pages to track progress',
+    general_notes:        'General Notes',
+    add_note:             '+ Add Note',
+    done_btn:             'Done',
+    reflection_ph:        'How was this week? What worked, what didn\'t, what carries forward… (supports **bold**, *italic*, # headings, - lists)',
+    filter_all:           'All',
+    target_label:         'Target:',
+    notes_ph:             'Notes…',
+    type_ph:              'type',
+    context_ph:           'context',
+    exercise_ph:          'Exercise…',
+    sets_ph:              '3×10',
+    weight_ph:            'kg',
+    reps_ph:              'reps',
+    unsorted:             'Unsorted',
+    auth_modules:         'Prayer · Habits · Fitness · Goals · Projects · Media · Notes',
+    auth_sub:             'Sign in to sync across devices',
+    daily_notes_lbl:      'Daily Notes',
+    daily_notes_ph:       'Write anything…',
+    your_name_ph:         'Your name',
+    username_ph:          '@handle — letters, numbers, _',
+
+    /* Calm insight lines */
+    insight_all:          'All prayers and all habits. A rare kind of day.',
+    insight_all_prayers:  'All prayers complete. A good foundation.',
+    insight_all_habits:   'Every habit done. Hold the standard.',
+    insight_gym_cardio:   'Gym and cardio both done. Rest well tonight.',
+    insight_gym:          'Gym done. The work is in.',
+    insight_nothing:      'Nothing logged yet — the day still has room.',
+
+    /* Calm insight dynamic parts */
+    of:                   'of',
+    prayers_done:         'prayers done',
+    remaining:            'remaining',
+    habits_momentum:      'habits — momentum is there.',
+    cardio_goal_met:      'min of cardio — goal met.',
+    day_reading_streak:   '-day reading streak. Protect it.',
+    days_reading_row:     'days of reading in a row.',
+
+    /* Season / subtitle */
+    spring:        'Spring',
+    summer:        'Summer',
+    fall:          'Fall',
+
+    /* Country */
+    country:       'Country',
+
+    /* Settings */
+    settings:      'Settings',
+    profile:       'Profile',
+    appearance:    'Appearance',
+    language:      'Language',
+    theme:         'Theme',
+    font:          'Font',
+    display_name:  'Display Name',
+    username_lbl:  'Username',
+    save_settings: 'Save',
+    settings_saved:'Settings saved',
   },
 
   ar: {
@@ -297,6 +384,93 @@ const LANG = {
     cancel:            'إلغاء',
     study:             'الدراسة',
     reading_streak:    'القراءة',
+
+    /* Toasts & feedback */
+    avatar_updated:       'تم تحديث الصورة الرمزية',
+    avatar_upload_error:  'تعذر تحميل الصورة الرمزية',
+    username_saved:       'تم حفظ اسم المستخدم',
+    backup_exported:      'تم تصدير النسخة الاحتياطية!',
+    data_imported:        'تم استيراد البيانات!',
+    file_read_error:      'تعذر قراءة الملف.',
+    welcome_toast:        'مرحباً بك في AOS',
+    signin_success:       'تم تسجيل الدخول بنجاح',
+    email_confirmed:      'تم تأكيد البريد وتسجيل الدخول',
+    signin_link_error:    'تعذر إكمال تسجيل الدخول من رابط البريد.',
+    email_verify_error:   'تعذر التحقق من رابط البريد.',
+    added:                'تمت الإضافة',
+    workout_saved:        'تم الحفظ في السجل',
+    exercise_logged:      'تم التسجيل',
+    from_last_log:        'من آخر تسجيل',
+    enter_weight:         'أدخل الوزن أولاً',
+    cardio_logged:        'دقيقة مسجلة — الإجمالي اليوم:',
+    min_today:            'دقيقة اليوم',
+    remove_workout_card:  'إزالة كتلة التمرين؟',
+    no_exercise_data:     'لا توجد بيانات تمرين',
+    new_block:            'كتلة جديدة',
+    remove_goal_confirm:  'حذف هذا الهدف؟',
+    remove_item_confirm:  'حذف هذا العنصر؟',
+    click_rename:         'انقر للتسمية',
+    mark_training:        'حدد كيوم تدريب',
+    mark_rest:            'حدد كيوم راحة',
+    no_notes_yet:         'لا توجد ملاحظات بعد.',
+    set_total_pages:      'عيّن إجمالي الصفحات لتتبع التقدم',
+    general_notes:        'ملاحظات عامة',
+    add_note:             '+ إضافة ملاحظة',
+    done_btn:             'تم',
+    reflection_ph:        'كيف كان هذا الأسبوع؟ ما الذي نجح وما الذي لم ينجح، وما الذي تحمله معك... (يدعم **عريض**، *مائل*، # عناوين، - قوائم)',
+    filter_all:           'الكل',
+    target_label:         'الهدف:',
+    notes_ph:             'ملاحظات...',
+    type_ph:              'النوع',
+    context_ph:           'السياق',
+    exercise_ph:          'التمرين...',
+    sets_ph:              '3×10',
+    weight_ph:            'كغ',
+    reps_ph:              'تكرار',
+    unsorted:             'غير مصنف',
+    auth_modules:         'الصلاة · العادات · التدريب · الأهداف · المشاريع · المكتبة · الملاحظات',
+    auth_sub:             'سجل الدخول للمزامنة عبر الأجهزة',
+    daily_notes_lbl:      'ملاحظات اليوم',
+    daily_notes_ph:       'اكتب أي شيء...',
+    your_name_ph:         'اسمك',
+    username_ph:          '@handle — أحرف وأرقام و_',
+
+    /* Calm insight lines */
+    insight_all:          'جميع الصلوات وجميع العادات. يوم نادر.',
+    insight_all_prayers:  'اكتملت الصلوات. أساس جيد.',
+    insight_all_habits:   'جميع العادات منجزة. احتفظ بالمستوى.',
+    insight_gym_cardio:   'الجيم والكارديو منجزان. استرح جيداً الليلة.',
+    insight_gym:          'الجيم منجز. العمل صار فيه.',
+    insight_nothing:      'لم يُسجَّل شيء بعد — اليوم لا يزال فيه متسع.',
+
+    /* Calm insight dynamic parts */
+    of:                   'من',
+    prayers_done:         'صلوات مكتملة',
+    remaining:            'متبقية',
+    habits_momentum:      'عادات — هناك زخم.',
+    cardio_goal_met:      'دقيقة كارديو — الهدف تحقق.',
+    day_reading_streak:   ' يوم قراءة متواصلة. احمِ السلسلة.',
+    days_reading_row:     'أيام قراءة متتالية.',
+
+    /* Season / subtitle */
+    spring:        'ربيع',
+    summer:        'صيف',
+    fall:          'خريف',
+
+    /* Country */
+    country:       'الدولة',
+
+    /* Settings */
+    settings:      'الإعدادات',
+    profile:       'الملف الشخصي',
+    appearance:    'المظهر',
+    language:      'اللغة',
+    theme:         'السمة',
+    font:          'الخط',
+    display_name:  'الاسم المعروض',
+    username_lbl:  'اسم المستخدم',
+    save_settings: 'حفظ',
+    settings_saved:'تم حفظ الإعدادات',
   }
 };
 
@@ -325,8 +499,8 @@ function applyStaticI18n() {
     el.placeholder = t(key);
   });
   /* update lang toggle label */
-  const langToggle = document.getElementById('langToggle');
-  if (langToggle) langToggle.textContent = currentLang === 'en' ? 'AR' : 'EN';
+  const stLangToggle = document.getElementById('stLangToggle');
+  if (stLangToggle) stLangToggle.textContent = currentLang === 'en' ? 'AR' : 'EN';
 }
 
 /* Apply language on initial load */

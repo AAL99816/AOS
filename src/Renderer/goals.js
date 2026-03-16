@@ -26,7 +26,7 @@ function renderGoals() {
     const col = document.createElement('div');
     col.className = 'goal-cat';
 
-    col.innerHTML = `<h3>${escapeHtml(cat)}</h3>`;
+    col.innerHTML = `<h3>${escapeHtml(cat === 'Unsorted' ? t('unsorted') : cat)}</h3>`;
 
     grouped[cat].forEach(g => {
       const pct = clampPct(g.progress);
@@ -52,15 +52,15 @@ function renderGoals() {
         </div>
 
         <div style="display:flex;gap:6px;margin-bottom:4px">
-          <input class="editable" style="font-size:0.62rem;color:var(--blush);font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;width:50%" value="${escapeAttr(g.type||'')}" placeholder="type" onchange="updateGoalField(${g.id},'type',this.value)">
-          <input class="editable" style="font-size:0.62rem;color:var(--blush);font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;width:50%" value="${escapeAttr(g.context||'')}" placeholder="context" onchange="updateGoalField(${g.id},'context',this.value)">
+          <input class="editable" style="font-size:0.62rem;color:var(--blush);font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;width:50%" value="${escapeAttr(g.type||'')}" placeholder="${t('type_ph')}" onchange="updateGoalField(${g.id},'type',this.value)">
+          <input class="editable" style="font-size:0.62rem;color:var(--blush);font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;width:50%" value="${escapeAttr(g.context||'')}" placeholder="${t('context_ph')}" onchange="updateGoalField(${g.id},'context',this.value)">
         </div>
         <select class="editable" style="font-size:0.62rem;color:var(--muted-lt);font-family:'DM Mono',monospace;width:100%;margin-bottom:6px;background:transparent;border:1px solid var(--border);border-radius:5px;padding:3px 6px;" onchange="updateGoalField(${g.id},'projectId',this.value||null)">
           <option value="">${t('no_project')}</option>
           ${(S.projects||[]).map(p=>`<option value="${p.id}"${String(g.projectId)===String(p.id)?' selected':''}>${escapeHtml(p.title)}</option>`).join('')}
         </select>
 
-        <textarea class="editable-area" style="font-size:0.72rem;color:var(--muted);margin-bottom:7px;min-height:42px;" placeholder="Notes…" onchange="updateGoalField(${g.id},'notes',this.value)">${escapeHtml(g.notes||'')}</textarea>
+        <textarea class="editable-area" style="font-size:0.72rem;color:var(--muted);margin-bottom:7px;min-height:42px;" placeholder="${t('notes_ph')}" onchange="updateGoalField(${g.id},'notes',this.value)">${escapeHtml(g.notes||'')}</textarea>
 
         <div class="goal-bar">
           <div class="goal-fill" style="width:${pct}%"></div>
@@ -139,7 +139,7 @@ function setGoalPct(id, value) {
 }
 
 function delGoal(id) {
-  if (!confirm(t('remove_project'))) return;
+  if (!confirm(t('remove_goal_confirm'))) return;
 
   S.goals = S.goals.filter(x => x.id !== id);
   scheduleSave();

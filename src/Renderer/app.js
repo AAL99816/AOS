@@ -1,5 +1,14 @@
 'use strict';
 
+/* ══ SEASON SUBTITLE ══ */
+function getSeasonLabel() {
+  const m = new Date().getMonth() + 1;
+  const y = new Date().getFullYear();
+  const season = m <= 5 ? t('spring') : m <= 8 ? t('summer') : t('fall');
+  const country = (typeof currentProfile !== 'undefined' && currentProfile?.country) || '';
+  return country ? `${country} · ${season} ${y}` : `${season} ${y}`;
+}
+
 /* ══ PROFILE ══ */
 function renderHeroProfile(){
   const av = eid('heroAvatar');
@@ -24,8 +33,8 @@ async function uploadAvatar(input){
     if(!currentProfile) currentProfile = {};
     currentProfile.avatar_url = url;
     renderHeroProfile();
-    toast('Avatar updated');
-  } catch { toast('Could not upload avatar'); }
+    toast(t('avatar_updated'));
+  } catch { toast(t('avatar_upload_error')); }
 }
 
 async function saveUsername(val){
@@ -35,7 +44,7 @@ async function saveUsername(val){
   await sb.from('profiles').upsert({ id: currentUser.id, username }, { onConflict: 'id' });
   if(!currentProfile) currentProfile = {};
   currentProfile.username = username;
-  toast('Username saved');
+  toast(t('username_saved'));
 }
 
 /* ══ HERO ══ */
@@ -60,11 +69,11 @@ async function uploadHero(input){
 }
 
 /* ══ EXPORT / IMPORT ══ */
-async function doExport(){const res=await window.api.exportData(JSON.stringify(S,null,2));if(res.ok)toast('Backup exported!');}
+async function doExport(){const res=await window.api.exportData(JSON.stringify(S,null,2));if(res.ok)toast(t('backup_exported'));}
 async function doImport(){
   const res=await window.api.importData();if(!res.ok)return;
-  try{S=normalizeAppState(JSON.parse(res.data));scheduleSave();renderAll();toast('Data imported!');}
-  catch(e){alert('Could not read file.');}
+  try{S=normalizeAppState(JSON.parse(res.data));scheduleSave();renderAll();toast(t('data_imported'));}
+  catch(e){alert(t('file_read_error'));}
 }
 
 /* ══ NAV ══ */
@@ -132,35 +141,43 @@ function finishOnboarding(){
       renderHeroProfile();
     });
   }
+  const country = (eid('onboardCountry')?.value || '').trim();
+  if(country && currentUser){
+    sb.from('profiles').upsert({ id: currentUser.id, country }, { onConflict: 'id' }).then(()=>{
+      if(!currentProfile) currentProfile = {};
+      currentProfile.country = country;
+      // appSub will auto-update via getSeasonLabel() on next renderAll
+    });
+  }
   scheduleSave();
   renderAll();
-  toast('Welcome to AOS');
+  toast(t('welcome_toast'));
 }
 
 /* ══ TODAY SUMMARY ══ */
-function calmInsight(t, habitsDone, habitsTotal, gymDone, cardioMins){
+function calmInsight(todayStr, habitsDone, habitsTotal, gymDone, cardioMins){
   const hour = new Date().getHours();
-  const prayerLog = (S.prayerLog && S.prayerLog[t]) || {};
+  const prayerLog = (S.prayerLog && S.prayerLog[todayStr]) || {};
   const prayersDone = (typeof PRAYERS !== 'undefined') ? PRAYERS.filter(p=>!!prayerLog[p]).length : 0;
 
   if(prayersDone === 5 && habitsTotal && habitsDone === habitsTotal)
-    return 'All prayers and all habits. A rare kind of day.';
-  if(prayersDone === 5) return 'All prayers complete. A good foundation.';
-  if(prayersDone > 0 && prayersDone < 5) return `${prayersDone} of 5 prayers done. ${5-prayersDone} remaining.`;
+    return t('insight_all');
+  if(prayersDone === 5) return t('insight_all_prayers');
+  if(prayersDone > 0 && prayersDone < 5) return `${prayersDone} ${t('of')} 5 ${t('prayers_done')}. ${5-prayersDone} ${t('remaining')}.`;
 
-  if(habitsTotal && habitsDone === habitsTotal) return 'Every habit done. Hold the standard.';
-  if(habitsTotal && habitsDone/habitsTotal >= 0.7) return `${habitsDone} of ${habitsTotal} habits — momentum is there.`;
+  if(habitsTotal && habitsDone === habitsTotal) return t('insight_all_habits');
+  if(habitsTotal && habitsDone/habitsTotal >= 0.7) return `${habitsDone} ${t('of')} ${habitsTotal} ${t('habits_momentum')}`;
 
-  if(gymDone && cardioMins >= 30) return 'Gym and cardio both done. Rest well tonight.';
-  if(gymDone) return 'Gym done. The work is in.';
-  if(cardioMins >= 30) return `${cardioMins} ${t('min')} of cardio — goal met.`;
+  if(gymDone && cardioMins >= 30) return t('insight_gym_cardio');
+  if(gymDone) return t('insight_gym');
+  if(cardioMins >= 30) return `${cardioMins} ${t('cardio_goal_met')}`;
 
   const readH = (typeof hfind !== 'undefined') ? hfind('read','reading','book') : null;
   const readStr = readH ? calcStreak(readH.days||{}) : 0;
-  if(readStr >= 7) return `${readStr}-day reading streak. Protect it.`;
-  if(readStr >= 3) return `${readStr} days of reading in a row.`;
+  if(readStr >= 7) return `${readStr}${t('day_reading_streak')}`;
+  if(readStr >= 3) return `${readStr} ${t('days_reading_row')}`;
 
-  if(habitsTotal && habitsDone === 0 && hour >= 15) return 'Nothing logged yet — the day still has room.';
+  if(habitsTotal && habitsDone === 0 && hour >= 15) return t('insight_nothing');
   if(hour < 10) return t('morning_msg');
   if(hour < 17) return t('afternoon_msg');
   return t('evening_msg');
@@ -170,15 +187,15 @@ function renderTodaySummary(){
   const c = eid('todaySummary');
   if(!c) return;
 
-  const t = today();
-  const habitsDone  = (S.habits||[]).filter(h=>h.days&&h.days[t]).length;
+  const todayStr = today();
+  const habitsDone  = (S.habits||[]).filter(h=>h.days&&h.days[todayStr]).length;
   const habitsTotal = (S.habits||[]).length;
-  const gymDone     = !!(S.gymLog&&S.gymLog[t]);
-  const cardioMins  = (S.cardioLog&&S.cardioLog[t]) || 0;
+  const gymDone     = !!(S.gymLog&&S.gymLog[todayStr]);
+  const cardioMins  = (S.cardioLog&&S.cardioLog[todayStr]) || 0;
   const activeMedia = (S.media||[]).find(m=>m.status==='reading');
   const activeGoals = (S.goals||[]).filter(g=>g.progress>0&&g.progress<100).length;
   const activeProjs = (S.projects||[]).filter(p=>p.status==='Active').length;
-  const insight     = calmInsight(t, habitsDone, habitsTotal, gymDone, cardioMins);
+  const insight     = calmInsight(todayStr, habitsDone, habitsTotal, gymDone, cardioMins);
 
   const stats = [
     {label:t('habits'),  val: habitsTotal ? `${habitsDone} / ${habitsTotal}` : '—'},
@@ -207,7 +224,7 @@ function renderTodaySummary(){
 /* ══ RENDER ALL ══ */
 function renderAll(){
   eid('appTitle').textContent = S.appTitle;
-  eid('appSub').textContent = S.appSub;
+  eid('appSub').textContent = getSeasonLabel();
 
   const img = eid('heroImg');
   if (S.heroImg) {
@@ -240,11 +257,11 @@ function setupInlineEdits(){
   if(inlineEditsBound) return;
   inlineEditsBound = true;
   eid('appTitle').addEventListener('input',e=>{S.appTitle=e.target.textContent;scheduleSave();});
-  eid('appSub').addEventListener('input',e=>{S.appSub=e.target.textContent;scheduleSave();});
 }
 
 /* ══ INIT ══ */
 async function initApp(){
+  if(typeof restoreAppearance === 'function') restoreAppearance();
   const hasData = await loadFromSupabase();
   eid('dateBadge').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   setupInlineEdits();

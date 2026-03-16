@@ -136,7 +136,7 @@ function renderWeeklyReview() {
     <div class="review-block">
       <div class="review-kicker">${t('reflection')}</div>
       <textarea class="editable-area" rows="5"
-        placeholder="How was this week? What worked, what didn't, what carries forward… (supports **bold**, *italic*, # headings, - lists)"
+        placeholder="${t('reflection_ph')}"
         oninput="saveReflection(this.value)"
         style="font-size:0.8rem;color:var(--mist);line-height:1.65;"
       >${escapeHtml(reflection)}</textarea>

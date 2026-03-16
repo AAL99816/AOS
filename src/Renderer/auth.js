@@ -20,10 +20,13 @@ async function loadProfile() {
   if (!currentUser) return;
   const { data } = await sb
     .from('profiles')
-    .select('username, avatar_url')
+    .select('username, avatar_url, country, display_name, font, theme')
     .eq('id', currentUser.id)
     .single();
   currentProfile = data || {};
+  if (typeof restoreAppearance === 'function') restoreAppearance();
+  if (currentProfile.theme) { localStorage.setItem('aos_theme', currentProfile.theme); if (typeof applyTheme === 'function') applyTheme(currentProfile.theme); }
+  if (currentProfile.font)  { localStorage.setItem('aos_font',  currentProfile.font);  if (typeof applyFont  === 'function') applyFont(currentProfile.font); }
 }
 
 function setAuthMode(mode, btn) {
@@ -32,6 +35,7 @@ function setAuthMode(mode, btn) {
   btn.classList.add('active');
   eid('authBtn').textContent = mode === 'login' ? t('sign_in') : t('create_account');
   eid('authMsg').textContent = '';
+  eid('countryField').style.display = mode === 'signup' ? '' : 'none';
 }
 
 async function doAuth() {
@@ -73,7 +77,13 @@ async function doAuth() {
   }
 
   currentUser = res.data.user;
+  const country = authMode === 'signup' ? (eid('authCountry')?.value?.trim() || '') : '';
   await loadProfile();
+  if (country) {
+    await sb.from('profiles').upsert({ id: currentUser.id, country }, { onConflict: 'id' });
+    if (!currentProfile) currentProfile = {};
+    currentProfile.country = country;
+  }
   eid('authScreen').classList.add('hidden');
   eid('userEmail').textContent = currentUser.email;
   localStorage.setItem('aos_user_exists', 'true');
@@ -118,7 +128,7 @@ async function handleAuthDeepLink(url) {
 
     if (error) {
       console.error('Failed to set session from deep link:', error);
-      showAuthMsg('Could not finish sign-in from email link.', true);
+      showAuthMsg(t('signin_link_error'), true);
       return;
     }
 
@@ -128,7 +138,7 @@ async function handleAuthDeepLink(url) {
       eid('authScreen').classList.add('hidden');
       eid('userEmail').textContent = currentUser.email;
       await bootApp();
-      toast('Signed in successfully');
+      toast(t('signin_success'));
     }
 
     return;
@@ -142,7 +152,7 @@ async function handleAuthDeepLink(url) {
 
     if (error) {
       console.error('Failed to verify OTP from deep link:', error);
-      showAuthMsg('Could not verify email link.', true);
+      showAuthMsg(t('email_verify_error'), true);
       return;
     }
 
@@ -152,7 +162,7 @@ async function handleAuthDeepLink(url) {
       eid('authScreen').classList.add('hidden');
       eid('userEmail').textContent = currentUser.email;
       await bootApp();
-      toast('Email confirmed and signed in');
+      toast(t('email_confirmed'));
     }
   }
 }

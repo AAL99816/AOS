@@ -15,6 +15,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500&family=DM+Mono:wght@300;400&family=Cairo:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root {
+  --font-body:    'Jost', sans-serif;
+  --font-heading: 'Cormorant Garamond', serif;
+  --font-mono:    'DM Mono', monospace;
   --ink:       #1a0a0f;
   --deep:      #230d14;
   --panel:     #2d1019;
@@ -38,7 +41,7 @@
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 html{scroll-behavior:smooth;}
 body{
-  font-family:'Jost',sans-serif;
+  font-family:var(--font-body);
   background:var(--ink); color:var(--cream);
   min-height:100vh; overflow-x:hidden;
   -webkit-font-smoothing:antialiased; user-select:none;
@@ -624,6 +627,36 @@ main{flex:1; padding:26px 44px 60px;}
 [dir="rtl"] .book-del { right: auto; left: 7px; top: 7px; }
 [dir="rtl"] .prog-filters { flex-direction: row-reverse; }
 [dir="rtl"] .book-filters { flex-direction: row-reverse; }
+
+/* ══ CSS FONT VARIABLES ══ */
+h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
+.dm-mono, input[type="date"], .goal-dl-inp, [style*="DM Mono"] { font-family: var(--font-mono); }
+
+/* Theme option buttons */
+.theme-opt {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 2px solid transparent; cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.theme-opt.active { border-color: var(--cream); transform: scale(1.15); }
+.theme-opt:hover  { transform: scale(1.1); }
+
+/* Font option buttons */
+.font-opt {
+  flex: 1; padding: 8px 10px; border-radius: var(--r-sm);
+  border: 1px solid var(--border); background: transparent;
+  color: var(--muted); cursor: pointer; transition: all 0.15s;
+  font-size: 0.72rem;
+}
+.font-opt.active { border-color: var(--blush); color: var(--mist); background: rgba(192,96,122,0.12); }
+
+/* Settings section */
+.settings-section { margin-bottom: 22px; }
+.settings-kicker {
+  font-size: 0.55rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--blush); font-family: var(--font-mono); margin-bottom: 10px;
+}
 </style>
 </head>
 <body>
@@ -634,8 +667,8 @@ main{flex:1; padding:26px 44px 60px;}
   <div class="auth-box">
     <h1>AOS</h1>
     <div class="auth-tagline" data-i18n="personal_life_os">Personal Life OS</div>
-    <div class="auth-modules">Prayer · Habits · Fitness · Goals<br>Projects · Media · Notes</div>
-    <div class="auth-sub">Sign in to sync across devices</div>
+    <div class="auth-modules" data-i18n="auth_modules">Prayer · Habits · Fitness · Goals · Projects · Media · Notes</div>
+    <div class="auth-sub" data-i18n="auth_sub">Sign in to sync across devices</div>
     <div class="auth-tabs">
       <button class="auth-tab active" onclick="setAuthMode('login',this)" data-i18n="sign_in">Sign In</button>
       <button class="auth-tab" onclick="setAuthMode('signup',this)" data-i18n="create_account">Create Account</button>
@@ -647,6 +680,38 @@ main{flex:1; padding:26px 44px 60px;}
     <div class="auth-field">
       <label data-i18n="password">Password</label>
       <input type="password" id="authPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doAuth()">
+    </div>
+    <div class="mf" id="countryField" style="display:none">
+      <label data-i18n="country">Country</label>
+      <input class="auth-inp" id="authCountry" type="text" list="countryList" placeholder="e.g. Kuwait" autocomplete="country">
+      <datalist id="countryList">
+        <option value="Afghanistan"><option value="Albania"><option value="Algeria">
+        <option value="Argentina"><option value="Australia"><option value="Austria">
+        <option value="Bahrain"><option value="Bangladesh"><option value="Belgium">
+        <option value="Brazil"><option value="Canada"><option value="Chile">
+        <option value="China"><option value="Colombia"><option value="Croatia">
+        <option value="Czech Republic"><option value="Denmark"><option value="Egypt">
+        <option value="Ethiopia"><option value="Finland"><option value="France">
+        <option value="Germany"><option value="Ghana"><option value="Greece">
+        <option value="Hungary"><option value="India"><option value="Indonesia">
+        <option value="Iran"><option value="Iraq"><option value="Ireland">
+        <option value="Israel"><option value="Italy"><option value="Japan">
+        <option value="Jordan"><option value="Kazakhstan"><option value="Kenya">
+        <option value="Kuwait"><option value="Lebanon"><option value="Libya">
+        <option value="Malaysia"><option value="Mexico"><option value="Morocco">
+        <option value="Netherlands"><option value="New Zealand"><option value="Nigeria">
+        <option value="Norway"><option value="Oman"><option value="Pakistan">
+        <option value="Palestine"><option value="Peru"><option value="Philippines">
+        <option value="Poland"><option value="Portugal"><option value="Qatar">
+        <option value="Romania"><option value="Russia"><option value="Saudi Arabia">
+        <option value="Serbia"><option value="Singapore"><option value="South Africa">
+        <option value="South Korea"><option value="Spain"><option value="Sudan">
+        <option value="Sweden"><option value="Switzerland"><option value="Syria">
+        <option value="Thailand"><option value="Tunisia"><option value="Turkey">
+        <option value="UAE"><option value="Uganda"><option value="Ukraine">
+        <option value="United Kingdom"><option value="United States"><option value="Uzbekistan">
+        <option value="Venezuela"><option value="Vietnam"><option value="Yemen">
+      </datalist>
     </div>
     <button class="auth-submit" onclick="doAuth()" id="authBtn" data-i18n="sign_in">Sign In</button>
     <div class="auth-msg" id="authMsg"></div>
@@ -665,7 +730,7 @@ main{flex:1; padding:26px 44px 60px;}
       </div>
       <div class="hero-title">
         <h1 id="appTitle" contenteditable="true" spellcheck="false">AOS</h1>
-        <div class="sub" id="appSub" contenteditable="true" spellcheck="false">Kuwait · Fall 2026</div>
+        <div class="sub" id="appSub"></div>
       </div>
     </div>
     <div class="hero-right">
@@ -685,7 +750,7 @@ main{flex:1; padding:26px 44px 60px;}
   <button class="tab" onclick="go('review',this)" data-i18n="nav_review">Review</button>
   <div class="nav-right">
     <div class="sync-dot" id="syncDot" title="Sync status"></div>
-    <button class="nav-btn" onclick="setLang(currentLang==='en'?'ar':'en')" id="langToggle" style="font-weight:500;letter-spacing:0.06em">AR</button>
+    <button class="nav-btn" onclick="openSettings()" data-i18n="settings">Settings</button>
     <button class="nav-btn" onclick="doExport()" data-i18n="export">Export</button>
     <button class="nav-btn" onclick="doImport()" data-i18n="import">Import</button>
     <button class="nav-btn signout" onclick="signOut()" data-i18n="sign_out">Sign Out</button>
@@ -723,9 +788,9 @@ main{flex:1; padding:26px 44px 60px;}
         <button class="btn btn-p" onclick="addHabit()" data-i18n="add">+ Add</button>
       </div>
     </div>
-    <div class="sec">Daily Notes <span class="lbl" data-i18n="nav_today">Today</span></div>
+    <div class="sec"><span data-i18n="daily_notes_lbl">Daily Notes</span> <span class="lbl" data-i18n="nav_today">Today</span></div>
     <div class="card">
-      <textarea id="dailyNotes" class="editable-area" rows="5" placeholder="Thoughts, tasks, reflections…" oninput="S.notes[today()]=this.value;scheduleSave()"></textarea>
+      <textarea id="dailyNotes" class="editable-area" rows="5" placeholder="Write anything…" data-i18n-ph="daily_notes_ph" oninput="S.notes[today()]=this.value;scheduleSave()"></textarea>
     </div>
   </div>
 
@@ -768,7 +833,7 @@ main{flex:1; padding:26px 44px 60px;}
       <button class="btn btn-p" onclick="openModal('mProject')">+ <span data-i18n="add_project">Add Project</span></button>
     </div>
     <div class="prog-filters" id="projectFilters">
-      <button class="fpill active" onclick="setProjectF('all',this)">All</button>
+      <button class="fpill active" onclick="setProjectF('all',this)" data-i18n="filter_all">All</button>
       <button class="fpill" onclick="setProjectF('Active',this)" data-i18n="active">Active</button>
       <button class="fpill" onclick="setProjectF('Planning',this)" data-i18n="planning">Planning</button>
       <button class="fpill" onclick="setProjectF('Paused',this)" data-i18n="paused">Paused</button>
@@ -785,7 +850,7 @@ main{flex:1; padding:26px 44px 60px;}
       <button class="btn btn-p" onclick="openModal('mBook')">+ <span data-i18n="add">Add</span></button>
     </div>
     <div class="book-type-filters book-filters">
-      <button class="fpill active" onclick="setMediaTypeF('all',this)">All</button>
+      <button class="fpill active" onclick="setMediaTypeF('all',this)" data-i18n="filter_all">All</button>
       <button class="fpill" onclick="setMediaTypeF('book',this)" data-i18n="book">Book</button>
       <button class="fpill" onclick="setMediaTypeF('show',this)" data-i18n="show">Show</button>
       <button class="fpill" onclick="setMediaTypeF('anime',this)" data-i18n="anime">Anime</button>
@@ -793,7 +858,7 @@ main{flex:1; padding:26px 44px 60px;}
       <button class="fpill" onclick="setMediaTypeF('other',this)" data-i18n="other">Other</button>
     </div>
     <div class="book-status-filters book-filters" style="margin-top:6px">
-      <button class="fpill active" onclick="setBookF('all',this)">All</button>
+      <button class="fpill active" onclick="setBookF('all',this)" data-i18n="filter_all">All</button>
       <button class="fpill" onclick="setBookF('unread',this)" data-i18n="queued">Queued</button>
       <button class="fpill" onclick="setBookF('reading',this)" data-i18n="in_progress">In Progress</button>
       <button class="fpill" onclick="setBookF('done',this)" data-i18n="finished">Finished</button>
@@ -879,7 +944,7 @@ main{flex:1; padding:26px 44px 60px;}
   </div>
 
   <div class="book-detail-block" style="margin-bottom:14px">
-    <div class="book-detail-kicker">General Notes</div>
+    <div class="book-detail-kicker" data-i18n="general_notes">General Notes</div>
     <textarea id="bdNotes" class="editable-area" rows="6" placeholder="Thoughts, themes, quotes, reactions…" oninput="updateActiveBookNotes(this.value)"></textarea>
   </div>
 
@@ -887,8 +952,8 @@ main{flex:1; padding:26px 44px 60px;}
     <div class="book-detail-kicker" id="bdChapterNotesLabel">Chapter Notes</div>
     <div id="bdChapterNotes" class="chapter-notes"></div>
     <div class="book-detail-actions">
-      <button class="btn btn-g" onclick="addChapterNote()">+ Add Note</button>
-      <button class="btn btn-g" onclick="closeModal('mBookDetails')">Done</button>
+      <button class="btn btn-g" onclick="addChapterNote()" data-i18n="add_note">+ Add Note</button>
+      <button class="btn btn-g" onclick="closeModal('mBookDetails')" data-i18n="done_btn">Done</button>
     </div>
   </div>
 </div></div>
@@ -903,8 +968,12 @@ main{flex:1; padding:26px 44px 60px;}
   </div>
   <!-- Step 1 -->
   <div class="onboard-step active">
-    <div class="mf"><label>Your Name</label><input id="onboardName" placeholder="e.g. Abdullah"></div>
-    <div class="mf"><label>Username</label><input id="onboardUsername" placeholder="@handle — letters, numbers, _"></div>
+    <div class="mf"><label>Your Name</label><input id="onboardName" placeholder="Your name" data-i18n-ph="your_name_ph"></div>
+    <div class="mf"><label>Username</label><input id="onboardUsername" placeholder="@handle — letters, numbers, _" data-i18n-ph="username_ph"></div>
+    <div class="mf">
+      <label data-i18n="country">Country</label>
+      <input class="auth-inp" id="onboardCountry" type="text" list="countryList" placeholder="e.g. Kuwait">
+    </div>
     <div class="modal-acts"><button class="btn btn-p" onclick="showOnboardStep(2)" data-i18n="next">Next →</button></div>
   </div>
   <!-- Step 2 -->
@@ -944,6 +1013,65 @@ main{flex:1; padding:26px 44px 60px;}
   <div class="modal-acts"><button class="btn btn-p" onclick="closeModal('mStreaks')" data-i18n="close">Done</button></div>
 </div></div>
   
+<!-- Settings Modal -->
+<div class="modal-bg" id="mSettings" onclick="if(event.target===this)closeModal('mSettings')">
+  <div class="modal" style="max-width:420px">
+    <h2 data-i18n="settings">Settings</h2>
+
+    <div class="settings-section">
+      <div class="settings-kicker" data-i18n="profile">Profile</div>
+      <div class="mf">
+        <label data-i18n="display_name">Display Name</label>
+        <input class="auth-inp" id="stDisplayName" type="text" placeholder="Your name">
+      </div>
+      <div class="mf">
+        <label data-i18n="username_lbl">Username</label>
+        <input class="auth-inp" id="stUsername" type="text" placeholder="@handle">
+      </div>
+      <div class="mf">
+        <label data-i18n="country">Country</label>
+        <input class="auth-inp" id="stCountry" type="text" list="countryList" placeholder="e.g. Kuwait">
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-kicker" data-i18n="appearance">Appearance</div>
+      <div class="mf">
+        <label data-i18n="theme">Theme</label>
+        <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;align-items:center">
+          <button class="theme-opt active" data-theme="rose"     style="background:linear-gradient(135deg,#8b3252,#c0607a)" onclick="applyTheme('rose')"     title="Rose"></button>
+          <button class="theme-opt"        data-theme="ocean"    style="background:linear-gradient(135deg,#2d6a8a,#5a9fbf)" onclick="applyTheme('ocean')"    title="Ocean"></button>
+          <button class="theme-opt"        data-theme="forest"   style="background:linear-gradient(135deg,#3a7a4a,#6aaa7a)" onclick="applyTheme('forest')"   title="Forest"></button>
+          <button class="theme-opt"        data-theme="midnight" style="background:linear-gradient(135deg,#5a5a7a,#9090b0)" onclick="applyTheme('midnight')" title="Midnight"></button>
+          <button class="theme-opt"        data-theme="ember"    style="background:linear-gradient(135deg,#8b5220,#c08040)" onclick="applyTheme('ember')"    title="Ember"></button>
+        </div>
+      </div>
+      <div class="mf">
+        <label data-i18n="font">Font</label>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="font-opt active" data-font="elegant" onclick="applyFont('elegant')">Elegant</button>
+          <button class="font-opt"        data-font="clean"   onclick="applyFont('clean')">Clean</button>
+          <button class="font-opt"        data-font="sharp"   onclick="applyFont('sharp')">Sharp</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-kicker" data-i18n="language">Language</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:0.78rem;color:var(--muted-lt)">EN</span>
+        <button id="stLangToggle" class="btn btn-g" style="font-size:0.72rem;padding:5px 14px" onclick="setLang(currentLang==='en'?'ar':'en');eid('stLangToggle').textContent=currentLang==='en'?'AR':'EN'">AR</button>
+        <span style="font-size:0.78rem;color:var(--muted-lt)">AR</span>
+      </div>
+    </div>
+
+    <div class="modal-acts">
+      <button class="btn btn-g" onclick="closeModal('mSettings')" data-i18n="cancel">Cancel</button>
+      <button class="btn btn-p" onclick="saveSettings()" data-i18n="save_settings">Save</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <div id="updateCard" class="update-card hidden">
@@ -978,6 +1106,7 @@ main{flex:1; padding:26px 44px 60px;}
 <script src="./Renderer/media.js"></script>
 <script src="./Renderer/review.js"></script>
 <script src="./Renderer/modals.js"></script>
+<script src="./Renderer/settings.js"></script>
 <script src="./Renderer/app.js"></script>
 <script>
 if('serviceWorker' in navigator){
