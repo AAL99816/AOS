@@ -45,7 +45,8 @@ async function saveSettings() {
   update.theme = theme;
   update.font  = font;
 
-  await sb.from('profiles').upsert(update, { onConflict: 'id' });
+  const { error } = await sb.from('profiles').upsert(update, { onConflict: 'id' });
+  if (error) { toast('Save failed: ' + error.message); return; }
 
   if (!currentProfile) currentProfile = {};
   if (username)    currentProfile.username     = username;

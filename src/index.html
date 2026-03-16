@@ -1256,9 +1256,17 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 <script src="./Renderer/modals.js"></script>
 <script src="./Renderer/settings.js"></script>
 <script src="./Renderer/app.js"></script>
+<div id="updateBanner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--blush);color:var(--cream);padding:10px 22px;border-radius:20px;font-size:0.78rem;font-family:'Jost',sans-serif;letter-spacing:0.04em;z-index:9999;cursor:pointer;box-shadow:0 4px 24px rgba(0,0,0,0.5)" onclick="window.location.reload()">
+  Update available — tap to reload
+</div>
 <script>
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  navigator.serviceWorker.register('/sw.js').then(reg => {
+    // New SW found after page already loaded — show banner once it activates
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      document.getElementById('updateBanner').style.display = 'block';
+    });
+  }).catch(()=>{});
 }
 </script>
 </body>
