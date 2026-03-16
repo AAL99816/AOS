@@ -8,11 +8,16 @@ const ACCENT_THEMES = {
   ember:    { '--blush':'#c08040','--rose':'#8b5220','--petal':'#e8c0a0','--mist':'#f5e0d0','--cream':'#fdf5ef','--gold':'#c9956a','--gold-lt':'#e8b990','--muted':'#8a6040','--muted-lt':'#b09070' }
 };
 const APP_THEMES = {
-  obsidian: { '--panel':'#1a0a0f','--ink':'#120608','--mid':'#2d1019','--deep':'#0d0306','--border':'rgba(192,96,122,0.18)','--border-lt':'rgba(232,160,176,0.30)' },
-  void:     { '--panel':'#111111','--ink':'#0a0a0a','--mid':'#1a1a1a','--deep':'#050505','--border':'rgba(160,160,170,0.16)','--border-lt':'rgba(210,210,220,0.24)' },
-  charcoal: { '--panel':'#1c1c1c','--ink':'#111111','--mid':'#262626','--deep':'#080808','--border':'rgba(160,160,160,0.16)','--border-lt':'rgba(210,210,210,0.24)' },
-  slate:    { '--panel':'#141c24','--ink':'#0c1118','--mid':'#1c2a38','--deep':'#080d14','--border':'rgba(80,140,200,0.20)','--border-lt':'rgba(110,170,230,0.30)' },
-  coffee:   { '--panel':'#1e1408','--ink':'#120d04','--mid':'#2a1c0c','--deep':'#090602','--border':'rgba(190,140,70,0.18)','--border-lt':'rgba(220,170,90,0.28)' }
+  // Obsidian: deep wine-rose dark (default)
+  obsidian: { '--ink':'#0d0408','--deep':'#160809','--panel':'#240e14','--mid':'#341520','--border':'rgba(192,96,122,0.20)','--border-lt':'rgba(232,160,176,0.32)' },
+  // Slate: deep navy blue
+  slate:    { '--ink':'#060c18','--deep':'#0a1322','--panel':'#0f1e35','--mid':'#162840','--border':'rgba(70,130,210,0.22)','--border-lt':'rgba(110,175,245,0.34)' },
+  // Coffee: warm amber-brown
+  coffee:   { '--ink':'#0e0803','--deep':'#180f05','--panel':'#261508','--mid':'#35200c','--border':'rgba(200,140,55,0.20)','--border-lt':'rgba(230,175,90,0.32)' },
+  // Forest: deep emerald green
+  forest:   { '--ink':'#050d07','--deep':'#08140a','--panel':'#0e2014','--mid':'#142c1c','--border':'rgba(65,165,90,0.20)','--border-lt':'rgba(100,200,120,0.32)' },
+  // Void: pure cold black
+  void:     { '--ink':'#070707','--deep':'#0d0d0d','--panel':'#141414','--mid':'#1e1e1e','--border':'rgba(150,150,165,0.16)','--border-lt':'rgba(205,205,215,0.24)' }
 };
 /* Keep BOX_THEMES alias for any legacy references */
 const BOX_THEMES = APP_THEMES;
