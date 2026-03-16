@@ -173,6 +173,7 @@ const LANG = {
     reading_streak:    'Reading',
 
     /* Toasts & feedback */
+    change_photo:         'Change photo',
     avatar_updated:       'Avatar updated',
     avatar_upload_error:  'Could not upload avatar',
     username_saved:       'Username saved',
@@ -448,6 +449,7 @@ const LANG = {
     reading_streak:    'القراءة',
 
     /* Toasts & feedback */
+    change_photo:         'تغيير الصورة',
     avatar_updated:       'تم تحديث الصورة الرمزية',
     avatar_upload_error:  'تعذر تحميل الصورة الرمزية',
     username_saved:       'تم حفظ اسم المستخدم',

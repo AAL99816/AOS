@@ -19,9 +19,9 @@ function renderHeroProfile(){
   const username  = prof.username   || '';
   const initials  = (username || (typeof currentUser !== 'undefined' && currentUser?.email) || '?')[0].toUpperCase();
   av.innerHTML = avatarUrl
-    ? `<img src="${escapeAttr(avatarUrl)}" alt=""><input type="file" accept="image/*" onchange="uploadAvatar(this)">`
-    : `<span>${escapeHtml(initials)}</span><input type="file" accept="image/*" onchange="uploadAvatar(this)">`;
-  un.value = username;
+    ? `<img src="${escapeAttr(avatarUrl)}" alt="" style="width:100%;height:100%;object-fit:cover">`
+    : `<span>${escapeHtml(initials)}</span>`;
+  un.textContent = username ? '@' + username : '';
 }
 
 async function uploadAvatar(input){

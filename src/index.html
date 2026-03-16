@@ -755,8 +755,8 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   <div class="hero-content">
     <div class="hero-left">
       <div class="hero-avatar-wrap">
-        <div id="heroAvatar" class="hero-avatar"></div>
-        <input id="heroUsernameInp" class="hero-username-inp" placeholder="@username" onchange="saveUsername(this.value)">
+        <div id="heroAvatar" class="hero-avatar" title="Change in Settings" onclick="openSettings()" style="cursor:pointer"></div>
+        <span id="heroUsernameInp" class="hero-username-inp" onclick="openSettings()" style="cursor:pointer"></span>
       </div>
       <div class="hero-title">
         <h1 id="appTitle" contenteditable="true" spellcheck="false">AOS</h1>
@@ -1168,6 +1168,14 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 
     <div class="settings-section">
       <div class="settings-kicker" data-i18n="profile">Profile</div>
+      <div class="mf" style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+        <div id="stAvatarPreview" style="width:54px;height:54px;border-radius:50%;background:var(--rose);display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:var(--cream);overflow:hidden;flex-shrink:0;cursor:pointer" onclick="eid('stAvatarInput').click()"></div>
+        <div>
+          <button class="btn btn-g" style="font-size:0.72rem;padding:5px 14px" onclick="eid('stAvatarInput').click()" data-i18n="change_photo">Change photo</button>
+          <input id="stAvatarInput" type="file" accept="image/*" style="display:none" onchange="uploadAvatarFromSettings(this)">
+          <div id="stAvatarStatus" style="font-size:0.68rem;color:var(--muted-lt);margin-top:4px"></div>
+        </div>
+      </div>
       <div class="mf">
         <label data-i18n="display_name">Display Name</label>
         <input class="auth-inp" id="stDisplayName" type="text" placeholder="Your name">

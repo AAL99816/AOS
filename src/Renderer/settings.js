@@ -70,14 +70,44 @@ function openSettings() {
   eid('stCountry').value     = currentProfile.country     || '';
   eid('stDisplayName').value = currentProfile.display_name || S.appTitle.replace(/'s OS$|'s نظام الحياة$/,'').trim() || '';
 
+  // Populate avatar preview
+  const av = eid('stAvatarPreview');
+  const avatarUrl = currentProfile.avatar_url || '';
+  const username  = currentProfile.username   || '';
+  const initials  = (username || (typeof currentUser !== 'undefined' && currentUser?.email) || '?')[0].toUpperCase();
+  av.innerHTML = avatarUrl
+    ? `<img src="${escapeAttr(avatarUrl)}" alt="" style="width:100%;height:100%;object-fit:cover">`
+    : `<span>${escapeHtml(initials)}</span>`;
+  eid('stAvatarStatus').textContent = '';
+
   const savedTheme = currentProfile.theme || localStorage.getItem('aos_theme') || 'rose';
   const savedFont  = currentProfile.font  || localStorage.getItem('aos_font')  || 'elegant';
   applyTheme(savedTheme);
   applyFont(savedFont);
 
-  // sync lang toggle in settings
   eid('stLangToggle').textContent = currentLang === 'en' ? 'AR' : 'EN';
   openModal('mSettings');
+}
+
+async function uploadAvatarFromSettings(input) {
+  const f = input.files[0];
+  if (!f || !currentUser) return;
+  const status = eid('stAvatarStatus');
+  status.textContent = 'Uploading…';
+  try {
+    const url = await uploadAsset('avatar', f);
+    const { error } = await sb.from('profiles').upsert({ id: currentUser.id, avatar_url: url }, { onConflict: 'id' });
+    if (error) throw error;
+    if (!currentProfile) currentProfile = {};
+    currentProfile.avatar_url = url;
+    // Update preview
+    const av = eid('stAvatarPreview');
+    av.innerHTML = `<img src="${escapeAttr(url)}" alt="" style="width:100%;height:100%;object-fit:cover">`;
+    status.textContent = 'Saved';
+    renderHeroProfile();
+  } catch (e) {
+    status.textContent = 'Upload failed: ' + (e.message || e);
+  }
 }
 
 /* Called on app boot to restore saved theme/font */
