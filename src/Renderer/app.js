@@ -29,7 +29,7 @@ async function uploadAvatar(input){
   if(!f || !currentUser) return;
   try{
     const url = await uploadAsset('avatar', f);
-    await sb.from('profiles').upsert({ id: currentUser.id, avatar_url: url }, { onConflict: 'id' });
+    await sb.from('profiles').upsert({ id: currentUser.id, email: currentUser.email, avatar_url: url }, { onConflict: 'id' });
     if(!currentProfile) currentProfile = {};
     currentProfile.avatar_url = url;
     renderHeroProfile();

@@ -38,7 +38,7 @@ async function saveSettings() {
   const theme       = document.querySelector('.theme-opt.active')?.dataset.theme || 'rose';
   const font        = document.querySelector('.font-opt.active')?.dataset.font   || 'elegant';
 
-  const update = { id: currentUser.id };
+  const update = { id: currentUser.id, email: currentUser.email };
   if (username)    update.username     = username;
   if (country)     update.country      = country;
   if (displayName) update.display_name = displayName;
@@ -96,7 +96,7 @@ async function uploadAvatarFromSettings(input) {
   status.textContent = 'Uploading…';
   try {
     const url = await uploadAsset('avatar', f);
-    const { error } = await sb.from('profiles').upsert({ id: currentUser.id, avatar_url: url }, { onConflict: 'id' });
+    const { error } = await sb.from('profiles').upsert({ id: currentUser.id, email: currentUser.email, avatar_url: url }, { onConflict: 'id' });
     if (error) throw error;
     if (!currentProfile) currentProfile = {};
     currentProfile.avatar_url = url;
