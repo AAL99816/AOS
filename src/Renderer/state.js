@@ -25,8 +25,7 @@ const DS = {
 gymLog:{},
 cardioLog:{},
 cardioHistory:[],
-calorieLog:{},
-calorieTarget:2000,
+calorieHistory:[],
 prayerLog:{},
 notes:{},
 workoutHistory:[],
@@ -157,8 +156,10 @@ function normalizeAppState(raw={}){
   out.gymLog = out.gymLog && typeof out.gymLog === 'object' ? out.gymLog : {};
   out.cardioLog = out.cardioLog && typeof out.cardioLog === 'object' ? out.cardioLog : {};
   out.cardioHistory = (Array.isArray(out.cardioHistory) ? out.cardioHistory : []).map(makeCardioSession);
-  out.calorieLog = out.calorieLog && typeof out.calorieLog === 'object' ? out.calorieLog : {};
-  out.calorieTarget = out.calorieTarget || 2000;
+  // Migrate old calorieLog/calorieTarget — just drop them gracefully
+  delete out.calorieLog;
+  delete out.calorieTarget;
+  out.calorieHistory = Array.isArray(out.calorieHistory) ? out.calorieHistory : (Array.isArray(src.calorieHistory) ? src.calorieHistory : []);
   out.workoutHistory = (Array.isArray(out.workoutHistory) ? out.workoutHistory : []).map(makeWorkoutSession);
   out.exerciseHistory = out.exerciseHistory && typeof out.exerciseHistory === 'object' ? out.exerciseHistory : {};
   out.prayerLog = out.prayerLog && typeof out.prayerLog === 'object' ? out.prayerLog : {};

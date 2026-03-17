@@ -192,7 +192,7 @@ function buildShowCard(b, idx) {
         <span>${t('add_cover')}</span>
         <input type="file" accept="image/*" onchange="event.stopPropagation();uploadCover(${b.id},this)">
       </div>
-      <div style="position:absolute;top:7px;left:7px;background:rgba(26,10,15,0.82);border-radius:5px;padding:2px 7px;font-size:0.58rem;font-family:'DM Mono',monospace;color:var(--petal)">${seBadge}</div>
+      <div style="position:absolute;top:7px;left:7px;background:var(--ink-glass);border-radius:5px;padding:2px 7px;font-size:0.58rem;font-family:'DM Mono',monospace;color:var(--petal)">${seBadge}</div>
     </div>
     <div class="book-info">
       <input class="editable book-title-inp" value="${escapeAttr(b.title)}" onchange="event.stopPropagation();updateBF(${b.id},'title',this.value)">

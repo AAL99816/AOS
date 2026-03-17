@@ -240,7 +240,8 @@ function renderAll(){
   if(eid('cardioTarget')) eid('cardioTarget').value = S.cardioTarget || '';
   eid('dailyNotes').value=S.notes[today()]||'';
 
-  if(eid('cardioDate')) eid('cardioDate').value = today();
+  if(eid('cardioDate'))  eid('cardioDate').value  = today();
+  if(eid('calorieDate')) eid('calorieDate').value = today();
   renderTodaySummary();
   renderHabits();
   renderPrayer();

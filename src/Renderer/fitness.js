@@ -6,6 +6,8 @@ function ensureFitnessState() {
   if (!Array.isArray(S.workoutCards)) S.workoutCards = [];
   if (!S.gymLog || typeof S.gymLog !== 'object') S.gymLog = {};
   if (!S.cardioLog || typeof S.cardioLog !== 'object') S.cardioLog = {};
+  if (!Array.isArray(S.cardioHistory)) S.cardioHistory = [];
+  if (!Array.isArray(S.calorieHistory)) S.calorieHistory = [];
   if (!Array.isArray(S.workoutHistory)) S.workoutHistory = [];
   if (!S.exerciseHistory || typeof S.exerciseHistory !== 'object') S.exerciseHistory = {};
 }
@@ -81,9 +83,9 @@ function renderGymWeek() {
       <button
         onclick="event.stopPropagation();toggleRestDay(${i})"
         title="${isRest ? t('mark_training') : t('mark_rest')}"
-        style="margin-top:4px;background:none;border:1px solid ${isRest ? 'rgba(192,96,122,0.18)' : 'rgba(192,96,122,0.35)'};border-radius:5px;color:${isRest ? 'var(--muted)' : 'var(--blush)'};font-size:0.5rem;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;padding:2px 5px;cursor:pointer;transition:all 0.15s;"
+        style="margin-top:4px;background:none;border:1px solid ${isRest ? 'var(--border)' : 'var(--border-hi)'};border-radius:5px;color:${isRest ? 'var(--muted)' : 'var(--blush)'};font-size:0.5rem;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;padding:2px 5px;cursor:pointer;transition:all 0.15s;"
       >${isRest ? t('gym') : t('rest')}</button>
-      ${!isRest && wd.cardId ? `<button onclick="event.stopPropagation();scrollToCard(${wd.cardId})" style="margin-top:3px;background:none;border:1px solid rgba(192,96,122,0.35);border-radius:5px;color:var(--blush);font-size:0.5rem;font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;padding:2px 5px;cursor:pointer">Log →</button>` : ''}
+      ${!isRest && wd.cardId ? `<button onclick="event.stopPropagation();scrollToCard(${wd.cardId})" style="margin-top:3px;background:none;border:1px solid var(--border-hi);border-radius:5px;color:var(--blush);font-size:0.5rem;font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;padding:2px 5px;cursor:pointer">Log →</button>` : ''}
     `;
 
     div.addEventListener('click', () => {
@@ -457,7 +459,7 @@ function logWorkoutSession(wcId) {
 /* ══ CARDIO ══ */
 function renderCardioSection() {
   renderCardioHistory();
-  renderCalorieBar();
+  renderCalorieSection();
 }
 
 function renderCardioHistory() {
@@ -470,7 +472,7 @@ function renderCardioHistory() {
     return;
   }
   c.innerHTML = hist.slice(0, 20).map(s => `
-    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid rgba(192,96,122,0.07)">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--blush-dim)">
       <div style="display:flex;gap:10px;align-items:baseline;flex:1">
         <span style="font-size:0.6rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${escapeHtml(s.date||'')}</span>
         <span style="font-size:0.8rem;color:var(--mist)">${escapeHtml(s.activity||'Cardio')}</span>
@@ -504,33 +506,53 @@ function deleteCardioSession(id) {
   renderCardioHistory();
 }
 
-function renderCalorieBar() {
-  const el = eid('calorieToday');
-  if (!el) return;
-  ensureFitnessState();
-  const val = S.calorieLog[today()] || '';
-  el.value = val;
-  const targetEl = eid('calorieTarget');
-  if (targetEl) targetEl.value = S.calorieTarget || '';
+function renderCalorieSection() {
+  renderCalorieHistory();
+  const dateEl = eid('calorieDate');
+  if (dateEl && !dateEl.value) dateEl.value = today();
 }
 
-function logCalories() {
+function renderCalorieHistory() {
+  const c = eid('calorieHistory');
+  if (!c) return;
   ensureFitnessState();
-  const val = parseInt(eid('calorieInp').value, 10);
-  if (!val || val <= 0) return;
-  S.calorieLog[today()] = val;
-  scheduleSave();
-  eid('calorieInp').value = '';
-  eid('calorieToday').value = val;
-  toast(t('calories_logged'));
+  const hist = [...(S.calorieHistory || [])].reverse();
+  if (!hist.length) {
+    c.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted);font-size:0.7rem;font-family:'DM Mono',monospace">${t('no_calorie_sessions') || 'No entries logged yet.'}</div>`;
+    return;
+  }
+  c.innerHTML = hist.slice(0, 20).map(s => `
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--blush-dim)">
+      <div style="display:flex;gap:10px;align-items:baseline;flex:1">
+        <span style="font-size:0.6rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${escapeHtml(s.date||'')}</span>
+        <span style="font-size:0.8rem;color:var(--mist)">${escapeHtml(s.description||'Meal')}</span>
+        ${s.calories ? `<span style="font-size:0.68rem;color:var(--gold-lt);font-family:'DM Mono',monospace">${escapeHtml(String(s.calories))} kcal</span>` : ''}
+      </div>
+      <button class="habit-del" style="opacity:0.4" onclick="deleteCalorieSession(${s.id})">✕</button>
+    </div>
+  `).join('');
 }
 
-function setCalorieDay(dateStr, val) {
+function logCalorieSession() {
   ensureFitnessState();
-  const n = parseInt(val, 10);
-  if (n > 0) S.calorieLog[dateStr] = n;
-  else delete S.calorieLog[dateStr];
+  const description = (eid('calorieMeal').value || '').trim();
+  const calories    = parseFloat(eid('calorieAmount').value || '');
+  const dateVal     = eid('calorieDate').value || today();
+  if (!description && !calories) return;
+  if (!Array.isArray(S.calorieHistory)) S.calorieHistory = [];
+  S.calorieHistory.push({ id: Date.now(), date: dateVal, description, calories: calories || 0 });
   scheduleSave();
+  eid('calorieMeal').value   = '';
+  eid('calorieAmount').value = '';
+  eid('calorieDate').value   = today();
+  renderCalorieHistory();
+  toast(t('calories_logged') || 'Calories logged.');
+}
+
+function deleteCalorieSession(id) {
+  S.calorieHistory = (S.calorieHistory || []).filter(s => s.id !== id);
+  scheduleSave();
+  renderCalorieHistory();
 }
 
 /* ══ WORKOUT PRESETS ══ */

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"rgba\\\\|#[0-9a-fA-F]\\\\{6\\\\}\" \"c:/Users/AI AL/Desktop/I am smart/AOS/AOS/src/Renderer/\"*.js)",
+      "Bash(find '/c/Users/AI AL/Desktop/I am smart/AOS/AOS/src/Renderer' -name \"*.js\" -exec grep -n \"rgba\\\\|#[0-9a-fA-F]\" {} +)"
+    ]
+  }
+}

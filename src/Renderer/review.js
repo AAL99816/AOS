@@ -98,7 +98,7 @@ function renderWeeklyReview() {
         <div style="margin-bottom:12px">
           <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px">${t('gym')} · ${gymDays} ${t('day_s')}</div>
           ${gymSessions.length
-            ? gymSessions.map(s=>`<div style="font-size:0.76rem;color:var(--mist);padding:3px 0;border-bottom:1px solid rgba(192,96,122,0.07);cursor:pointer" onclick="openSessionDetail(${s.id})">${escapeHtml(s.date.slice(5))} · ${escapeHtml(s.title)}</div>`).join('')
+            ? gymSessions.map(s=>`<div style="font-size:0.76rem;color:var(--mist);padding:3px 0;border-bottom:1px solid var(--blush-dim);cursor:pointer" onclick="openSessionDetail(${s.id})">${escapeHtml(s.date.slice(5))} · ${escapeHtml(s.title)}</div>`).join('')
             : `<div style="font-size:0.7rem;color:var(--muted)">${t('no_sessions_logged')}</div>`}
         </div>
         <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">${t('cardio')}</div>
@@ -140,7 +140,7 @@ function renderWeeklyReview() {
         oninput="saveReflection(this.value)"
         style="font-size:0.8rem;color:var(--mist);line-height:1.65;"
       >${escapeHtml(reflection)}</textarea>
-      ${reflection ? `<div style="margin-top:8px;padding:10px 12px;background:rgba(192,96,122,0.05);border-radius:7px;font-size:0.78rem;color:var(--mist);line-height:1.7;">${renderMd(reflection)}</div>` : ''}
+      ${reflection ? `<div style="margin-top:8px;padding:10px 12px;background:var(--blush-dim);border-radius:7px;font-size:0.78rem;color:var(--mist);line-height:1.7;">${renderMd(reflection)}</div>` : ''}
     </div>
   `;
 }
