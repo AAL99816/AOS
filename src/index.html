@@ -251,6 +251,8 @@ main{flex:1; padding:26px 44px 60px;}
 .cardio-target-inp{font-size:0.82rem; color:var(--mist);}
 .cardio-right{margin-left:auto; display:flex; align-items:center; gap:8px;}
 .cardio-right input[type=number]{width:58px; text-align:center; background:color-mix(in srgb,var(--ink) 60%,transparent); border:1px solid var(--border); border-radius:7px; padding:5px 4px; color:var(--cream); font-family:'DM Mono',monospace; font-size:0.88rem; outline:none;}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;appearance:none;margin:0;}
+input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 .mins-lbl{font-size:0.68rem; color:var(--muted);}
 #cardioToday{font-family:'DM Mono',monospace; font-size:0.74rem; color:var(--gold-lt); min-width:52px; text-align:right;}
 
@@ -851,9 +853,13 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <div id="cardioHistory"></div>
     </div>
     <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:0.7rem;letter-spacing:0.08em;color:var(--muted)" data-i18n="calories">Calories</span>
+        <button id="calorieModeBtn" class="btn btn-g" style="font-size:0.6rem;padding:2px 8px" onclick="toggleCalorieMode()">Meal mode</button>
+      </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
         <input id="calorieMeal" class="add-inp" style="flex:2;min-width:120px" placeholder="Meal / description" data-i18n-ph="calorie_meal_ph">
-        <input id="calorieAmount" class="add-inp" type="number" style="flex:1;min-width:80px" placeholder="kcal" data-i18n-ph="calorie_amount_ph">
+        <input id="calorieAmount" class="add-inp" style="flex:1;min-width:80px" placeholder="kcal">
         <input id="calorieDate" type="date" class="add-inp" style="flex:1;min-width:110px">
         <button class="btn btn-p" onclick="logCalorieSession()" data-i18n="log">Log</button>
       </div>
@@ -1167,11 +1173,19 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 
 <div class="modal-bg" id="mStreaks"><div class="modal">
   <h2 data-i18n="streaks">Edit Streaks</h2>
+  <div style="font-size:0.65rem;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px">BUILT-IN</div>
   <div class="mf"><label><input type="checkbox" id="st-prayer" onchange="toggleStreakOption('prayer',this.checked)"> <span data-i18n="prayer">Prayer</span></label></div>
   <div class="mf"><label><input type="checkbox" id="st-cardio" onchange="toggleStreakOption('cardio',this.checked)"> <span data-i18n="cardio">Cardio</span></label></div>
   <div class="mf"><label><input type="checkbox" id="st-gym" onchange="toggleStreakOption('gym',this.checked)"> <span data-i18n="gym">Gym</span></label></div>
   <div class="mf"><label><input type="checkbox" id="st-read" onchange="toggleStreakOption('read',this.checked)"> <span data-i18n="reading_streak">Reading</span></label></div>
   <div class="mf"><label><input type="checkbox" id="st-study" onchange="toggleStreakOption('study',this.checked)"> Study</label></div>
+  <div style="font-size:0.65rem;letter-spacing:0.1em;color:var(--muted);margin:14px 0 6px">CUSTOM</div>
+  <div id="customStreakList"></div>
+  <div style="display:flex;gap:6px;align-items:center;margin-top:10px">
+    <input id="newStreakEmoji" class="add-inp" style="width:48px;text-align:center" placeholder="🔥" maxlength="2">
+    <input id="newStreakName" class="add-inp" style="flex:1" placeholder="e.g. No Sugar, Cold Shower">
+    <button class="btn btn-g" style="font-size:0.7rem" onclick="addCustomStreak()">+ Add</button>
+  </div>
   <div class="modal-acts"><button class="btn btn-p" onclick="closeModal('mStreaks')" data-i18n="close">Done</button></div>
 </div></div>
   

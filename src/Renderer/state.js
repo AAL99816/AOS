@@ -31,7 +31,8 @@ notes:{},
 workoutHistory:[],
 exerciseHistory:{},
 weeklyReflections:{},
-appPrefs:{ showReflection: true },
+appPrefs:{ showReflection: true, calorieMode: 'meal' },
+customStreaks:[],
 onboarded:false
 
 };
@@ -166,6 +167,12 @@ function normalizeAppState(raw={}){
   out.weeklyReflections = out.weeklyReflections && typeof out.weeklyReflections === 'object' ? out.weeklyReflections : {};
   out.appPrefs = deepMerge(DS.appPrefs, out.appPrefs || {});
   out.onboarded = typeof src.onboarded === 'boolean' ? src.onboarded : false;
+  out.customStreaks = (Array.isArray(src.customStreaks) ? src.customStreaks : []).map(cs => ({
+    id: cs.id ?? Date.now() + Math.random(),
+    name: cs.name ?? 'Custom',
+    emoji: cs.emoji ?? '🔥',
+    log: (cs.log && typeof cs.log === 'object') ? cs.log : {}
+  }));
 
   out.habits = (Array.isArray(out.habits) ? out.habits : clone(DS.habits)).map(makeHabit);
   out.goals = (Array.isArray(out.goals) ? out.goals : clone(DS.goals)).map(makeGoal);

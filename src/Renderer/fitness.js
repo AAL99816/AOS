@@ -507,9 +507,21 @@ function deleteCardioSession(id) {
 }
 
 function renderCalorieSection() {
-  renderCalorieHistory();
+  const mode = (S.appPrefs && S.appPrefs.calorieMode) || 'meal';
+  const mealInp = eid('calorieMeal');
+  if (mealInp) mealInp.style.display = mode === 'meal' ? '' : 'none';
+  const btn = eid('calorieModeBtn');
+  if (btn) btn.textContent = mode === 'meal' ? 'Meal mode' : 'Daily mode';
   const dateEl = eid('calorieDate');
   if (dateEl && !dateEl.value) dateEl.value = today();
+  renderCalorieHistory();
+}
+
+function toggleCalorieMode() {
+  if (!S.appPrefs) S.appPrefs = {};
+  S.appPrefs.calorieMode = (S.appPrefs.calorieMode === 'daily') ? 'meal' : 'daily';
+  scheduleSave();
+  renderCalorieSection();
 }
 
 function renderCalorieHistory() {
@@ -535,14 +547,16 @@ function renderCalorieHistory() {
 
 function logCalorieSession() {
   ensureFitnessState();
-  const description = (eid('calorieMeal').value || '').trim();
+  const mode        = (S.appPrefs && S.appPrefs.calorieMode) || 'meal';
+  const mealEl      = eid('calorieMeal');
+  const description = mode === 'meal' ? ((mealEl && mealEl.value) || '').trim() : 'Daily Total';
   const calories    = parseFloat(eid('calorieAmount').value || '');
   const dateVal     = eid('calorieDate').value || today();
-  if (!description && !calories) return;
+  if (!calories) return;
   if (!Array.isArray(S.calorieHistory)) S.calorieHistory = [];
-  S.calorieHistory.push({ id: Date.now(), date: dateVal, description, calories: calories || 0 });
+  S.calorieHistory.push({ id: Date.now(), date: dateVal, description, calories });
   scheduleSave();
-  eid('calorieMeal').value   = '';
+  if (mealEl) mealEl.value = '';
   eid('calorieAmount').value = '';
   eid('calorieDate').value   = today();
   renderCalorieHistory();

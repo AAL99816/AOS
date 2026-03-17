@@ -181,6 +181,66 @@ function updateStreaks(){
     row.innerHTML=`<span class="streak-lbl">${typeof t==='function'?t(s.labelKey):(s.labelKey)}</span><span class="streak-val">${s.val()}d</span>`;
     c.appendChild(row);
   });
+  // Custom streaks
+  (S.customStreaks||[]).forEach(cs=>{
+    const str=calcStreak(cs.log||{});
+    const todayStr=today();
+    const done=!!(cs.log&&cs.log[todayStr]);
+    const row=document.createElement('div');
+    row.className='streak-row';
+    row.innerHTML=`
+      <span class="streak-lbl">${escapeHtml(cs.emoji||'')} ${escapeHtml(cs.name||'')}</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="streak-val">${str}d</span>
+        <button class="btn btn-g" style="padding:2px 8px;font-size:0.6rem" onclick="logCustomStreak(${cs.id},'${todayStr}')">${done?'✓ Done':'Log'}</button>
+        <input type="date" title="Log a past date" style="font-size:0.6rem;background:var(--panel);color:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:2px 4px;max-width:110px" onchange="if(this.value){logCustomStreak(${cs.id},this.value);this.value=''}">
+      </div>`;
+    c.appendChild(row);
+  });
+}
+
+function addCustomStreak(){
+  const name=(eid('newStreakName').value||'').trim();
+  if(!name)return;
+  const emoji=(eid('newStreakEmoji').value||'').trim()||'🔥';
+  if(!Array.isArray(S.customStreaks))S.customStreaks=[];
+  S.customStreaks.push({id:Date.now(),name,emoji,log:{}});
+  eid('newStreakName').value='';
+  eid('newStreakEmoji').value='';
+  scheduleSave();
+  updateStreaks();
+  renderCustomStreakList();
+}
+
+function deleteCustomStreak(id){
+  S.customStreaks=(S.customStreaks||[]).filter(cs=>cs.id!==id);
+  scheduleSave();
+  updateStreaks();
+  renderCustomStreakList();
+}
+
+function logCustomStreak(id,dateStr){
+  const cs=(S.customStreaks||[]).find(cs=>cs.id===id);
+  if(!cs)return;
+  if(!cs.log)cs.log={};
+  cs.log[dateStr]=!cs.log[dateStr];
+  if(!cs.log[dateStr])delete cs.log[dateStr];
+  scheduleSave();
+  updateStreaks();
+}
+
+function renderCustomStreakList(){
+  const c=eid('customStreakList');if(!c)return;
+  const list=S.customStreaks||[];
+  if(!list.length){
+    c.innerHTML=`<div style="font-size:0.68rem;color:var(--muted);padding:6px 0">No custom streaks yet.</div>`;
+    return;
+  }
+  c.innerHTML=list.map(cs=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:0.82rem">${escapeHtml(cs.emoji||'')} ${escapeHtml(cs.name||'')}</span>
+      <button class="habit-del" style="opacity:0.5" onclick="deleteCustomStreak(${cs.id})">✕</button>
+    </div>`).join('');
 }
 
 function openStreaks(){
@@ -190,6 +250,7 @@ function openStreaks(){
   eid('st-gym').checked=p.gym!==false;
   eid('st-read').checked=p.read!==false;
   eid('st-study').checked=p.study!==false;
+  renderCustomStreakList();
   openModal('mStreaks');
 }
 
