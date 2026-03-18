@@ -159,11 +159,13 @@ function renderPdTasks(p) {
       <div style="padding:8px 0;border-bottom:1px solid var(--border)">
         <div style="display:flex;align-items:center;gap:8px">
           <input type="checkbox" ${tk.done ? 'checked' : ''} onchange="toggleProjectTask(${p.id},${tk.id})">
-          <span style="flex:1;font-size:0.8rem;color:var(--mist);${tk.done ? 'text-decoration:line-through;opacity:0.45' : ''}">${escapeHtml(tk.text||'')}</span>
+          <input class="editable" style="flex:1;font-size:0.8rem;color:var(--mist);background:none;border:none;${tk.done?'text-decoration:line-through;opacity:0.45':''}"
+            value="${escapeAttr(tk.text||'')}" onchange="updateProjectTask(${p.id},${tk.id},'text',this.value)">
           ${tk.dueDate ? `<span style="font-size:0.55rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${escapeHtml(tk.dueDate)}</span>` : ''}
           <button class="habit-del" style="opacity:0.4" onclick="deleteProjectTask(${p.id},${tk.id})">✕</button>
         </div>
-        ${tk.taskNotes ? `<div style="font-size:0.68rem;color:var(--muted);margin-top:4px;padding-left:22px;font-style:italic">${escapeHtml(tk.taskNotes)}</div>` : ''}
+        <input class="editable" style="width:100%;font-size:0.68rem;color:var(--muted);background:none;border:none;padding-left:22px;font-style:italic;margin-top:3px"
+          placeholder="Task notes…" value="${escapeAttr(tk.taskNotes||'')}" onchange="updateProjectTask(${p.id},${tk.id},'taskNotes',this.value)">
       </div>`).join('')
     : `<div style="font-size:0.72rem;color:var(--muted);padding:8px 0">${t('no_tasks')}</div>`}
   `;
@@ -194,6 +196,15 @@ function addProjectTask() {
   eid('pdNewTaskNotes').value = '';
   scheduleSave();
   renderPdTasks(p);
+}
+
+function updateProjectTask(id, taskId, field, value) {
+  const p = ensureProjects().find(x => x.id === id);
+  if (!p) return;
+  const tk = (p.tasks || []).find(t => t.id === taskId);
+  if (!tk) return;
+  tk[field] = value;
+  scheduleSave();
 }
 
 function toggleProjectTask(id, taskId) {

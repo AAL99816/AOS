@@ -805,12 +805,10 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 
   <!-- TODAY -->
   <div id="panel-today" class="panel">
-    <div class="today-top">
-      <div id="reflectionCard" class="card quote-card">
-        <div class="q-label">Daily Reflection</div>
-        <textarea id="quoteText" class="editable-area" rows="3" placeholder="Write your quote or reflection…" oninput="S.quote.text=this.value;scheduleSave()"></textarea>
-        <input id="quoteAuthor" class="editable" placeholder="— Author" oninput="S.quote.author=this.value;scheduleSave()">
-      </div>
+    <div id="reflectionCard" class="card quote-card" style="margin-bottom:22px">
+      <div class="q-label">Daily Reflection</div>
+      <textarea id="quoteText" class="editable-area" rows="3" placeholder="Write your quote or reflection…" oninput="S.quote.text=this.value;scheduleSave()"></textarea>
+      <input id="quoteAuthor" class="editable" placeholder="— Author" oninput="S.quote.author=this.value;scheduleSave()">
     </div>
     <div id="todaySummary" style="margin-bottom:22px"></div>
     <div class="sec"><span data-i18n="prayer">Prayer</span> <span class="lbl" data-i18n="nav_today">Today</span></div>

@@ -131,6 +131,15 @@ function updateWDay(i, val) {
 }
 
 /* ══ WORKOUT CARDS ══ */
+// Track which cards are expanded (by card id)
+const _expandedCards = new Set();
+
+function toggleWorkoutCard(id) {
+  if (_expandedCards.has(id)) _expandedCards.delete(id);
+  else _expandedCards.add(id);
+  renderWorkoutCards();
+}
+
 function renderWorkoutCards() {
   ensureFitnessState();
 
@@ -147,69 +156,67 @@ function renderWorkoutCards() {
   }
 
   S.workoutCards.forEach(wc => {
+    const expanded = _expandedCards.has(wc.id);
+    const exCount  = (wc.exercises || []).length;
     const div = document.createElement('div');
     div.className = 'card';
 
-    div.innerHTML = `
-      <input
-        class="editable wk-title-inp"
-        value="${escapeHtml(wc.title || '')}"
-        onchange="updateWCF(${wc.id},'title',this.value)"
-        title="Edit title"
-        style="margin-bottom:12px;display:block;width:100%"
-      >
+    // Collapsed header — always visible
+    const header = `
+      <div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="toggleWorkoutCard(${wc.id})">
+        <input
+          class="editable wk-title-inp"
+          value="${escapeHtml(wc.title || '')}"
+          onchange="updateWCF(${wc.id},'title',this.value)"
+          onclick="event.stopPropagation()"
+          title="Edit title"
+          style="flex:1;background:none;border:none;color:var(--mist);font-size:0.88rem"
+        >
+        <span style="font-size:0.55rem;color:var(--muted);font-family:'DM Mono',monospace;flex-shrink:0">${exCount} exercise${exCount!==1?'s':''}</span>
+        <span style="font-size:0.75rem;color:var(--blush);flex-shrink:0">${expanded ? '▾' : '▸'}</span>
+      </div>`;
 
-      <div class="exlist">
-        ${(wc.exercises || []).map(ex => {
-          const last = getLastExerciseLog(ex.name);
-          const prev = getPrevExerciseLog(ex.name);
-          const pct = last && prev ? calcPctIncrease(prev.weight, last.weight) : null;
+    // Expanded body
+    const body = expanded ? `
+      <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+        <div class="exlist">
+          ${(wc.exercises || []).map(ex => {
+            const last = getLastExerciseLog(ex.name);
+            const prev = getPrevExerciseLog(ex.name);
+            const pct  = last && prev ? calcPctIncrease(prev.weight, last.weight) : null;
+            return `
+              <div class="ex-item" style="display:block;">
+                <div style="display:flex;align-items:center;gap:7px;">
+                  <input class="editable ex-name-inp" value="${escapeHtml(ex.name||'')}" onchange="updateEx(${wc.id},${ex.id},'name',this.value)" title="Edit exercise">
+                  <button class="ex-del" onclick="delEx(${wc.id},${ex.id})">✕</button>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:7px;padding-left:14px;">
+                  <input class="add-inp" id="logW-${ex.id}" type="number" step="0.5" placeholder="${t('weight_ph')}" style="width:68px;flex:none;" value="${last?.weight ?? ''}">
+                  <input class="add-inp" id="logR-${ex.id}" type="number" placeholder="${t('reps_ph')}" style="width:68px;flex:none;" value="${last?.reps ?? ''}">
+                  <input class="add-inp" id="logSets-${ex.id}" type="number" min="1" placeholder="sets" style="width:58px;flex:none;padding-right:14px;" value="${last?.sets ?? 1}" title="Sets">
+                  <button class="btn btn-g" style="font-size:0.66rem;padding:4px 9px" onclick="logExercise(${wc.id},${ex.id})">${t('log')}</button>
+                </div>
+                <div id="lastLog-${ex.id}" style="margin-top:6px;padding-left:14px;font-size:0.64rem;color:var(--muted-lt);font-family:'DM Mono',monospace;">
+                  ${last ? `${t('last_colon')} ${last.sets>1?last.sets+' × ':''}${last.weight}kg × ${last.reps}${pct!==null?` <span style="color:var(--gold-lt)">${fmtPct(pct)}</span>`:''}` : t('no_log_yet')}
+                </div>
+              </div>`;
+          }).join('')}
+        </div>
 
-          return `
-            <div class="ex-item" style="display:block;">
-              <div style="display:flex;align-items:center;gap:7px;">
-                <input
-                  class="editable ex-name-inp"
-                  value="${escapeHtml(ex.name || '')}"
-                  onchange="updateEx(${wc.id},${ex.id},'name',this.value)"
-                  title="Edit exercise"
-                >
-                <button class="ex-del" onclick="delEx(${wc.id},${ex.id})">✕</button>
-              </div>
+        <div class="add-ex-row" style="margin-top:9px">
+          <input class="add-inp" id="exN-${wc.id}" placeholder="${t('exercise_ph')}" style="flex:1">
+          <button class="btn btn-g" style="font-size:0.68rem;padding:4px 9px" onclick="addEx(${wc.id})">+ ${t('add')}</button>
+        </div>
 
-              <div style="display:flex;align-items:center;gap:6px;margin-top:7px;padding-left:14px;">
-                <input class="add-inp" id="logW-${ex.id}" type="number" step="0.5" placeholder="${t('weight_ph')}" style="width:68px;flex:none;" value="${last?.weight ?? ''}">
-                <input class="add-inp" id="logR-${ex.id}" type="number" placeholder="${t('reps_ph')}" style="width:68px;flex:none;" value="${last?.reps ?? ''}">
-                <input class="add-inp" id="logSets-${ex.id}" type="number" min="1" placeholder="sets" style="width:58px;flex:none;padding-right:14px;" value="${last?.sets ?? 1}" title="Number of sets">
-                <button class="btn btn-g" style="font-size:0.66rem;padding:4px 9px" onclick="logExercise(${wc.id},${ex.id})">${t('log')}</button>
-              </div>
+        <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;">
+          <button class="btn btn-d" style="font-size:0.66rem;padding:4px 9px" onclick="delWorkoutCard(${wc.id})">${t('remove')}</button>
+          <button class="btn btn-p" style="font-size:0.68rem;padding:5px 10px" onclick="logWorkoutSession(${wc.id})">${t('log_session')}</button>
+        </div>
+      </div>` : '';
 
-              <div id="lastLog-${ex.id}" style="margin-top:6px;padding-left:14px;font-size:0.64rem;color:var(--muted-lt);font-family:'DM Mono',monospace;">
-                ${
-                  last
-                    ? `${t('last_colon')} ${last.sets > 1 ? last.sets + ' × ' : ''}${last.weight}kg × ${last.reps}${pct !== null ? ` <span style="color:var(--gold-lt)">${fmtPct(pct)}</span>` : ''}`
-                    : t('no_log_yet')
-                }
-              </div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-
-      <div class="add-ex-row" style="margin-top:9px">
-        <input class="add-inp" id="exN-${wc.id}" placeholder="${t('exercise_ph')}" style="flex:1">
-        <button class="btn btn-g" style="font-size:0.68rem;padding:4px 9px" onclick="addEx(${wc.id})">+ ${t('add')}</button>
-      </div>
-
-      <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;">
-        <button class="btn btn-d" style="font-size:0.66rem;padding:4px 9px" onclick="delWorkoutCard(${wc.id})">${t('remove')}</button>
-        <button class="btn btn-p" style="font-size:0.68rem;padding:5px 10px" onclick="logWorkoutSession(${wc.id})">${t('log_session')}</button>
-      </div>
-    `;
-
+    div.innerHTML = header + body;
     c.appendChild(div);
   });
-
 }
 
 
@@ -306,7 +313,13 @@ function openSessionDetail(id){
 }
 
 function deleteWorkoutSession(id){
+  const session = (S.workoutHistory||[]).find(s=>s.id===id);
   S.workoutHistory = (S.workoutHistory||[]).filter(s=>s.id!==id);
+  // If no more sessions on that date, un-tick gymLog for that day
+  if (session) {
+    const remaining = (S.workoutHistory||[]).filter(s=>s.date===session.date);
+    if (!remaining.length) delete S.gymLog[session.date];
+  }
   scheduleSave();
   renderTrainingLog();
 }

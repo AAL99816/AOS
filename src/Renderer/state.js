@@ -60,6 +60,8 @@ function makeCardioSession(s={}) {
     date: s.date ?? today(),
     activity: s.activity ?? '',
     duration: s.duration ?? '',
+    distance: s.distance ?? '',
+    steps: s.steps ?? '',
     notes: s.notes ?? ''
   };
 }
@@ -82,10 +84,13 @@ function makeProject(p={}){
     deadline: p.deadline ?? '',
     notes: p.notes ?? '',
     richNotes: p.richNotes ?? '',
+    notesLog: Array.isArray(p.notesLog) ? p.notesLog : [],
     tasks: Array.isArray(p.tasks) ? p.tasks.map(tk => ({
       id: tk.id ?? Date.now() + Math.random(),
       text: tk.text ?? '',
-      done: !!tk.done
+      done: !!tk.done,
+      dueDate: tk.dueDate ?? '',
+      taskNotes: tk.taskNotes ?? ''
     })) : []
   };
 }
