@@ -193,7 +193,7 @@ function renderTodaySummary(){
   const gymDone     = !!(S.gymLog&&S.gymLog[todayStr]);
   const cardioMins  = (S.cardioLog&&S.cardioLog[todayStr]) || 0;
   const activeMedia = (S.media||[]).find(m=>m.status==='reading');
-  const activeGoals = (S.goals||[]).filter(g=>g.progress>0&&g.progress<100).length;
+  const activeGoals = 0; // Goals section removed — merged into Projects
   const activeProjs = (S.projects||[]).filter(p=>p.status==='Active').length;
   const insight     = calmInsight(todayStr, habitsDone, habitsTotal, gymDone, cardioMins);
 
@@ -202,7 +202,6 @@ function renderTodaySummary(){
     {label:t('gym'),     val: gymDone ? `✓ ${t('done')}` : t('not_logged')},
     ...(cardioMins>0 ? [{label:t('cardio'), val:`${cardioMins} ${t('min')}`}] : []),
     ...(activeMedia   ? [{label: activeMedia.mediaType==='book' ? t('reading') : t('watching'), val:activeMedia.title}] : []),
-    ...(activeGoals>0 ? [{label:t('goals'),    val:`${activeGoals} ${t('active')}`}] : []),
     ...(activeProjs>0 ? [{label:t('projects'), val:`${activeProjs} ${t('active')}`}] : []),
   ];
 
@@ -248,7 +247,6 @@ function renderAll(){
   renderGymWeek();
   renderWorkoutCards();
   renderTrainingLog();
-  renderGoals();
   renderProjects();
   renderBooks();
   if (typeof renderCardioSection === 'function') renderCardioSection();

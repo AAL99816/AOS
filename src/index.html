@@ -781,7 +781,6 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   <button class="tab active" onclick="go('summary',this)" data-i18n="nav_summary">Summary</button>
   <button class="tab" onclick="go('today',this)" data-i18n="nav_today">Today</button>
   <button class="tab" onclick="go('fitness',this)" data-i18n="nav_fitness">Fitness</button>
-  <button class="tab" onclick="go('goals',this)" data-i18n="nav_goals">Goals</button>
   <button class="tab" onclick="go('projects',this)" data-i18n="nav_projects">Projects</button>
   <button class="tab" onclick="go('media',this)" data-i18n="nav_media">Media</button>
   <div class="nav-right">
@@ -801,6 +800,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <div class="sec" style="margin:0"><span data-i18n="weekly_summary">Weekly Summary</span></div>
     </div>
     <div id="reviewContent"></div>
+    <div id="dayDetailPanel" style="display:none;margin-top:18px"></div>
   </div>
 
   <!-- TODAY -->
@@ -810,13 +810,6 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
         <div class="q-label">Daily Reflection</div>
         <textarea id="quoteText" class="editable-area" rows="3" placeholder="Write your quote or reflection…" oninput="S.quote.text=this.value;scheduleSave()"></textarea>
         <input id="quoteAuthor" class="editable" placeholder="— Author" oninput="S.quote.author=this.value;scheduleSave()">
-      </div>
-      <div class="card streak-card">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <h3 data-i18n="streaks">Streaks</h3>
-          <button class="btn btn-g" style="padding:3px 8px;font-size:0.62rem" onclick="openStreaks()">Edit</button>
-         </div>
-        <div id="streakList"></div>
       </div>
     </div>
     <div id="todaySummary" style="margin-bottom:22px"></div>
@@ -844,18 +837,21 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <div class="sec" style="margin:0" data-i18n="cardio">Cardio</div>
     </div>
     <div class="card" style="margin-bottom:16px">
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
-        <input id="cardioActivity" class="add-inp" style="flex:2;min-width:100px" placeholder="Activity (Run, Walk, Swim…)" data-i18n-ph="cardio_activity_ph">
-        <input id="cardioDuration" class="add-inp" style="flex:1;min-width:80px" placeholder="Duration" data-i18n-ph="cardio_duration_ph">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+        <input id="cardioActivity" class="add-inp" style="flex:2;min-width:120px" placeholder="Activity (Run, Walk, Swim…)" data-i18n-ph="cardio_activity_ph">
         <input id="cardioDate" type="date" class="add-inp" style="flex:1;min-width:110px">
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+        <input id="cardioDuration" class="add-inp" style="flex:1;min-width:70px" placeholder="Duration" data-i18n-ph="cardio_duration_ph">
+        <input id="cardioDistance" class="add-inp" style="flex:1;min-width:70px" placeholder="Distance (km/mi)">
+        <input id="cardioSteps"    class="add-inp" style="flex:1;min-width:70px" placeholder="Steps" type="number" min="0">
         <button class="btn btn-p" onclick="logCardioSession()" data-i18n="log">Log</button>
       </div>
       <div id="cardioHistory"></div>
     </div>
     <div class="card" style="margin-bottom:16px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="margin-bottom:8px">
         <span style="font-size:0.7rem;letter-spacing:0.08em;color:var(--muted)" data-i18n="calories">Calories</span>
-        <button id="calorieModeBtn" class="btn btn-g" style="font-size:0.6rem;padding:2px 8px" onclick="toggleCalorieMode()">Meal mode</button>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
         <input id="calorieMeal" class="add-inp" style="flex:2;min-width:120px" placeholder="Meal / description" data-i18n-ph="calorie_meal_ph">
@@ -875,14 +871,6 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   </div>
 
   <!-- GOALS -->
-  <div id="panel-goals" class="panel">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-      <div class="sec" style="margin:0"><span data-i18n="goals">Goals</span></div>
-      <button class="btn btn-p" onclick="openModal('mGoal')">+ <span data-i18n="new_goal">New Goal</span></button>
-    </div>
-    <div class="goals-grid" id="goalsGrid"></div>
-  </div>
-
   <!-- PROJECTS -->
   <div id="panel-projects" class="panel">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
@@ -938,17 +926,6 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 </div>
 
 <!-- MODALS -->
-<div class="modal-bg" id="mGoal"><div class="modal">
-  <h2 data-i18n="new_goal">New Goal</h2>
-  <div class="mf"><label data-i18n="goals">Goal</label><input id="gText" placeholder="What do you want to achieve?"></div>
-  <div class="mf"><label>Category</label><select id="gCat"><option>Academic</option><option>Career</option><option>Health</option><option>Personal</option><option>Creative</option></select></div>
-  <div class="mf"><label data-i18n="type">Type</label><input id="gType" placeholder="e.g. Long-term, Milestone, Habit"></div>
-  <div class="mf"><label data-i18n="context">Context</label><input id="gCtx" placeholder="e.g. Career, Kuwait, Q1 2026"></div>
-  <div class="mf"><label data-i18n="deadline">Deadline</label><input id="gDl" type="date"></div>
-  <div class="mf"><label>Progress — <span id="gPLbl">0</span>%</label><input id="gPct" type="range" min="0" max="100" value="0" oninput="eid('gPLbl').textContent=this.value"></div>
-  <div class="mf"><label data-i18n="notes">Notes</label><textarea id="gNotes" placeholder="Notes…"></textarea></div>
-  <div class="modal-acts"><button class="btn btn-g" onclick="closeModal('mGoal')" data-i18n="cancel">Cancel</button><button class="btn btn-p" onclick="saveGoal()" data-i18n="save">Save</button></div>
-</div></div>
 
 <div class="modal-bg" id="mProject"><div class="modal">
   <h2 data-i18n="add_project">Add Project</h2>
@@ -963,20 +940,32 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 
 <div class="modal-bg" id="mProjectDetail" onclick="if(event.target===this)closeModal('mProjectDetail')"><div class="modal" style="max-width:520px">
   <h2 id="pdTitle" style="margin-bottom:3px"></h2>
-  <div id="pdStatus" style="font-size:0.6rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--blush);font-family:'DM Mono',monospace;margin-bottom:16px"></div>
-  <div class="mf">
-    <label data-i18n="notes">Notes</label>
-    <textarea id="pdNotes" class="editable-area" rows="5" style="width:100%" oninput="previewProjectNotes()" placeholder="Markdown supported — **bold**, *italic*, # heading, - list"></textarea>
+  <div id="pdStatus" style="font-size:0.6rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--blush);font-family:'DM Mono',monospace;margin-bottom:14px"></div>
+
+  <!-- Sub-tabs -->
+  <div style="display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:10px">
+    <button id="pdTabTasks" class="btn btn-g active" style="font-size:0.64rem;padding:4px 14px" onclick="switchPdTab('tasks')">Tasks</button>
+    <button id="pdTabNotes" class="btn btn-g"        style="font-size:0.64rem;padding:4px 14px" onclick="switchPdTab('notes')">Notes</button>
   </div>
-  <div id="pdNotesPreview" style="font-size:0.78rem;color:var(--muted-lt);line-height:1.6;padding:8px 10px;background:var(--blush-dim);border-radius:8px;min-height:24px;margin-bottom:14px"></div>
-  <div style="font-size:0.6rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px" data-i18n="tasks_label">Tasks</div>
-  <div id="pdTasks" style="margin-bottom:10px"></div>
-  <div style="display:flex;gap:6px;margin-bottom:16px">
-    <input class="add-inp" id="pdNewTask" placeholder="New task…" style="flex:1" onkeydown="if(event.key==='Enter')addProjectTask()">
-    <button class="btn btn-g" style="font-size:0.68rem" onclick="addProjectTask()">+ Add</button>
+
+  <!-- Tasks pane -->
+  <div id="pdPaneTasks">
+    <div id="pdTasks" style="margin-bottom:12px"></div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">
+      <input class="add-inp" id="pdNewTask"      placeholder="Task name…"       style="flex:2;min-width:140px" onkeydown="if(event.key==='Enter')addProjectTask()">
+      <input class="add-inp" id="pdNewTaskDate"  type="date"                     style="flex:1;min-width:110px">
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:16px">
+      <input class="add-inp" id="pdNewTaskNotes" placeholder="Task notes (optional)…" style="flex:1">
+      <button class="btn btn-g" style="font-size:0.68rem;flex-shrink:0" onclick="addProjectTask()">+ Add</button>
+    </div>
   </div>
-  <div style="font-size:0.6rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px" data-i18n="linked_goals">Linked Goals</div>
-  <div id="pdLinkedGoals" style="margin-bottom:14px"></div>
+
+  <!-- Notes pane -->
+  <div id="pdPaneNotes" style="display:none">
+    <div id="pdNotesList" style="max-height:52vh;overflow-y:auto"></div>
+  </div>
+
   <div class="modal-acts"><button class="btn btn-p" onclick="closeModal('mProjectDetail')" data-i18n="done_btn">Done</button></div>
 </div></div>
 
@@ -1171,96 +1160,131 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   <div class="modal-acts"><button class="btn btn-p" onclick="closeModal('mTrainingFull')" data-i18n="close">Close</button></div>
 </div></div>
 
-<div class="modal-bg" id="mStreaks"><div class="modal">
-  <h2 data-i18n="streaks">Edit Streaks</h2>
-  <div style="font-size:0.65rem;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px">BUILT-IN</div>
-  <div class="mf"><label><input type="checkbox" id="st-prayer" onchange="toggleStreakOption('prayer',this.checked)"> <span data-i18n="prayer">Prayer</span></label></div>
-  <div class="mf"><label><input type="checkbox" id="st-cardio" onchange="toggleStreakOption('cardio',this.checked)"> <span data-i18n="cardio">Cardio</span></label></div>
-  <div class="mf"><label><input type="checkbox" id="st-gym" onchange="toggleStreakOption('gym',this.checked)"> <span data-i18n="gym">Gym</span></label></div>
-  <div class="mf"><label><input type="checkbox" id="st-read" onchange="toggleStreakOption('read',this.checked)"> <span data-i18n="reading_streak">Reading</span></label></div>
-  <div class="mf"><label><input type="checkbox" id="st-study" onchange="toggleStreakOption('study',this.checked)"> Study</label></div>
-  <div style="font-size:0.65rem;letter-spacing:0.1em;color:var(--muted);margin:14px 0 6px">CUSTOM</div>
-  <div id="customStreakList"></div>
-  <div style="display:flex;gap:6px;align-items:center;margin-top:10px">
-    <input id="newStreakEmoji" class="add-inp" style="width:48px;text-align:center" placeholder="🔥" maxlength="2">
-    <input id="newStreakName" class="add-inp" style="flex:1" placeholder="e.g. No Sugar, Cold Shower">
-    <button class="btn btn-g" style="font-size:0.7rem" onclick="addCustomStreak()">+ Add</button>
-  </div>
-  <div class="modal-acts"><button class="btn btn-p" onclick="closeModal('mStreaks')" data-i18n="close">Done</button></div>
+<!-- Habit History Modal -->
+<div class="modal-bg" id="mHabitHistory" onclick="if(event.target===this)closeModal('mHabitHistory')"><div class="modal" style="max-width:400px">
+  <h2 id="habitHistTitle" style="margin-bottom:16px">Habit History</h2>
+  <div id="habitHistGrid"></div>
+  <div class="modal-acts"><button class="btn btn-p" onclick="closeModal('mHabitHistory')" data-i18n="close">Done</button></div>
 </div></div>
   
 <!-- Settings Modal -->
 <div class="modal-bg" id="mSettings" onclick="if(event.target===this)closeModal('mSettings')">
-  <div class="modal" style="max-width:420px">
+  <div class="modal" style="max-width:440px">
     <h2 data-i18n="settings">Settings</h2>
 
-    <div class="settings-section">
-      <div class="settings-kicker" data-i18n="profile">Profile</div>
-      <div class="mf" style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
-        <div id="stAvatarPreview" style="width:54px;height:54px;border-radius:50%;background:var(--rose);display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:var(--cream);overflow:hidden;flex-shrink:0;cursor:pointer" onclick="eid('stAvatarInput').click()"></div>
-        <div>
-          <button class="btn btn-g" style="font-size:0.72rem;padding:5px 14px" onclick="eid('stAvatarInput').click()" data-i18n="change_photo">Change photo</button>
-          <input id="stAvatarInput" type="file" accept="image/*" style="display:none" onchange="uploadAvatarFromSettings(this)">
-          <div id="stAvatarStatus" style="font-size:0.68rem;color:var(--muted-lt);margin-top:4px"></div>
+    <!-- Settings sub-tabs -->
+    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+      <button class="fpill active" id="stab-profile"  onclick="switchSettingsTab('profile')">Profile</button>
+      <button class="fpill"        id="stab-summary"  onclick="switchSettingsTab('summary')">Summary</button>
+      <button class="fpill"        id="stab-today"    onclick="switchSettingsTab('today')">Today</button>
+      <button class="fpill"        id="stab-fitness"  onclick="switchSettingsTab('fitness')">Fitness</button>
+      <button class="fpill"        id="stab-projects" onclick="switchSettingsTab('projects')">Projects</button>
+      <button class="fpill"        id="stab-media"    onclick="switchSettingsTab('media')">Media</button>
+    </div>
+
+    <!-- Profile tab -->
+    <div id="stPane-profile">
+      <div class="settings-section">
+        <div class="settings-kicker" data-i18n="profile">Profile</div>
+        <div class="mf" style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+          <div id="stAvatarPreview" style="width:54px;height:54px;border-radius:50%;background:var(--rose);display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:var(--cream);overflow:hidden;flex-shrink:0;cursor:pointer" onclick="eid('stAvatarInput').click()"></div>
+          <div>
+            <button class="btn btn-g" style="font-size:0.72rem;padding:5px 14px" onclick="eid('stAvatarInput').click()" data-i18n="change_photo">Change photo</button>
+            <input id="stAvatarInput" type="file" accept="image/*" style="display:none" onchange="uploadAvatarFromSettings(this)">
+            <div id="stAvatarStatus" style="font-size:0.68rem;color:var(--muted-lt);margin-top:4px"></div>
+          </div>
+        </div>
+        <div class="mf"><label data-i18n="display_name">Display Name</label><input class="auth-inp" id="stDisplayName" type="text" placeholder="Your name"></div>
+        <div class="mf"><label data-i18n="username_lbl">Username</label><input class="auth-inp" id="stUsername" type="text" placeholder="@handle"></div>
+        <div class="mf"><label data-i18n="country">Country</label><input class="auth-inp" id="stCountry" type="text" list="countryList" placeholder="e.g. Kuwait"></div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-kicker" data-i18n="appearance">Appearance</div>
+        <div class="mf">
+          <label data-i18n="theme">Accent</label>
+          <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;align-items:center">
+            <button class="theme-opt active" data-theme="rose"     style="background:linear-gradient(135deg,#8b3252,#c0607a)" onclick="applyTheme('rose')"     title="Rose"></button>
+            <button class="theme-opt"        data-theme="ocean"    style="background:linear-gradient(135deg,#2d6a8a,#5a9fbf)" onclick="applyTheme('ocean')"    title="Ocean"></button>
+            <button class="theme-opt"        data-theme="forest"   style="background:linear-gradient(135deg,#3a7a4a,#6aaa7a)" onclick="applyTheme('forest')"   title="Forest"></button>
+            <button class="theme-opt"        data-theme="midnight" style="background:linear-gradient(135deg,#5a5a7a,#9090b0)" onclick="applyTheme('midnight')" title="Midnight"></button>
+            <button class="theme-opt"        data-theme="ember"    style="background:linear-gradient(135deg,#8b5220,#c08040)" onclick="applyTheme('ember')"    title="Ember"></button>
+          </div>
+        </div>
+        <div class="mf">
+          <label data-i18n="font">Font</label>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <button class="font-opt active" data-font="elegant" onclick="applyFont('elegant')">Elegant</button>
+            <button class="font-opt"        data-font="clean"   onclick="applyFont('clean')">Clean</button>
+            <button class="font-opt"        data-font="sharp"   onclick="applyFont('sharp')">Sharp</button>
+          </div>
+        </div>
+        <div class="mf">
+          <label data-i18n="app_theme">Background</label>
+          <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;align-items:center">
+            <button class="box-theme-opt active" data-box-theme="obsidian" style="background:linear-gradient(135deg,#0d0408,#240e14)" onclick="applyBoxTheme('obsidian')" title="Obsidian"></button>
+            <button class="box-theme-opt"        data-box-theme="slate"    style="background:linear-gradient(135deg,#060c18,#0f1e35)" onclick="applyBoxTheme('slate')"    title="Slate"></button>
+            <button class="box-theme-opt"        data-box-theme="coffee"   style="background:linear-gradient(135deg,#0e0803,#261508)" onclick="applyBoxTheme('coffee')"   title="Coffee"></button>
+            <button class="box-theme-opt"        data-box-theme="forest"   style="background:linear-gradient(135deg,#050d07,#0e2014)" onclick="applyBoxTheme('forest')"   title="Forest"></button>
+            <button class="box-theme-opt"        data-box-theme="void"     style="background:linear-gradient(135deg,#070707,#141414)" onclick="applyBoxTheme('void')"     title="Void"></button>
+          </div>
         </div>
       </div>
-      <div class="mf">
-        <label data-i18n="display_name">Display Name</label>
-        <input class="auth-inp" id="stDisplayName" type="text" placeholder="Your name">
-      </div>
-      <div class="mf">
-        <label data-i18n="username_lbl">Username</label>
-        <input class="auth-inp" id="stUsername" type="text" placeholder="@handle">
-      </div>
-      <div class="mf">
-        <label data-i18n="country">Country</label>
-        <input class="auth-inp" id="stCountry" type="text" list="countryList" placeholder="e.g. Kuwait">
+      <div class="settings-section">
+        <div class="settings-kicker" data-i18n="language">Language</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:0.78rem;color:var(--muted-lt)">EN</span>
+          <button id="stLangToggle" class="btn btn-g" style="font-size:0.72rem;padding:5px 14px" onclick="setLang(currentLang==='en'?'ar':'en');eid('stLangToggle').textContent=currentLang==='en'?'AR':'EN'">AR</button>
+          <span style="font-size:0.78rem;color:var(--muted-lt)">AR</span>
+        </div>
       </div>
     </div>
 
-    <div class="settings-section">
-      <div class="settings-kicker" data-i18n="appearance">Appearance</div>
-      <div class="mf">
-        <label data-i18n="theme">Theme</label>
-        <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;align-items:center">
-          <button class="theme-opt active" data-theme="rose"     style="background:linear-gradient(135deg,#8b3252,#c0607a)" onclick="applyTheme('rose')"     title="Rose"></button>
-          <button class="theme-opt"        data-theme="ocean"    style="background:linear-gradient(135deg,#2d6a8a,#5a9fbf)" onclick="applyTheme('ocean')"    title="Ocean"></button>
-          <button class="theme-opt"        data-theme="forest"   style="background:linear-gradient(135deg,#3a7a4a,#6aaa7a)" onclick="applyTheme('forest')"   title="Forest"></button>
-          <button class="theme-opt"        data-theme="midnight" style="background:linear-gradient(135deg,#5a5a7a,#9090b0)" onclick="applyTheme('midnight')" title="Midnight"></button>
-          <button class="theme-opt"        data-theme="ember"    style="background:linear-gradient(135deg,#8b5220,#c08040)" onclick="applyTheme('ember')"    title="Ember"></button>
-        </div>
+    <!-- Summary tab -->
+    <div id="stPane-summary" style="display:none">
+      <div class="settings-section">
+        <div class="settings-kicker">Summary</div>
+        <div class="mf"><label><input type="checkbox" id="st-weekly-reflection" onchange="toggleWeeklyReflection(this.checked)"> <span>Weekly Reflection</span></label></div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:4px;line-height:1.5">Show the weekly reflection prompt in your Summary page.</div>
       </div>
-      <div class="mf">
-        <label data-i18n="font">Font</label>
-        <div style="display:flex;gap:6px;margin-top:6px">
-          <button class="font-opt active" data-font="elegant" onclick="applyFont('elegant')">Elegant</button>
-          <button class="font-opt"        data-font="clean"   onclick="applyFont('clean')">Clean</button>
-          <button class="font-opt"        data-font="sharp"   onclick="applyFont('sharp')">Sharp</button>
-        </div>
+    </div>
+
+    <!-- Today tab -->
+    <div id="stPane-today" style="display:none">
+      <div class="settings-section">
+        <div class="settings-kicker">Today</div>
+        <div class="mf"><label><input type="checkbox" id="st-reflection" onchange="toggleReflection(this.checked)"> <span data-i18n="show_reflection">Daily Reflection</span></label></div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:4px;line-height:1.5">Show the daily reflection card on your Today page.</div>
       </div>
-      <div class="mf">
-        <label data-i18n="app_theme">Background</label>
-        <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;align-items:center">
-          <button class="box-theme-opt active" data-box-theme="obsidian" style="background:linear-gradient(135deg,#0d0408,#240e14)" onclick="applyBoxTheme('obsidian')" title="Obsidian"></button>
-          <button class="box-theme-opt"        data-box-theme="slate"    style="background:linear-gradient(135deg,#060c18,#0f1e35)" onclick="applyBoxTheme('slate')"    title="Slate"></button>
-          <button class="box-theme-opt"        data-box-theme="coffee"   style="background:linear-gradient(135deg,#0e0803,#261508)" onclick="applyBoxTheme('coffee')"   title="Coffee"></button>
-          <button class="box-theme-opt"        data-box-theme="forest"   style="background:linear-gradient(135deg,#050d07,#0e2014)" onclick="applyBoxTheme('forest')"   title="Forest"></button>
-          <button class="box-theme-opt"        data-box-theme="void"     style="background:linear-gradient(135deg,#070707,#141414)" onclick="applyBoxTheme('void')"     title="Void"></button>
+    </div>
+
+    <!-- Fitness tab -->
+    <div id="stPane-fitness" style="display:none">
+      <div class="settings-section">
+        <div class="settings-kicker">Fitness</div>
+        <div class="mf">
+          <label>Calorie Tracking Mode</label>
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <button id="calModeBtn-meal"  class="btn btn-g active" onclick="setCalorieMode('meal')"  style="font-size:0.7rem">Meal mode</button>
+            <button id="calModeBtn-daily" class="btn btn-g"        onclick="setCalorieMode('daily')" style="font-size:0.7rem">Daily total</button>
+          </div>
+          <div style="font-size:0.68rem;color:var(--muted);margin-top:6px;line-height:1.5">Meal mode logs individual meals. Daily total logs one number per day.</div>
         </div>
       </div>
     </div>
 
-    <div class="settings-section">
-      <div class="settings-kicker" data-i18n="profile">Profile</div>
-      <div class="mf"><label><input type="checkbox" id="st-reflection" onchange="toggleReflection(this.checked)"> <span data-i18n="show_reflection">Daily Reflection</span></label></div>
+    <!-- Projects tab -->
+    <div id="stPane-projects" style="display:none">
+      <div class="settings-section">
+        <div class="settings-kicker">Projects</div>
+        <div style="font-size:0.72rem;color:var(--muted);line-height:1.6">Project settings coming soon.</div>
+      </div>
     </div>
 
-    <div class="settings-section">
-      <div class="settings-kicker" data-i18n="language">Language</div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <span style="font-size:0.78rem;color:var(--muted-lt)">EN</span>
-        <button id="stLangToggle" class="btn btn-g" style="font-size:0.72rem;padding:5px 14px" onclick="setLang(currentLang==='en'?'ar':'en');eid('stLangToggle').textContent=currentLang==='en'?'AR':'EN'">AR</button>
-        <span style="font-size:0.78rem;color:var(--muted-lt)">AR</span>
+    <!-- Media tab -->
+    <div id="stPane-media" style="display:none">
+      <div class="settings-section">
+        <div class="settings-kicker">Media</div>
+        <div style="font-size:0.72rem;color:var(--muted);line-height:1.6">Media settings coming soon.</div>
       </div>
     </div>
 

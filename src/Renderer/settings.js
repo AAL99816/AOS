@@ -153,6 +153,13 @@ function openSettings() {
 
   const stRef = eid('st-reflection');
   if (stRef) stRef.checked = S.appPrefs?.showReflection !== false;
+  const swRef = eid('st-weekly-reflection');
+  if (swRef) swRef.checked = S.appPrefs?.showWeeklyReflection !== false;
+
+  _refreshCalModeBtns();
+
+  // Always open on Profile tab
+  switchSettingsTab('profile');
 
   eid('stLangToggle').textContent = currentLang === 'en' ? 'AR' : 'EN';
   openModal('mSettings');
@@ -189,6 +196,50 @@ function toggleReflection(on) {
 function applyReflectionVisibility() {
   const el = eid('reflectionCard');
   if (el) el.style.display = (S.appPrefs && S.appPrefs.showReflection !== false) ? '' : 'none';
+}
+
+/* ══ SETTINGS SUB-TABS ══ */
+const SETTINGS_TABS = ['profile','summary','today','fitness','projects','media'];
+
+function switchSettingsTab(tab) {
+  SETTINGS_TABS.forEach(t2 => {
+    const btn  = eid(`stab-${t2}`);
+    const pane = eid(`stPane-${t2}`);
+    if (btn)  btn.classList.toggle('active', t2 === tab);
+    if (pane) pane.style.display = t2 === tab ? '' : 'none';
+  });
+  // Refresh calorie mode buttons when switching to fitness tab
+  if (tab === 'fitness') _refreshCalModeBtns();
+  if (tab === 'today')   { const stRef = eid('st-reflection'); if (stRef) stRef.checked = S.appPrefs?.showReflection !== false; }
+  if (tab === 'summary') { const swRef = eid('st-weekly-reflection'); if (swRef) swRef.checked = S.appPrefs?.showWeeklyReflection !== false; }
+}
+
+function _refreshCalModeBtns() {
+  const mode = (S.appPrefs && S.appPrefs.calorieMode) || 'meal';
+  const meal  = eid('calModeBtn-meal');
+  const daily = eid('calModeBtn-daily');
+  if (meal)  meal.classList.toggle('active', mode === 'meal');
+  if (daily) daily.classList.toggle('active', mode === 'daily');
+}
+
+function setCalorieMode(mode) {
+  if (!S.appPrefs) S.appPrefs = {};
+  S.appPrefs.calorieMode = mode;
+  scheduleSave();
+  _refreshCalModeBtns();
+  if (typeof renderCalorieSection === 'function') renderCalorieSection();
+}
+
+function toggleWeeklyReflection(on) {
+  if (!S.appPrefs) S.appPrefs = {};
+  S.appPrefs.showWeeklyReflection = on;
+  scheduleSave();
+  applyWeeklyReflectionVisibility();
+}
+
+function applyWeeklyReflectionVisibility() {
+  const el = eid('weeklyReflectionCard');
+  if (el) el.style.display = (S.appPrefs && S.appPrefs.showWeeklyReflection !== false) ? '' : 'none';
 }
 
 /* Called on app boot to restore saved theme/font */

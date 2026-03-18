@@ -174,23 +174,17 @@ function renderWorkoutCards() {
                   onchange="updateEx(${wc.id},${ex.id},'name',this.value)"
                   title="Edit exercise"
                 >
-                <input
-                  class="editable ex-sets-inp"
-                  value="${escapeHtml(ex.sets || '')}"
-                  onchange="updateEx(${wc.id},${ex.id},'sets',this.value)"
-                  title="Edit sets/reps"
-                >
                 <button class="ex-del" onclick="delEx(${wc.id},${ex.id})">✕</button>
               </div>
 
               <div style="display:flex;align-items:center;gap:6px;margin-top:7px;padding-left:14px;">
                 <input class="add-inp" id="logW-${ex.id}" type="number" step="0.5" placeholder="${t('weight_ph')}" style="width:68px;flex:none;" value="${last?.weight ?? ''}">
                 <input class="add-inp" id="logR-${ex.id}" type="number" placeholder="${t('reps_ph')}" style="width:68px;flex:none;" value="${last?.reps ?? ''}">
-                <input class="add-inp" id="logSets-${ex.id}" type="number" min="1" placeholder="sets" style="width:58px;flex:none;padding-right:14px;" value="1" title="Number of sets">
+                <input class="add-inp" id="logSets-${ex.id}" type="number" min="1" placeholder="sets" style="width:58px;flex:none;padding-right:14px;" value="${last?.sets ?? 1}" title="Number of sets">
                 <button class="btn btn-g" style="font-size:0.66rem;padding:4px 9px" onclick="logExercise(${wc.id},${ex.id})">${t('log')}</button>
               </div>
 
-              <div style="margin-top:6px;padding-left:14px;font-size:0.64rem;color:var(--muted-lt);font-family:'DM Mono',monospace;">
+              <div id="lastLog-${ex.id}" style="margin-top:6px;padding-left:14px;font-size:0.64rem;color:var(--muted-lt);font-family:'DM Mono',monospace;">
                 ${
                   last
                     ? `${t('last_colon')} ${last.sets > 1 ? last.sets + ' × ' : ''}${last.weight}kg × ${last.reps}${pct !== null ? ` <span style="color:var(--gold-lt)">${fmtPct(pct)}</span>` : ''}`
@@ -204,7 +198,6 @@ function renderWorkoutCards() {
 
       <div class="add-ex-row" style="margin-top:9px">
         <input class="add-inp" id="exN-${wc.id}" placeholder="${t('exercise_ph')}" style="flex:1">
-        <input class="add-inp" id="exS-${wc.id}" placeholder="${t('sets_ph')}" style="width:56px;flex:none">
         <button class="btn btn-g" style="font-size:0.68rem;padding:4px 9px" onclick="addEx(${wc.id})">+ ${t('add')}</button>
       </div>
 
@@ -240,36 +233,54 @@ function renderTrainingLog(){
 
   const grouped = {};
   hist.forEach(item => {
+    const year  = (item.date||'').slice(0,4);
     const month = (item.date||'').slice(0,7);
-    if(!grouped[month]) grouped[month]=[];
-    grouped[month].push(item);
+    const key   = year + '|' + month;
+    if(!grouped[key]) grouped[key]=[];
+    grouped[key].push(item);
   });
 
   const wrap = document.createElement('div');
   wrap.className = 'card';
 
-  Object.keys(grouped).sort().reverse().forEach(month => {
-    const d = new Date(month+'-02');
-    const lbl = document.createElement('div');
-    lbl.style.cssText = 'font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--blush);font-family:"DM Mono",monospace;padding:10px 0 6px;border-bottom:1px solid var(--border);margin-bottom:4px;';
-    lbl.textContent = d.toLocaleDateString('en-US',{month:'long',year:'numeric'});
-    wrap.appendChild(lbl);
-
-    grouped[month].forEach(item => {
-      const row = document.createElement('div');
-      row.className = 'ex-item';
-      row.style.cssText = 'display:flex;align-items:baseline;justify-content:space-between;gap:12px;';
-      row.innerHTML = `
-        <div style="display:flex;align-items:baseline;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="openSessionDetail(${item.id})">
-          <div style="font-size:0.62rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${escapeHtml(item.date||'')}</div>
-          <div style="font-size:0.8rem;color:var(--mist);flex-shrink:0">${escapeHtml(item.title||'Workout')}</div>
-          <div style="font-size:0.68rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(item.summary||'')}</div>
-        </div>
-        <button class="habit-del" style="opacity:0.4" onclick="deleteWorkoutSession(${item.id})">✕</button>
-      `;
-      wrap.appendChild(row);
-    });
+  // Group by year first
+  const years = {};
+  Object.keys(grouped).sort().reverse().forEach(key => {
+    const [year] = key.split('|');
+    if (!years[year]) years[year] = [];
+    years[year].push(key);
   });
+
+  Object.keys(years).sort().reverse().forEach(year => {
+    const yearLbl = document.createElement('div');
+    yearLbl.style.cssText = 'font-size:0.65rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:"DM Mono",monospace;padding:12px 0 4px;';
+    yearLbl.textContent = year;
+    wrap.appendChild(yearLbl);
+
+    years[year].forEach(key => {
+      const month = key.split('|')[1];
+      const d = new Date(month + '-02');
+      const lbl = document.createElement('div');
+      lbl.style.cssText = 'font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--blush);font-family:"DM Mono",monospace;padding:6px 0 4px;border-bottom:1px solid var(--border);margin-bottom:4px;padding-left:8px;';
+      lbl.textContent = d.toLocaleDateString('en-US', {month:'long'});
+      wrap.appendChild(lbl);
+
+      grouped[key].forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'ex-item';
+        row.style.cssText = 'display:flex;align-items:baseline;justify-content:space-between;gap:12px;';
+        row.innerHTML = `
+          <div style="display:flex;align-items:baseline;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="openSessionDetail(${item.id})">
+            <div style="font-size:0.62rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${escapeHtml(item.date||'')}</div>
+            <div style="font-size:0.8rem;color:var(--mist);flex-shrink:0">${escapeHtml(item.title||'Workout')}</div>
+            <div style="font-size:0.68rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(item.summary||'')}</div>
+          </div>
+          <button class="habit-del" style="opacity:0.4" onclick="deleteWorkoutSession(${item.id})">✕</button>
+        `;
+        wrap.appendChild(row);
+      }); // grouped[key]
+    }); // years[year]
+  }); // years
 
   c.appendChild(wrap);
 }
@@ -352,19 +363,13 @@ function addEx(wcId) {
   const name = eid(`exN-${wcId}`).value.trim();
   if (!name) return;
 
-  const sets = eid(`exS-${wcId}`).value.trim() || '3×10';
   const wc = S.workoutCards.find(w => w.id === wcId);
   if (!wc) return;
 
   if (!Array.isArray(wc.exercises)) wc.exercises = [];
-  wc.exercises.push({
-    id: Date.now(),
-    name,
-    sets
-  });
+  wc.exercises.push({ id: Date.now(), name });
 
   eid(`exN-${wcId}`).value = '';
-  eid(`exS-${wcId}`).value = '';
 
   scheduleSave();
   renderWorkoutCards();
@@ -400,18 +405,21 @@ function logExercise(wcId, exId) {
   const hist = getExerciseHistory(ex.name);
   hist.push(entry);
 
-  eid(`logW-${exId}`).value = weight;
-  eid(`logR-${exId}`).value = reps || '';
-  if (setsEl) setsEl.value = '1';
+  // Keep current input values — do NOT reset so other exercise inputs are preserved
+  if (setsEl) setsEl.value = setsCount;
+
+  // Update only the last-log display for this exercise (no full re-render)
+  const lastLogDiv = eid(`lastLog-${exId}`);
+  if (lastLogDiv) {
+    const prev = hist.length >= 2 ? hist[hist.length - 2] : null;
+    const pct = prev ? calcPctIncrease(prev.weight, entry.weight) : null;
+    lastLogDiv.innerHTML = `${t('last_colon')} ${setsCount > 1 ? setsCount + ' × ' : ''}${weight}kg × ${reps || 0}${pct !== null ? ` <span style="color:var(--gold-lt)">${fmtPct(pct)}</span>` : ''}`;
+    const pctVal = hist.length >= 2 ? calcPctIncrease(hist[hist.length - 2].weight, weight) : null;
+    if (pctVal !== null && pctVal > 0) toast(`${ex.name}: ${fmtPct(pctVal)} ${t('from_last_log')}`);
+    else toast(`${ex.name} ${t('exercise_logged')}`);
+  }
 
   scheduleSave();
-  renderWorkoutCards();
-
-  const prev = hist.length >= 2 ? hist[hist.length - 2] : null;
-  const pct = prev ? calcPctIncrease(prev.weight, entry.weight) : null;
-
-  if (pct !== null && pct > 0) toast(`${ex.name}: ${fmtPct(pct)} ${t('from_last_log')}`);
-  else toast(`${ex.name} ${t('exercise_logged')}`);
 }
 
 function logWorkoutSession(wcId) {
@@ -471,30 +479,50 @@ function renderCardioHistory() {
     c.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted);font-size:0.7rem;font-family:'DM Mono',monospace">${t('no_cardio_sessions')}</div>`;
     return;
   }
-  c.innerHTML = hist.slice(0, 20).map(s => `
-    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--blush-dim)">
-      <div style="display:flex;gap:10px;align-items:baseline;flex:1">
-        <span style="font-size:0.6rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${escapeHtml(s.date||'')}</span>
-        <span style="font-size:0.8rem;color:var(--mist)">${escapeHtml(s.activity||'Cardio')}</span>
-        ${s.duration ? `<span style="font-size:0.68rem;color:var(--muted)">${escapeHtml(s.duration)}</span>` : ''}
-      </div>
-      <button class="habit-del" style="opacity:0.4" onclick="deleteCardioSession(${s.id})">✕</button>
-    </div>
-  `).join('');
+
+  // Group by year-month
+  const grouped = {};
+  hist.forEach(s => {
+    const key = (s.date || '').slice(0, 7);
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(s);
+  });
+
+  c.innerHTML = Object.keys(grouped).sort().reverse().map(month => {
+    const d = new Date(month + '-02');
+    const label = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const rows = grouped[month].map(s => {
+      const meta = [s.duration, s.distance, s.steps ? s.steps.toLocaleString() + ' steps' : ''].filter(Boolean).join(' · ');
+      return `<div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;gap:8px;align-items:baseline;flex:1;min-width:0">
+          <span style="font-size:0.58rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${escapeHtml(s.date||'')}</span>
+          <span style="font-size:0.78rem;color:var(--mist)">${escapeHtml(s.activity||'Cardio')}</span>
+          ${meta ? `<span style="font-size:0.64rem;color:var(--muted)">${escapeHtml(meta)}</span>` : ''}
+        </div>
+        <button class="habit-del" style="opacity:0.4" onclick="deleteCardioSession(${s.id})">✕</button>
+      </div>`;
+    }).join('');
+    return `<div style="font-size:0.55rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--blush);font-family:'DM Mono',monospace;padding:8px 0 4px;border-bottom:1px solid var(--border);margin-bottom:2px">${label}</div>${rows}`;
+  }).join('');
 }
 
 function logCardioSession() {
   ensureFitnessState();
   const activity = (eid('cardioActivity').value || '').trim();
   const duration = (eid('cardioDuration').value || '').trim();
+  const distance = (eid('cardioDistance').value || '').trim();
+  const stepsVal = eid('cardioSteps').value;
+  const steps    = stepsVal ? parseInt(stepsVal, 10) : null;
   const dateVal  = eid('cardioDate').value || today();
   if (!activity) return;
   if (!S.cardioHistory) S.cardioHistory = [];
-  S.cardioHistory.push(makeCardioSession({ activity, duration, date: dateVal }));
+  S.cardioHistory.push(makeCardioSession({ activity, duration, distance, steps, date: dateVal }));
   scheduleSave();
-  eid('cardioActivity').value = '';
-  eid('cardioDuration').value = '';
-  eid('cardioDate').value = today();
+  eid('cardioActivity').value  = '';
+  eid('cardioDuration').value  = '';
+  eid('cardioDistance').value  = '';
+  eid('cardioSteps').value     = '';
+  eid('cardioDate').value      = today();
   renderCardioHistory();
   if (typeof renderHabits === 'function') renderHabits();
   toast(t('cardio_logged'));
