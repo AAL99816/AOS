@@ -7,7 +7,7 @@ async function uploadAsset(path, file) {
   const { error } = await sb.storage.from('aos').upload(fullPath, file, { upsert: true });
   if (error) throw error;
   const { data } = sb.storage.from('aos').getPublicUrl(fullPath);
-  return data.publicUrl;
+  return `${data.publicUrl}?v=${Date.now()}`;
 }
 
 function setSyncStatus(status) {
