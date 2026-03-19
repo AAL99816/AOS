@@ -21,11 +21,12 @@ function mediaStatusLabel(status, mediaType) {
   if (mediaType === 'film')  return { unread: t('queued'), reading: '—', done: t('watched') }[status] || t('queued');
   if (mediaType === 'book')  return { unread: t('to_read'), reading: t('reading'), done: t('finished') }[status] || t('to_read');
   if (mediaType === 'album') return { unread: t('not_started'), reading: t('listening'), done: t('finished') }[status] || t('not_started');
+  if (mediaType === 'game')  return { unread: t('backlog'), reading: t('playing_status'), done: t('completed_status') }[status] || t('backlog');
   return { unread: t('queued'), reading: t('watching'), done: t('finished') }[status] || t('queued');
 }
 
 function mediaCreatorLabel(mt) {
-  return mt === 'film' ? t('director') : mt === 'album' ? t('artist') : mt === 'book' ? t('author') : t('creator');
+  return mt === 'film' ? t('director') : mt === 'album' ? t('artist') : mt === 'book' ? t('author') : mt === 'game' ? t('developer') : t('creator');
 }
 
 function mediaUnitLabel(mt) {
@@ -84,6 +85,7 @@ function renderMediaSection(type) {
   if (type === 'film')  list.forEach((b, i) => c.appendChild(buildFilmCard(b, i)));
   if (type === 'show' || type === 'anime') list.forEach((b, i) => c.appendChild(buildShowCard(b, i)));
   if (type === 'album') list.forEach((b, i) => c.appendChild(buildAlbumCard(b, i)));
+  if (type === 'game')  list.forEach((b, i) => c.appendChild(buildGameCard(b, i)));
 }
 
 function updateStatusFilterLabels(type) {
@@ -244,6 +246,41 @@ function buildAlbumCard(b, idx) {
   return div;
 }
 
+/* ══ GAME CARD ══ */
+function buildGameCard(b, idx) {
+  const div = document.createElement('div');
+  div.className = 'book-card media-game-card';
+  div.onclick = () => openBookDetails(b.id);
+
+  const pal = PALS[idx % PALS.length];
+  const slbl = mediaStatusLabel(b.status, 'game');
+  const stars = renderStars(b.rating);
+
+  div.innerHTML = `
+    <div class="book-cover" style="background:${pal}; height:130px">
+      ${b.coverUrl
+        ? `<img src="${escapeAttr(b.coverUrl)}" alt="">`
+        : `<div class="book-cover-ph"><div class="ph-icon">◈</div><div>${escapeHtml(b.title)}</div></div>`}
+      <div class="book-cover-overlay" onclick="event.stopPropagation()">
+        <span>${t('add_cover')}</span>
+        <input type="file" accept="image/*" onchange="event.stopPropagation();uploadCover(${b.id},this)">
+      </div>
+      ${b.platform ? `<div style="position:absolute;top:7px;left:7px;background:var(--ink-glass);border-radius:5px;padding:2px 7px;font-size:0.56rem;font-family:'DM Mono',monospace;color:var(--petal)">${escapeHtml(b.platform)}</div>` : ''}
+    </div>
+    <div class="book-info">
+      <input class="editable book-title-inp" value="${escapeAttr(b.title)}" onchange="event.stopPropagation();updateBF(${b.id},'title',this.value)">
+      <input class="editable book-author-inp" value="${escapeAttr(b.author)}" onchange="event.stopPropagation();updateBF(${b.id},'author',this.value)" placeholder="${t('developer')}">
+      ${b.hoursPlayed > 0 ? `<div style="font-size:0.58rem;color:var(--gold-lt);margin-top:4px;font-family:'DM Mono',monospace">${b.hoursPlayed}h ${t('hours_played').toLowerCase()}</div>` : ''}
+      <div class="book-row" style="margin-top:6px">
+        <span class="bstatus bs-${b.status}" onclick="event.stopPropagation();cycleBook(${b.id})">${slbl}</span>
+        ${stars ? `<span class="b-stars">${stars}</span>` : ''}
+      </div>
+    </div>
+    <button class="book-del" onclick="event.stopPropagation();delBook(${b.id})">✕</button>
+  `;
+  return div;
+}
+
 /* ══ TYPE / STATUS FILTERS ══ */
 function setMediaTypeF(f, btn) {
   mediaTypeF = f;
@@ -372,7 +409,7 @@ function saveBook() {
   eid('bkT').value=''; eid('bkA').value=''; eid('bkN').value=''; eid('bkR').value='';
   scheduleSave();
   // Switch to the type tab of what was just added
-  mediaTypeF = type === 'other' ? 'book' : type;
+  mediaTypeF = (type === 'other') ? 'book' : type;
   document.querySelectorAll('.book-type-filters .fpill').forEach(b => b.classList.toggle('active', b.dataset.type === mediaTypeF));
   renderBooks();
   closeModal('mBook');
@@ -410,11 +447,13 @@ function renderBookDetails() {
   const isShow = b.mediaType === 'show' || b.mediaType === 'anime';
   const isFilm = b.mediaType === 'film';
   const isBook = b.mediaType === 'book';
+  const isGame = b.mediaType === 'game';
 
   eid('bdProgressBlock').style.display  = (isBook || isShow) ? '' : 'none';
   eid('bdFilmBlock').style.display      = isFilm ? '' : 'none';
   eid('bdChapterBlock').style.display   = isBook ? '' : 'none';
   eid('bdShowBlock').style.display      = isShow ? '' : 'none';
+  eid('bdGameBlock').style.display      = isGame ? '' : 'none';
 
   if (isBook) {
     eid('bdCurrentPage').value = b.currentPage;
@@ -446,6 +485,11 @@ function renderBookDetails() {
     eid('bdWatchCount').value = b.watchCount || 0;
   }
 
+  if (isGame) {
+    eid('bdGamePlatform').value    = b.platform    || '';
+    eid('bdGameHours').value       = b.hoursPlayed || '';
+  }
+
   const statusSel = eid('bdStatus');
   const opts = statusSel.options;
   const labels = isFilm
@@ -454,6 +498,8 @@ function renderBookDetails() {
     ? [t('to_read'), t('reading'), t('finished')]
     : b.mediaType === 'album'
     ? [t('not_started'), t('listening'), t('finished')]
+    : b.mediaType === 'game'
+    ? [t('backlog'), t('playing_status'), t('completed_status')]
     : [t('queued'), t('watching'), t('finished')];
   for (let i = 0; i < opts.length; i++) opts[i].text = labels[i];
 }
@@ -542,6 +588,14 @@ function updateFilmDetails() {
   b.runtime    = eid('bdRuntime').value.trim();
   b.watchCount = Math.max(0, parseInt(eid('bdWatchCount').value) || 0);
   scheduleSave(); renderBooks();
+}
+
+function updateGameDetails() {
+  const b = getActiveBook(); if (!b) return;
+  b.platform    = eid('bdGamePlatform').value.trim();
+  b.hoursPlayed = Math.max(0, parseFloat(eid('bdGameHours').value) || 0);
+  if (b.hoursPlayed > 0 && b.status === 'unread') b.status = 'reading';
+  scheduleSave(); renderBooks(); renderBookDetails();
 }
 
 function updateActiveBookNotes(value) {

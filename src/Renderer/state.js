@@ -118,6 +118,9 @@ function makeMedia(m={}){
     // Films
     runtime:    m.runtime    ?? '',
     watchCount: Number.isFinite(+m.watchCount) ? +m.watchCount : 0,
+    // Games
+    platform:    m.platform    ?? '',
+    hoursPlayed: Number.isFinite(+m.hoursPlayed) ? +m.hoursPlayed : 0,
     // Albums
     tracks: Array.isArray(m.tracks) ? m.tracks.map(tr => ({
       id:     tr.id     ?? Date.now() + Math.random(),

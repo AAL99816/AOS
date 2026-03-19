@@ -900,6 +900,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <button class="fpill"        data-type="show"  onclick="setMediaTypeF('show',this)"  data-i18n="show">Shows</button>
       <button class="fpill"        data-type="anime" onclick="setMediaTypeF('anime',this)" data-i18n="anime">Anime</button>
       <button class="fpill"        data-type="album" onclick="setMediaTypeF('album',this)" data-i18n="album">Albums</button>
+      <button class="fpill"        data-type="game"  onclick="setMediaTypeF('game',this)"  data-i18n="game">Games</button>
     </div>
 
     <!-- Status filters (labels update dynamically per type) -->
@@ -976,6 +977,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <option value="show"  data-i18n="show">Show</option>
       <option value="anime" data-i18n="anime">Anime</option>
       <option value="album" data-i18n="album">Album</option>
+      <option value="game"  data-i18n="game">Game</option>
     </select>
   </div>
   <div class="mf"><label data-i18n="title_lbl">Title</label><input id="bkT" placeholder="Title"></div>
@@ -1039,6 +1041,13 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <div class="book-detail-kicker" data-i18n="details_section">Details</div>
       <div class="mf"><label data-i18n="runtime">Runtime</label><input id="bdRuntime" placeholder="2h 15m" oninput="updateFilmDetails()"></div>
       <div class="mf"><label data-i18n="watch_count">Times Watched</label><input id="bdWatchCount" type="number" min="0" placeholder="0" oninput="updateFilmDetails()"></div>
+    </div>
+
+    <!-- Game block -->
+    <div class="book-detail-block" id="bdGameBlock" style="display:none">
+      <div class="book-detail-kicker" data-i18n="details_section">Details</div>
+      <div class="mf"><label data-i18n="platform_lbl">Platform</label><input id="bdGamePlatform" placeholder="PC, PS5, Switch…" oninput="updateGameDetails()"></div>
+      <div class="mf"><label data-i18n="hours_played">Hours Played</label><input id="bdGameHours" type="number" min="0" step="0.5" placeholder="0" oninput="updateGameDetails()"></div>
     </div>
   </div>
 
