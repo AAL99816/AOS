@@ -235,8 +235,8 @@ async function saveToSupabase() {
       data: S,
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' }),
-    saveUserSettings(),
-    saveProjects()
+    saveUserSettings().catch(e => console.error('[sync] saveUserSettings failed:', e)),
+    saveProjects().catch(e => console.error('[sync] saveProjects failed:', e))
   ]);
 
   if (error) {
