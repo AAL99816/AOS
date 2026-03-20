@@ -53,6 +53,132 @@ async function saveUserSettings() {
   }, { onConflict: 'user_id' });
 }
 
+/* ── projects / project_tasks / project_notes tables ── */
+async function loadProjects() {
+  if (!currentUser) return;
+  const { data, error } = await sb
+    .from('projects')
+    .select('*, project_tasks(*), project_notes(*)')
+    .eq('user_id', currentUser.id)
+    .not('app_id', 'is', null)
+    .order('order_index');
+  if (error || !data || !data.length) return;
+
+  S.projects = data.map(row => ({
+    id:       Number(row.app_id),
+    title:    row.title   || '',
+    type:     row.type    || '',
+    context:  row.context || '',
+    status:   row.status  || 'Active',
+    deadline: row.deadline || '',
+    notes:    row.notes   || '',
+    richNotes: '',
+    notesLog: (row.project_notes || [])
+      .filter(n => n.app_id)
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+      .map(n => ({ id: Number(n.app_id), date: n.note_date || '', text: n.text || '' })),
+    tasks: (row.project_tasks || [])
+      .filter(tk => tk.app_id)
+      .sort((a, b) => a.order_index - b.order_index)
+      .map(tk => ({
+        id:        Number(tk.app_id),
+        text:      tk.text       || '',
+        done:      !!tk.done,
+        dueDate:   tk.due_date   || '',
+        taskNotes: tk.task_notes || ''
+      }))
+  }));
+}
+
+async function saveProjects() {
+  if (!currentUser) return;
+  const projects = S.projects || [];
+
+  // First run: remove migration-only rows that have no app_id (they'll be replaced)
+  await sb.from('projects').delete().eq('user_id', currentUser.id).is('app_id', null);
+
+  // Fetch existing UUID→app_id map so we can detect deletions
+  const { data: existingRows } = await sb
+    .from('projects').select('id, app_id').eq('user_id', currentUser.id);
+  const existingMap = {};
+  for (const row of (existingRows || [])) existingMap[row.app_id] = row.id;
+
+  // Delete projects removed from S
+  const currentAppIds = new Set(projects.map(p => String(p.id)));
+  for (const appId of Object.keys(existingMap)) {
+    if (!currentAppIds.has(appId))
+      await sb.from('projects').delete().eq('id', existingMap[appId]);
+  }
+
+  // Upsert each project and its children
+  for (let i = 0; i < projects.length; i++) {
+    const p     = projects[i];
+    const appId = String(p.id);
+
+    const { data: projRow } = await sb.from('projects').upsert({
+      user_id:     currentUser.id,
+      app_id:      appId,
+      title:       p.title    || '',
+      type:        p.type     || '',
+      context:     p.context  || '',
+      status:      p.status   || 'Active',
+      deadline:    p.deadline || null,
+      notes:       p.notes    || '',
+      order_index: i
+    }, { onConflict: 'user_id,app_id' }).select('id').single();
+
+    const projectUuid = projRow?.id;
+    if (!projectUuid) continue;
+
+    // Tasks
+    const tasks = p.tasks || [];
+    if (tasks.length) {
+      await sb.from('project_tasks').upsert(
+        tasks.map((tk, j) => ({
+          app_id:      String(tk.id),
+          project_id:  projectUuid,
+          user_id:     currentUser.id,
+          text:        tk.text      || '',
+          done:        !!tk.done,
+          due_date:    tk.dueDate   || null,
+          task_notes:  tk.taskNotes || '',
+          order_index: j
+        })),
+        { onConflict: 'app_id' }
+      );
+    }
+    const taskIds = tasks.map(tk => `"${tk.id}"`).join(',');
+    if (taskIds) {
+      await sb.from('project_tasks').delete()
+        .eq('project_id', projectUuid).not('app_id', 'in', `(${taskIds})`);
+    } else {
+      await sb.from('project_tasks').delete().eq('project_id', projectUuid);
+    }
+
+    // Notes
+    const notes = p.notesLog || [];
+    if (notes.length) {
+      await sb.from('project_notes').upsert(
+        notes.map(n => ({
+          app_id:     String(n.id),
+          project_id: projectUuid,
+          user_id:    currentUser.id,
+          note_date:  n.date || today(),
+          text:       n.text || ''
+        })),
+        { onConflict: 'app_id' }
+      );
+    }
+    const noteIds = notes.map(n => `"${n.id}"`).join(',');
+    if (noteIds) {
+      await sb.from('project_notes').delete()
+        .eq('project_id', projectUuid).not('app_id', 'in', `(${noteIds})`);
+    } else {
+      await sb.from('project_notes').delete().eq('project_id', projectUuid);
+    }
+  }
+}
+
 function setSyncStatus(status) {
   const dot = eid('syncDot');
   dot.className = 'sync-dot ' + status;
@@ -109,7 +235,8 @@ async function saveToSupabase() {
       data: S,
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' }),
-    saveUserSettings()
+    saveUserSettings(),
+    saveProjects()
   ]);
 
   if (error) {
@@ -150,7 +277,7 @@ async function loadFromSupabase() {
   }
 
   S = normalizeAppState(data.data);
-  await loadUserSettings(); // overlay with relational data where it exists
+  await Promise.all([loadUserSettings(), loadProjects()]);
   setSyncStatus('synced');
   return true;
 }
