@@ -10,6 +10,49 @@ async function uploadAsset(path, file) {
   return `${data.publicUrl}?v=${Date.now()}`;
 }
 
+/* ── user_settings table ── */
+async function loadUserSettings() {
+  if (!currentUser) return;
+  const { data, error } = await sb
+    .from('user_settings')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .single();
+  if (error || !data) return;
+
+  if (data.app_title)              S.appTitle          = data.app_title;
+  if (data.app_sub  != null)       S.appSub            = data.app_sub;
+  if (data.hero_img != null)       S.heroImg           = data.hero_img;
+  if (data.quote_text)             S.quote             = { text: data.quote_text, author: data.quote_author || '' };
+  if (!S.appPrefs) S.appPrefs = {};
+  S.appPrefs.showReflection       = data.show_reflection        ?? true;
+  S.appPrefs.showWeeklyReflection = data.show_weekly_reflection ?? false;
+  S.appPrefs.calorieMode          = data.calorie_mode           ?? 'meal';
+  if (data.cardio_target != null)  S.cardioTarget      = data.cardio_target;
+  S.onboarded = data.onboarded ?? false;
+  if (data.box_theme) localStorage.setItem('aos_box_theme', data.box_theme);
+}
+
+async function saveUserSettings() {
+  if (!currentUser) return;
+  const boxTheme = localStorage.getItem('aos_box_theme') || 'obsidian';
+  await sb.from('user_settings').upsert({
+    user_id:                 currentUser.id,
+    app_title:               S.appTitle              || 'AOS',
+    app_sub:                 S.appSub                || '',
+    hero_img:                S.heroImg               || '',
+    quote_text:              S.quote?.text           || '',
+    quote_author:            S.quote?.author         || '',
+    show_reflection:         S.appPrefs?.showReflection         ?? true,
+    show_weekly_reflection:  S.appPrefs?.showWeeklyReflection   ?? false,
+    calorie_mode:            S.appPrefs?.calorieMode            ?? 'meal',
+    cardio_target:           S.cardioTarget          || '',
+    onboarded:               S.onboarded             ?? false,
+    box_theme:               boxTheme,
+    updated_at:              new Date().toISOString()
+  }, { onConflict: 'user_id' });
+}
+
 function setSyncStatus(status) {
   const dot = eid('syncDot');
   dot.className = 'sync-dot ' + status;
@@ -60,11 +103,14 @@ async function saveToSupabase() {
     await window.api.cacheSave(json);
   } catch (e) {}
 
-  const { error } = await sb.from('app_data').upsert({
-    user_id: currentUser.id,
-    data: S,
-    updated_at: new Date().toISOString()
-  }, { onConflict: 'user_id' });
+  const [{ error }] = await Promise.all([
+    sb.from('app_data').upsert({
+      user_id: currentUser.id,
+      data: S,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' }),
+    saveUserSettings()
+  ]);
 
   if (error) {
     setSyncStatus('offline');
@@ -104,6 +150,7 @@ async function loadFromSupabase() {
   }
 
   S = normalizeAppState(data.data);
+  await loadUserSettings(); // overlay with relational data where it exists
   setSyncStatus('synced');
   return true;
 }

@@ -123,6 +123,7 @@ async function saveSettings() {
   localStorage.setItem('aos_font',  font);
   localStorage.setItem('aos_box_theme', boxTheme);
 
+  saveUserSettings(); // persist box_theme + prefs to relational table
   renderHeroProfile();
   renderAll();
   toast(t('settings_saved'));
