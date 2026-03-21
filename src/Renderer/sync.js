@@ -513,14 +513,18 @@ async function loadFitness() {
 }
 
 async function saveFitness() {
-  if (!currentUser) return;
-  const _dbg = `fitness: ${S.workoutCards?.length||0} cards / ${S.workoutHistory?.length||0} sessions`;
-  if (typeof toast === 'function') toast(_dbg);
+  console.log('[saveFitness] called, user:', currentUser?.id?.slice(0,8), 'cards:', S.workoutCards?.length, 'sessions:', S.workoutHistory?.length);
+  if (!currentUser) { console.warn('[saveFitness] no user, returning'); return; }
 
   // ── Workout templates ──
   const cards = S.workoutCards || [];
-  await sb.from('workout_templates').delete().eq('user_id', currentUser.id).is('app_id', null);
-  const { data: existingTmpls } = await sb.from('workout_templates').select('id, app_id').eq('user_id', currentUser.id);
+  console.log('[saveFitness] starting DB ops, cards.length:', cards.length);
+  const { error: delTmplErr } = await sb.from('workout_templates').delete().eq('user_id', currentUser.id).is('app_id', null);
+  if (delTmplErr) console.error('[saveFitness] delete null templates error:', delTmplErr);
+  else console.log('[saveFitness] delete null templates OK');
+  const { data: existingTmpls, error: selTmplErr } = await sb.from('workout_templates').select('id, app_id').eq('user_id', currentUser.id);
+  if (selTmplErr) console.error('[saveFitness] select templates error:', selTmplErr);
+  else console.log('[saveFitness] existing templates:', existingTmpls?.length);
   const tmplMap = {};
   for (const r of (existingTmpls || [])) tmplMap[r.app_id] = r.id;
   const currentTmplIds = new Set(cards.map(c => String(c.id)));
@@ -692,6 +696,7 @@ async function saveToSupabase() {
   }
   // Run fitness save after main save — it has many sequential DB calls
   // and must not compete with other saves in the Promise.all
+  console.log('[sync] calling saveFitness...');
   saveFitness().catch(e => console.error('[sync] saveFitness failed:', e));
 }
 
