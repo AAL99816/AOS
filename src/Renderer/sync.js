@@ -514,8 +514,8 @@ async function loadFitness() {
 
 async function saveFitness() {
   if (!currentUser) return;
-
-  console.log('[saveFitness] cards:', S.workoutCards?.length, 'sessions:', S.workoutHistory?.length, 'cardio:', S.cardioHistory?.length, 'calories:', S.calorieHistory?.length);
+  const _dbg = `fitness: ${S.workoutCards?.length||0} cards / ${S.workoutHistory?.length||0} sessions`;
+  if (typeof toast === 'function') toast(_dbg);
 
   // ── Workout templates ──
   const cards = S.workoutCards || [];
@@ -534,7 +534,6 @@ async function saveFitness() {
       title: c.title || '', subtitle: c.subtitle || '', order_index: i
     }, { onConflict: 'user_id,app_id' }).select('id').single();
     const tmplUuid = tmplRow?.id;
-    console.log('[saveFitness] template upsert result:', tmplUuid, tmplRow);
     if (!tmplUuid) continue;
     const exs = c.exercises || [];
     if (exs.length) {
@@ -675,8 +674,7 @@ async function saveToSupabase() {
     saveProjects().catch(e => console.error('[sync] saveProjects failed:', e)),
     saveMedia().catch(e => console.error('[sync] saveMedia failed:', e)),
     saveHabits().catch(e => console.error('[sync] saveHabits failed:', e)),
-    savePrayer().catch(e => console.error('[sync] savePrayer failed:', e)),
-    saveFitness().catch(e => console.error('[sync] saveFitness failed:', e))
+    savePrayer().catch(e => console.error('[sync] savePrayer failed:', e))
   ]);
 
   if (error) {
@@ -692,6 +690,9 @@ async function saveToSupabase() {
       eid('saveInd').textContent = '';
     }, 2000);
   }
+  // Run fitness save after main save — it has many sequential DB calls
+  // and must not compete with other saves in the Promise.all
+  saveFitness().catch(e => console.error('[sync] saveFitness failed:', e));
 }
 
 async function loadFromSupabase() {
