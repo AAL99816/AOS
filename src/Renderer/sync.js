@@ -445,6 +445,173 @@ async function savePrayer() {
   }
 }
 
+/* ── fitness: workout templates, sessions, cardio, calories ── */
+async function loadFitness() {
+  if (!currentUser) return;
+
+  const [tmplRes, sessRes, cardioRes, calRes] = await Promise.all([
+    sb.from('workout_templates').select('*, workout_template_exercises(*)').eq('user_id', currentUser.id).not('app_id', 'is', null).order('order_index'),
+    sb.from('workout_sessions').select('*, workout_exercises(*)').eq('user_id', currentUser.id).not('app_id', 'is', null).order('session_date'),
+    sb.from('cardio_sessions').select('*').eq('user_id', currentUser.id).not('app_id', 'is', null).order('session_date'),
+    sb.from('calorie_entries').select('*').eq('user_id', currentUser.id).not('app_id', 'is', null).order('entry_date')
+  ]);
+
+  if (!tmplRes.error && tmplRes.data?.length) {
+    S.workoutCards = tmplRes.data.map(row => ({
+      id:       Number(row.app_id),
+      title:    row.title    || '',
+      subtitle: row.subtitle || '',
+      exercises: (row.workout_template_exercises || [])
+        .filter(e => e.app_id)
+        .sort((a, b) => a.order_index - b.order_index)
+        .map(e => ({ id: Number(e.app_id), name: e.name || '' }))
+    }));
+  }
+
+  if (!sessRes.error && sessRes.data?.length) {
+    S.workoutHistory = sessRes.data.map(row => ({
+      id:      Number(row.app_id),
+      date:    row.session_date || '',
+      title:   row.title        || 'Workout',
+      cardId:  row.template_id  ? (S.workoutCards || []).find(c => c._uuid === row.template_id)?.id ?? null : null,
+      summary: row.summary      || '',
+      exercises: (row.workout_exercises || [])
+        .filter(e => e.app_id)
+        .sort((a, b) => a.order_index - b.order_index)
+        .map(e => ({
+          name:   e.name      || '',
+          sets:   e.sets      ?? '',
+          weight: e.weight_kg ?? null,
+          reps:   e.reps      ?? null
+        }))
+    }));
+    // Rebuild gymLog from sessions
+    S.gymLog = {};
+    for (const s of S.workoutHistory) { if (s.date) S.gymLog[s.date] = true; }
+  }
+
+  if (!cardioRes.error && cardioRes.data?.length) {
+    S.cardioHistory = cardioRes.data.map(row => ({
+      id:       Number(row.app_id),
+      date:     row.session_date     || '',
+      activity: row.activity         || '',
+      duration: row.duration_minutes != null ? String(row.duration_minutes) : '',
+      distance: row.distance_km      != null ? String(row.distance_km)      : '',
+      steps:    row.steps            != null ? String(row.steps)            : '',
+      notes:    row.notes            || ''
+    }));
+  }
+
+  if (!calRes.error && calRes.data?.length) {
+    S.calorieHistory = calRes.data.map(row => ({
+      id:          Number(row.app_id),
+      date:        row.entry_date   || '',
+      description: row.description  || '',
+      calories:    row.calories     || 0
+    }));
+  }
+}
+
+async function saveFitness() {
+  if (!currentUser) return;
+
+  // ── Workout templates ──
+  const cards = S.workoutCards || [];
+  await sb.from('workout_templates').delete().eq('user_id', currentUser.id).is('app_id', null);
+  const { data: existingTmpls } = await sb.from('workout_templates').select('id, app_id').eq('user_id', currentUser.id);
+  const tmplMap = {};
+  for (const r of (existingTmpls || [])) tmplMap[r.app_id] = r.id;
+  const currentTmplIds = new Set(cards.map(c => String(c.id)));
+  for (const appId of Object.keys(tmplMap)) {
+    if (!currentTmplIds.has(appId)) await sb.from('workout_templates').delete().eq('id', tmplMap[appId]);
+  }
+  for (let i = 0; i < cards.length; i++) {
+    const c = cards[i];
+    const { data: tmplRow } = await sb.from('workout_templates').upsert({
+      user_id: currentUser.id, app_id: String(c.id),
+      title: c.title || '', subtitle: c.subtitle || '', order_index: i
+    }, { onConflict: 'user_id,app_id' }).select('id').single();
+    const tmplUuid = tmplRow?.id;
+    if (!tmplUuid) continue;
+    const exs = c.exercises || [];
+    if (exs.length) {
+      await sb.from('workout_template_exercises').upsert(
+        exs.map((e, j) => ({ app_id: String(e.id), template_id: tmplUuid, name: e.name || '', order_index: j })),
+        { onConflict: 'app_id' }
+      );
+    }
+    const exIds = exs.map(e => `"${e.id}"`).join(',');
+    if (exIds) await sb.from('workout_template_exercises').delete().eq('template_id', tmplUuid).not('app_id', 'in', `(${exIds})`);
+    else        await sb.from('workout_template_exercises').delete().eq('template_id', tmplUuid);
+  }
+
+  // ── Workout sessions ──
+  const sessions = S.workoutHistory || [];
+  await sb.from('workout_sessions').delete().eq('user_id', currentUser.id).is('app_id', null);
+  const { data: existingSess } = await sb.from('workout_sessions').select('id, app_id').eq('user_id', currentUser.id);
+  const sessMap = {};
+  for (const r of (existingSess || [])) sessMap[r.app_id] = r.id;
+  const currentSessIds = new Set(sessions.map(s => String(s.id)));
+  for (const appId of Object.keys(sessMap)) {
+    if (!currentSessIds.has(appId)) await sb.from('workout_sessions').delete().eq('id', sessMap[appId]);
+  }
+  for (const s of sessions) {
+    const { data: sessRow } = await sb.from('workout_sessions').upsert({
+      user_id: currentUser.id, app_id: String(s.id),
+      session_date: s.date || null, title: s.title || 'Workout', summary: s.summary || ''
+    }, { onConflict: 'user_id,app_id' }).select('id').single();
+    const sessUuid = sessRow?.id;
+    if (!sessUuid) continue;
+    const exs = s.exercises || [];
+    if (exs.length) {
+      await sb.from('workout_exercises').upsert(
+        exs.map((e, j) => ({
+          app_id: `${s.id}_${j}`, session_id: sessUuid, user_id: currentUser.id,
+          name: e.name || '', sets: e.sets || null, reps: e.reps || null, weight_kg: e.weight || null, order_index: j
+        })),
+        { onConflict: 'app_id' }
+      );
+    }
+    const exIds = exs.map((_, j) => `"${s.id}_${j}"`).join(',');
+    if (exIds) await sb.from('workout_exercises').delete().eq('session_id', sessUuid).not('app_id', 'in', `(${exIds})`);
+    else        await sb.from('workout_exercises').delete().eq('session_id', sessUuid);
+  }
+
+  // ── Cardio sessions ──
+  const cardio = S.cardioHistory || [];
+  await sb.from('cardio_sessions').delete().eq('user_id', currentUser.id).is('app_id', null);
+  if (cardio.length) {
+    await sb.from('cardio_sessions').upsert(
+      cardio.map(c => ({
+        app_id: String(c.id), user_id: currentUser.id, session_date: c.date || null,
+        activity: c.activity || '',
+        duration_minutes: c.duration ? (parseInt(c.duration) || null) : null,
+        distance_km: c.distance ? (parseFloat(c.distance) || null) : null,
+        steps: c.steps ? (parseInt(c.steps) || null) : null,
+        notes: c.notes || ''
+      })),
+      { onConflict: 'user_id,app_id' }
+    );
+  }
+  const cardioIds = cardio.map(c => `"${c.id}"`).join(',');
+  if (cardioIds) await sb.from('cardio_sessions').delete().eq('user_id', currentUser.id).not('app_id', 'in', `(${cardioIds})`);
+
+  // ── Calorie entries ──
+  const calories = S.calorieHistory || [];
+  await sb.from('calorie_entries').delete().eq('user_id', currentUser.id).is('app_id', null);
+  if (calories.length) {
+    await sb.from('calorie_entries').upsert(
+      calories.map(e => ({
+        app_id: String(e.id), user_id: currentUser.id, entry_date: e.date || null,
+        description: e.description || '', calories: e.calories || 0
+      })),
+      { onConflict: 'user_id,app_id' }
+    );
+  }
+  const calIds = calories.map(e => `"${e.id}"`).join(',');
+  if (calIds) await sb.from('calorie_entries').delete().eq('user_id', currentUser.id).not('app_id', 'in', `(${calIds})`);
+}
+
 function setSyncStatus(status) {
   const dot = eid('syncDot');
   dot.className = 'sync-dot ' + status;
@@ -505,7 +672,8 @@ async function saveToSupabase() {
     saveProjects().catch(e => console.error('[sync] saveProjects failed:', e)),
     saveMedia().catch(e => console.error('[sync] saveMedia failed:', e)),
     saveHabits().catch(e => console.error('[sync] saveHabits failed:', e)),
-    savePrayer().catch(e => console.error('[sync] savePrayer failed:', e))
+    savePrayer().catch(e => console.error('[sync] savePrayer failed:', e)),
+    saveFitness().catch(e => console.error('[sync] saveFitness failed:', e))
   ]);
 
   if (error) {
@@ -546,7 +714,7 @@ async function loadFromSupabase() {
   }
 
   S = normalizeAppState(data.data);
-  await Promise.all([loadUserSettings(), loadProjects(), loadMedia(), loadHabits(), loadPrayer()]);
+  await Promise.all([loadUserSettings(), loadProjects(), loadMedia(), loadHabits(), loadPrayer(), loadFitness()]);
   setSyncStatus('synced');
   return true;
 }
