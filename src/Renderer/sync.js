@@ -179,6 +179,150 @@ async function saveProjects() {
   }
 }
 
+/* ── media_items / media_notes / media_tracks tables ── */
+async function loadMedia() {
+  if (!currentUser) return;
+  const { data, error } = await sb
+    .from('media_items')
+    .select('*, media_notes(*), media_tracks(*)')
+    .eq('user_id', currentUser.id)
+    .not('app_id', 'is', null)
+    .order('order_index');
+  if (error || !data || !data.length) return;
+
+  S.media = data.map(row => ({
+    id:             Number(row.app_id),
+    mediaType:      row.media_type      || 'book',
+    title:          row.title           || '',
+    author:         row.creator         || '',
+    status:         row.status          || 'unread',
+    rating:         row.rating          ?? null,
+    notes:          row.notes           || '',
+    coverUrl:       row.cover_url       || '',
+    finishedOn:     row.finished_on     || null,
+    currentPage:    row.current_page    || 0,
+    totalPages:     row.total_pages     || 0,
+    currentSeason:  row.current_season  || 1,
+    currentEpisode: row.current_episode || 0,
+    totalSeasons:   row.total_seasons   || 0,
+    totalEpisodes:  row.total_episodes  || 0,
+    runtime:        row.runtime_minutes != null ? String(row.runtime_minutes) : '',
+    watchCount:     row.watch_count     || 0,
+    platform:       row.platform        || '',
+    hoursPlayed:    row.hours_played    || 0,
+    chapterNotes: (row.media_notes || [])
+      .filter(n => n.app_id)
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+      .map(n => ({ id: Number(n.app_id), label: n.label || '', note: n.note || '' })),
+    tracks: (row.media_tracks || [])
+      .filter(tr => tr.app_id)
+      .sort((a, b) => a.track_number - b.track_number)
+      .map(tr => ({
+        id:       Number(tr.app_id),
+        title:    tr.title    || '',
+        duration: tr.duration || '',
+        rating:   tr.rating   || 0,
+        review:   tr.review   || ''
+      }))
+  }));
+}
+
+async function saveMedia() {
+  if (!currentUser) return;
+  const media = S.media || [];
+
+  await sb.from('media_items').delete().eq('user_id', currentUser.id).is('app_id', null);
+
+  const { data: existingRows } = await sb
+    .from('media_items').select('id, app_id').eq('user_id', currentUser.id);
+  const existingMap = {};
+  for (const row of (existingRows || [])) existingMap[row.app_id] = row.id;
+
+  const currentAppIds = new Set(media.map(m => String(m.id)));
+  for (const appId of Object.keys(existingMap)) {
+    if (!currentAppIds.has(appId))
+      await sb.from('media_items').delete().eq('id', existingMap[appId]);
+  }
+
+  for (let i = 0; i < media.length; i++) {
+    const m     = media[i];
+    const appId = String(m.id);
+
+    const { data: itemRow } = await sb.from('media_items').upsert({
+      user_id:         currentUser.id,
+      app_id:          appId,
+      media_type:      m.mediaType      || 'book',
+      title:           m.title          || '',
+      creator:         m.author         || '',
+      status:          m.status         || 'unread',
+      rating:          m.rating         ?? null,
+      notes:           m.notes          || '',
+      cover_url:       m.coverUrl       || '',
+      finished_on:     m.finishedOn     || null,
+      current_page:    m.currentPage    || 0,
+      total_pages:     m.totalPages     || 0,
+      current_season:  m.currentSeason  || 1,
+      current_episode: m.currentEpisode || 0,
+      total_seasons:   m.totalSeasons   || 0,
+      total_episodes:  m.totalEpisodes  || 0,
+      runtime_minutes: m.runtime ? (parseInt(m.runtime) || null) : null,
+      watch_count:     m.watchCount     || 0,
+      platform:        m.platform       || '',
+      hours_played:    m.hoursPlayed    || 0,
+      order_index:     i
+    }, { onConflict: 'user_id,app_id' }).select('id').single();
+
+    const itemUuid = itemRow?.id;
+    if (!itemUuid) continue;
+
+    // Chapter / episode notes
+    const notes = m.chapterNotes || [];
+    if (notes.length) {
+      await sb.from('media_notes').upsert(
+        notes.map(n => ({
+          app_id:        String(n.id),
+          media_item_id: itemUuid,
+          user_id:       currentUser.id,
+          label:         n.label || '',
+          note:          n.note  || ''
+        })),
+        { onConflict: 'app_id' }
+      );
+    }
+    const noteIds = notes.map(n => `"${n.id}"`).join(',');
+    if (noteIds) {
+      await sb.from('media_notes').delete()
+        .eq('media_item_id', itemUuid).not('app_id', 'in', `(${noteIds})`);
+    } else {
+      await sb.from('media_notes').delete().eq('media_item_id', itemUuid);
+    }
+
+    // Album tracks
+    const tracks = m.tracks || [];
+    if (tracks.length) {
+      await sb.from('media_tracks').upsert(
+        tracks.map((tr, j) => ({
+          app_id:        String(tr.id),
+          media_item_id: itemUuid,
+          title:         tr.title    || '',
+          duration:      tr.duration || '',
+          track_number:  j,
+          rating:        tr.rating   || 0,
+          review:        tr.review   || ''
+        })),
+        { onConflict: 'app_id' }
+      );
+    }
+    const trackIds = tracks.map(tr => `"${tr.id}"`).join(',');
+    if (trackIds) {
+      await sb.from('media_tracks').delete()
+        .eq('media_item_id', itemUuid).not('app_id', 'in', `(${trackIds})`);
+    } else {
+      await sb.from('media_tracks').delete().eq('media_item_id', itemUuid);
+    }
+  }
+}
+
 function setSyncStatus(status) {
   const dot = eid('syncDot');
   dot.className = 'sync-dot ' + status;
@@ -236,7 +380,8 @@ async function saveToSupabase() {
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' }),
     saveUserSettings().catch(e => console.error('[sync] saveUserSettings failed:', e)),
-    saveProjects().catch(e => console.error('[sync] saveProjects failed:', e))
+    saveProjects().catch(e => console.error('[sync] saveProjects failed:', e)),
+    saveMedia().catch(e => console.error('[sync] saveMedia failed:', e))
   ]);
 
   if (error) {
@@ -277,7 +422,7 @@ async function loadFromSupabase() {
   }
 
   S = normalizeAppState(data.data);
-  await Promise.all([loadUserSettings(), loadProjects()]);
+  await Promise.all([loadUserSettings(), loadProjects(), loadMedia()]);
   setSyncStatus('synced');
   return true;
 }
