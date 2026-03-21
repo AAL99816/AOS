@@ -323,6 +323,128 @@ async function saveMedia() {
   }
 }
 
+/* ── habits / habit_logs / prayer_logs tables ── */
+async function loadHabits() {
+  if (!currentUser) return;
+  const { data, error } = await sb
+    .from('habits')
+    .select('*, habit_logs(*)')
+    .eq('user_id', currentUser.id)
+    .not('app_id', 'is', null)
+    .order('order_index');
+  if (error || !data || !data.length) return;
+
+  S.habits = data.map(row => ({
+    id:   Number(row.app_id),
+    name: row.name || '',
+    days: Object.fromEntries(
+      (row.habit_logs || []).map(l => [l.logged_date, true])
+    )
+  }));
+}
+
+async function loadPrayer() {
+  if (!currentUser) return;
+  const { data, error } = await sb
+    .from('prayer_logs')
+    .select('*')
+    .eq('user_id', currentUser.id);
+  if (error || !data || !data.length) return;
+
+  S.prayerLog = {};
+  for (const row of data) {
+    S.prayerLog[row.prayer_date] = {
+      fajr:    row.fajr    || false,
+      dhuhr:   row.dhuhr   || false,
+      asr:     row.asr     || false,
+      maghrib: row.maghrib || false,
+      isha:    row.isha    || false
+    };
+  }
+}
+
+async function saveHabits() {
+  if (!currentUser) return;
+  const habits = S.habits || [];
+
+  await sb.from('habits').delete().eq('user_id', currentUser.id).is('app_id', null);
+
+  const { data: existingRows } = await sb
+    .from('habits').select('id, app_id').eq('user_id', currentUser.id);
+  const existingMap = {};
+  for (const row of (existingRows || [])) existingMap[row.app_id] = row.id;
+
+  const currentAppIds = new Set(habits.map(h => String(h.id)));
+  for (const appId of Object.keys(existingMap)) {
+    if (!currentAppIds.has(appId))
+      await sb.from('habits').delete().eq('id', existingMap[appId]);
+  }
+
+  for (let i = 0; i < habits.length; i++) {
+    const h     = habits[i];
+    const appId = String(h.id);
+
+    const { data: habitRow } = await sb.from('habits').upsert({
+      user_id:     currentUser.id,
+      app_id:      appId,
+      name:        h.name || '',
+      order_index: i
+    }, { onConflict: 'user_id,app_id' }).select('id').single();
+
+    const habitUuid = habitRow?.id;
+    if (!habitUuid) continue;
+
+    // Upsert each logged day
+    const days = Object.keys(h.days || {}).filter(d => h.days[d]);
+    if (days.length) {
+      await sb.from('habit_logs').upsert(
+        days.map(d => ({
+          app_id:      `${appId}_${d}`,
+          user_id:     currentUser.id,
+          habit_id:    habitUuid,
+          logged_date: d
+        })),
+        { onConflict: 'app_id' }
+      );
+    }
+    // Delete removed days
+    const dayIds = days.map(d => `"${appId}_${d}"`).join(',');
+    if (dayIds) {
+      await sb.from('habit_logs').delete()
+        .eq('habit_id', habitUuid).not('app_id', 'in', `(${dayIds})`);
+    } else {
+      await sb.from('habit_logs').delete().eq('habit_id', habitUuid);
+    }
+  }
+}
+
+async function savePrayer() {
+  if (!currentUser) return;
+  const prayerLog = S.prayerLog || {};
+  const dates = Object.keys(prayerLog);
+  if (!dates.length) return;
+
+  await sb.from('prayer_logs').upsert(
+    dates.map(d => ({
+      user_id:     currentUser.id,
+      prayer_date: d,
+      fajr:    !!(prayerLog[d]?.fajr),
+      dhuhr:   !!(prayerLog[d]?.dhuhr),
+      asr:     !!(prayerLog[d]?.asr),
+      maghrib: !!(prayerLog[d]?.maghrib),
+      isha:    !!(prayerLog[d]?.isha)
+    })),
+    { onConflict: 'user_id,prayer_date' }
+  );
+
+  // Delete dates no longer in state
+  const dateList = dates.map(d => `"${d}"`).join(',');
+  if (dateList) {
+    await sb.from('prayer_logs').delete()
+      .eq('user_id', currentUser.id).not('prayer_date', 'in', `(${dateList})`);
+  }
+}
+
 function setSyncStatus(status) {
   const dot = eid('syncDot');
   dot.className = 'sync-dot ' + status;
@@ -381,7 +503,9 @@ async function saveToSupabase() {
     }, { onConflict: 'user_id' }),
     saveUserSettings().catch(e => console.error('[sync] saveUserSettings failed:', e)),
     saveProjects().catch(e => console.error('[sync] saveProjects failed:', e)),
-    saveMedia().catch(e => console.error('[sync] saveMedia failed:', e))
+    saveMedia().catch(e => console.error('[sync] saveMedia failed:', e)),
+    saveHabits().catch(e => console.error('[sync] saveHabits failed:', e)),
+    savePrayer().catch(e => console.error('[sync] savePrayer failed:', e))
   ]);
 
   if (error) {
@@ -422,7 +546,7 @@ async function loadFromSupabase() {
   }
 
   S = normalizeAppState(data.data);
-  await Promise.all([loadUserSettings(), loadProjects(), loadMedia()]);
+  await Promise.all([loadUserSettings(), loadProjects(), loadMedia(), loadHabits(), loadPrayer()]);
   setSyncStatus('synced');
   return true;
 }
