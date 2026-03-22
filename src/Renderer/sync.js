@@ -445,6 +445,42 @@ async function savePrayer() {
   }
 }
 
+/* ── daily_notes + weekly_reflections ── */
+async function loadNotes() {
+  if (!currentUser) return;
+  const [notesRes, reflRes] = await Promise.all([
+    sb.from('daily_notes').select('note_date, text').eq('user_id', currentUser.id),
+    sb.from('weekly_reflections').select('week_start, text').eq('user_id', currentUser.id)
+  ]);
+  if (!notesRes.error && notesRes.data?.length) {
+    if (!S.notes || typeof S.notes !== 'object') S.notes = {};
+    for (const r of notesRes.data) S.notes[r.note_date] = r.text;
+  }
+  if (!reflRes.error && reflRes.data?.length) {
+    if (!S.weeklyReflections || typeof S.weeklyReflections !== 'object') S.weeklyReflections = {};
+    for (const r of reflRes.data) S.weeklyReflections[r.week_start] = r.text;
+  }
+}
+
+async function saveNotes() {
+  if (!currentUser) return;
+  const notes = S.notes && typeof S.notes === 'object' ? S.notes : {};
+  const refl  = S.weeklyReflections && typeof S.weeklyReflections === 'object' ? S.weeklyReflections : {};
+
+  const noteRows = Object.entries(notes)
+    .filter(([date, text]) => date && text)
+    .map(([date, text]) => ({ user_id: currentUser.id, note_date: date, text }));
+
+  const reflRows = Object.entries(refl)
+    .filter(([date, text]) => date && text)
+    .map(([date, text]) => ({ user_id: currentUser.id, week_start: date, text }));
+
+  await Promise.all([
+    noteRows.length ? sb.from('daily_notes').upsert(noteRows, { onConflict: 'user_id,note_date' }) : Promise.resolve(),
+    reflRows.length ? sb.from('weekly_reflections').upsert(reflRows, { onConflict: 'user_id,week_start' }) : Promise.resolve()
+  ]);
+}
+
 /* ── fitness: workout templates, sessions, cardio, calories ── */
 async function loadFitness() {
   if (!currentUser) return;
@@ -513,18 +549,12 @@ async function loadFitness() {
 }
 
 async function saveFitness() {
-  console.log('[saveFitness] called, user:', currentUser?.id?.slice(0,8), 'cards:', S.workoutCards?.length, 'sessions:', S.workoutHistory?.length);
-  if (!currentUser) { console.warn('[saveFitness] no user, returning'); return; }
+  if (!currentUser) return;
 
   // ── Workout templates ──
   const cards = S.workoutCards || [];
-  console.log('[saveFitness] starting DB ops, cards.length:', cards.length);
-  const { error: delTmplErr } = await sb.from('workout_templates').delete().eq('user_id', currentUser.id).is('app_id', null);
-  if (delTmplErr) console.error('[saveFitness] delete null templates error:', delTmplErr);
-  else console.log('[saveFitness] delete null templates OK');
-  const { data: existingTmpls, error: selTmplErr } = await sb.from('workout_templates').select('id, app_id').eq('user_id', currentUser.id);
-  if (selTmplErr) console.error('[saveFitness] select templates error:', selTmplErr);
-  else console.log('[saveFitness] existing templates:', existingTmpls?.length);
+  await sb.from('workout_templates').delete().eq('user_id', currentUser.id).is('app_id', null);
+  const { data: existingTmpls } = await sb.from('workout_templates').select('id, app_id').eq('user_id', currentUser.id);
   const tmplMap = {};
   for (const r of (existingTmpls || [])) tmplMap[r.app_id] = r.id;
   const currentTmplIds = new Set(cards.map(c => String(c.id)));
@@ -678,7 +708,8 @@ async function saveToSupabase() {
     saveProjects().catch(e => console.error('[sync] saveProjects failed:', e)),
     saveMedia().catch(e => console.error('[sync] saveMedia failed:', e)),
     saveHabits().catch(e => console.error('[sync] saveHabits failed:', e)),
-    savePrayer().catch(e => console.error('[sync] savePrayer failed:', e))
+    savePrayer().catch(e => console.error('[sync] savePrayer failed:', e)),
+    saveNotes().catch(e => console.error('[sync] saveNotes failed:', e))
   ]);
 
   if (error) {
@@ -696,7 +727,6 @@ async function saveToSupabase() {
   }
   // Run fitness save after main save — it has many sequential DB calls
   // and must not compete with other saves in the Promise.all
-  console.log('[sync] calling saveFitness...');
   saveFitness().catch(e => console.error('[sync] saveFitness failed:', e));
 }
 
@@ -723,7 +753,7 @@ async function loadFromSupabase() {
   }
 
   S = normalizeAppState(data.data);
-  await Promise.all([loadUserSettings(), loadProjects(), loadMedia(), loadHabits(), loadPrayer(), loadFitness()]);
+  await Promise.all([loadUserSettings(), loadProjects(), loadMedia(), loadHabits(), loadPrayer(), loadNotes(), loadFitness()]);
   setSyncStatus('synced');
   return true;
 }
