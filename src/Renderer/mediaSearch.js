@@ -59,15 +59,21 @@ async function doMediaSearch(q) {
 
 // ── API search functions ──────────────────────────────────────────────────────
 async function searchBooks(q) {
-  const r = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=6&fields=title,author_name,number_of_pages_median,cover_i,first_publish_year`);
+  const r = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=8&fields=title,author_name,number_of_pages_median,cover_i,cover_edition_key,isbn,first_publish_year`);
   const d = await r.json();
-  return (d.docs || []).map(item => ({
-    title:      item.title || '',
-    creator:    (item.author_name || []).slice(0, 2).join(', '),
-    coverUrl:   item.cover_i ? `https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg` : '',
-    totalPages: item.number_of_pages_median || 0,
-    year:       item.first_publish_year ? String(item.first_publish_year) : ''
-  }));
+  return (d.docs || []).filter(item => item.title).slice(0, 6).map(item => {
+    let coverUrl = '';
+    if (item.cover_i)             coverUrl = `https://covers.openlibrary.org/b/id/${item.cover_i}-L.jpg`;
+    else if (item.cover_edition_key) coverUrl = `https://covers.openlibrary.org/b/olid/${item.cover_edition_key}-L.jpg`;
+    else if (item.isbn?.[0])      coverUrl = `https://covers.openlibrary.org/b/isbn/${item.isbn[0]}-L.jpg`;
+    return {
+      title:      item.title || '',
+      creator:    (item.author_name || []).slice(0, 2).join(', '),
+      coverUrl,
+      totalPages: item.number_of_pages_median || 0,
+      year:       item.first_publish_year ? String(item.first_publish_year) : ''
+    };
+  });
 }
 
 async function searchMovies(q) {
@@ -162,6 +168,20 @@ function hideMediaDropdown() {
   if (dd) dd.style.display = 'none';
 }
 
+// ── Upload external cover to Supabase storage ─────────────────────────────────
+async function uploadExternalCover(url) {
+  if (!url || typeof uploadAsset !== 'function' || typeof currentUser === 'undefined' || !currentUser) return url;
+  try {
+    const resp = await fetch(url, { mode: 'cors' });
+    if (!resp.ok) return url;
+    const blob = await resp.blob();
+    const file = new File([blob], 'cover', { type: blob.type || 'image/jpeg' });
+    return await uploadAsset(`covers/${Date.now()}`, file);
+  } catch (e) {
+    return url; // fallback — external URL still shows in <img> tags
+  }
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmtRuntime(minutes) {
   if (!minutes) return '';
@@ -236,9 +256,14 @@ async function selectMediaResult(i) {
     } catch (e) { /* silently skip */ }
   }
 
-  eid('bkT').value = r.title                   || '';
+  eid('bkT').value = r.title                        || '';
   eid('bkA').value = _autofillData.creator || r.creator || '';
   hideMediaDropdown();
+
+  // Upload cover to Supabase so it's always fast and permanent
+  if (_autofillData.coverUrl) {
+    _autofillData.coverUrl = await uploadExternalCover(_autofillData.coverUrl);
+  }
 }
 
 // Called by saveBook() to get autofill data, then reset
