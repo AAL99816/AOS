@@ -50,7 +50,8 @@ async function doMediaSearch(q) {
   try {
     if      (type === 'book')                        results = await searchBooks(q);
     else if (type === 'film')                        results = await searchMovies(q);
-    else if (type === 'show' || type === 'anime')    results = await searchShows(q);
+    else if (type === 'show')                        results = await searchShows(q);
+    else if (type === 'anime')                       results = await searchAnime(q);
     else if (type === 'game')                        results = await searchGames(q);
     else if (type === 'album')                       results = await searchAlbums(q);
   } catch (e) { console.warn('[mediaSearch]', e); }
@@ -116,17 +117,28 @@ async function searchGames(q) {
 }
 
 async function searchAlbums(q) {
-  const r = await fetch(
-    `https://musicbrainz.org/ws/2/release-group?query=releasegroup:${encodeURIComponent(q)}&type=album&limit=6&fmt=json`,
-    { headers: { 'User-Agent': 'AOS/1.0 (aoshome.app)' } }
-  );
+  const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=album&limit=8`);
   const d = await r.json();
-  return (d['release-groups'] || []).slice(0, 6).map(g => ({
-    title:   g.title || '',
-    creator: (g['artist-credit'] || []).map(a => a.name).filter(Boolean).join(', '),
-    coverUrl: g.id ? `https://coverartarchive.org/release-group/${g.id}/front-250` : '',
-    year:    (g['first-release-date'] || '').slice(0, 4),
-    mbid:    g.id
+  return (d.results || []).slice(0, 6).map(item => ({
+    title:     item.collectionName || '',
+    creator:   item.artistName    || '',
+    coverUrl:  (item.artworkUrl100 || '').replace('100x100bb', '600x600bb'),
+    year:      item.releaseDate ? item.releaseDate.slice(0, 4) : '',
+    itunesId:  item.collectionId
+  }));
+}
+
+async function searchAnime(q) {
+  const r = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(q)}&limit=6&sfw`);
+  const d = await r.json();
+  return (d.data || []).map(item => ({
+    title:         item.title_english || item.title || '',
+    creator:       (item.studios || []).map(s => s.name).slice(0, 1).join(''),
+    coverUrl:      item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || '',
+    year:          item.year ? String(item.year) : '',
+    totalEpisodes: item.episodes || 0,
+    totalSeasons:  1,
+    jikanId:       item.mal_id
   }));
 }
 
@@ -139,7 +151,9 @@ function getAttributionHtml(type) {
   if (type === 'game')
     return `<div style="padding:6px 12px;font-size:0.58rem;color:var(--muted);border-top:1px solid var(--border);text-align:right">Powered by <a href="https://rawg.io" target="_blank" style="color:var(--muted);text-decoration:underline">RAWG</a></div>`;
   if (type === 'album')
-    return `<div style="padding:6px 12px;font-size:0.58rem;color:var(--muted);border-top:1px solid var(--border);text-align:right">Data from <a href="https://musicbrainz.org" target="_blank" style="color:var(--muted);text-decoration:underline">MusicBrainz</a></div>`;
+    return `<div style="padding:6px 12px;font-size:0.58rem;color:var(--muted);border-top:1px solid var(--border);text-align:right">Data from <a href="https://music.apple.com" target="_blank" style="color:var(--muted);text-decoration:underline">iTunes</a></div>`;
+  if (type === 'anime')
+    return `<div style="padding:6px 12px;font-size:0.58rem;color:var(--muted);border-top:1px solid var(--border);text-align:right">Data from <a href="https://myanimelist.net" target="_blank" style="color:var(--muted);text-decoration:underline">MyAnimeList</a> via Jikan</div>`;
   return '';
 }
 
@@ -227,31 +241,20 @@ async function selectMediaResult(i) {
     } catch (e) { /* silently skip */ }
   }
 
-  // Albums — fetch tracklist from MusicBrainz
-  if (type === 'album' && r.mbid) {
+  // Albums — fetch tracklist from iTunes
+  if (type === 'album' && r.itunesId) {
     try {
-      const relRes = await fetch(
-        `https://musicbrainz.org/ws/2/release?release-group=${r.mbid}&limit=1&fmt=json`,
-        { headers: { 'User-Agent': 'AOS/1.0 (aoshome.app)' } }
-      );
-      const relData = await relRes.json();
-      const releaseId = relData.releases?.[0]?.id;
-      if (releaseId) {
-        const trkRes = await fetch(
-          `https://musicbrainz.org/ws/2/release/${releaseId}?inc=recordings&fmt=json`,
-          { headers: { 'User-Agent': 'AOS/1.0 (aoshome.app)' } }
-        );
-        const trkData = await trkRes.json();
-        const media   = trkData.media?.[0];
-        if (media?.tracks?.length) {
-          _autofillData.tracks = media.tracks.map(tr => ({
-            id:       Date.now() + Math.random(),
-            title:    tr.title || '',
-            duration: fmtMs(tr.length),
-            rating:   0,
-            review:   ''
-          }));
-        }
+      const trkRes  = await fetch(`https://itunes.apple.com/lookup?id=${r.itunesId}&entity=song`);
+      const trkData = await trkRes.json();
+      const tracks  = (trkData.results || []).filter(t => t.wrapperType === 'track');
+      if (tracks.length) {
+        _autofillData.tracks = tracks.map(tr => ({
+          id:       Date.now() + Math.random(),
+          title:    tr.trackName    || '',
+          duration: fmtMs(tr.trackTimeMillis),
+          rating:   0,
+          review:   ''
+        }));
       }
     } catch (e) { /* silently skip */ }
   }
