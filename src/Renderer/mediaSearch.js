@@ -59,18 +59,15 @@ async function doMediaSearch(q) {
 
 // ── API search functions ──────────────────────────────────────────────────────
 async function searchBooks(q) {
-  const r = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=6&orderBy=relevance`);
+  const r = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=6&fields=title,author_name,number_of_pages_median,cover_i,first_publish_year`);
   const d = await r.json();
-  return (d.items || []).map(item => {
-    const v = item.volumeInfo;
-    return {
-      title:      v.title || '',
-      creator:    (v.authors || []).join(', '),
-      coverUrl:   (v.imageLinks?.thumbnail || '').replace('http:', 'https:').replace('&edge=curl', ''),
-      totalPages: v.pageCount || 0,
-      year:       (v.publishedDate || '').slice(0, 4)
-    };
-  });
+  return (d.docs || []).map(item => ({
+    title:      item.title || '',
+    creator:    (item.author_name || []).slice(0, 2).join(', '),
+    coverUrl:   item.cover_i ? `https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg` : '',
+    totalPages: item.number_of_pages_median || 0,
+    year:       item.first_publish_year ? String(item.first_publish_year) : ''
+  }));
 }
 
 async function searchMovies(q) {
@@ -130,7 +127,7 @@ async function searchAlbums(q) {
 // ── Dropdown UI ───────────────────────────────────────────────────────────────
 function getAttributionHtml(type) {
   if (type === 'book')
-    return `<div style="padding:6px 12px;font-size:0.58rem;color:var(--muted);border-top:1px solid var(--border);text-align:right">Powered by <a href="https://books.google.com" target="_blank" style="color:var(--muted);text-decoration:underline">Google Books</a></div>`;
+    return `<div style="padding:6px 12px;font-size:0.58rem;color:var(--muted);border-top:1px solid var(--border);text-align:right">Data from <a href="https://openlibrary.org" target="_blank" style="color:var(--muted);text-decoration:underline">Open Library</a></div>`;
   if (type === 'film' || type === 'show' || type === 'anime')
     return `<div style="padding:6px 12px;font-size:0.58rem;color:var(--muted);border-top:1px solid var(--border)">Data from <a href="https://www.themoviedb.org" target="_blank" style="color:var(--muted);text-decoration:underline">TMDB</a> — not endorsed or certified by TMDB</div>`;
   if (type === 'game')
@@ -165,25 +162,82 @@ function hideMediaDropdown() {
   if (dd) dd.style.display = 'none';
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmtRuntime(minutes) {
+  if (!minutes) return '';
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+function fmtMs(ms) {
+  if (!ms) return '';
+  const totalSec = Math.round(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
 // ── Selection ─────────────────────────────────────────────────────────────────
 async function selectMediaResult(i) {
   const r = _ddResults[i];
   if (!r) return;
   _autofillData = { ...r };
-
-  // For shows/anime, fetch full season+episode count
   const type = eid('bkType').value;
+
+  // Shows/anime — fetch season + episode totals
   if ((type === 'show' || type === 'anime') && r.tmdbId && TMDB_KEY) {
     try {
       const res    = await fetch(`https://api.themoviedb.org/3/tv/${r.tmdbId}?api_key=${TMDB_KEY}`);
       const detail = await res.json();
       _autofillData.totalSeasons  = detail.number_of_seasons  || 0;
       _autofillData.totalEpisodes = detail.number_of_episodes || 0;
+      _autofillData.creator = (detail.created_by || []).map(p => p.name).join(', ');
     } catch (e) { /* silently skip */ }
   }
 
-  eid('bkT').value = r.title   || '';
-  eid('bkA').value = r.creator || '';
+  // Films — fetch runtime + director
+  if (type === 'film' && r.tmdbId && TMDB_KEY) {
+    try {
+      const res    = await fetch(`https://api.themoviedb.org/3/movie/${r.tmdbId}?api_key=${TMDB_KEY}&append_to_response=credits`);
+      const detail = await res.json();
+      _autofillData.runtime = fmtRuntime(detail.runtime);
+      const director = (detail.credits?.crew || []).find(c => c.job === 'Director');
+      if (director) _autofillData.creator = director.name;
+    } catch (e) { /* silently skip */ }
+  }
+
+  // Albums — fetch tracklist from MusicBrainz
+  if (type === 'album' && r.mbid) {
+    try {
+      const relRes = await fetch(
+        `https://musicbrainz.org/ws/2/release?release-group=${r.mbid}&limit=1&fmt=json`,
+        { headers: { 'User-Agent': 'AOS/1.0 (aoshome.app)' } }
+      );
+      const relData = await relRes.json();
+      const releaseId = relData.releases?.[0]?.id;
+      if (releaseId) {
+        const trkRes = await fetch(
+          `https://musicbrainz.org/ws/2/release/${releaseId}?inc=recordings&fmt=json`,
+          { headers: { 'User-Agent': 'AOS/1.0 (aoshome.app)' } }
+        );
+        const trkData = await trkRes.json();
+        const media   = trkData.media?.[0];
+        if (media?.tracks?.length) {
+          _autofillData.tracks = media.tracks.map(tr => ({
+            id:       Date.now() + Math.random(),
+            title:    tr.title || '',
+            duration: fmtMs(tr.length),
+            rating:   0,
+            review:   ''
+          }));
+        }
+      }
+    } catch (e) { /* silently skip */ }
+  }
+
+  eid('bkT').value = r.title                   || '';
+  eid('bkA').value = _autofillData.creator || r.creator || '';
   hideMediaDropdown();
 }
 

@@ -410,7 +410,9 @@ function saveBook() {
     totalPages:    af.totalPages    || 0,
     totalSeasons:  af.totalSeasons  || 0,
     totalEpisodes: af.totalEpisodes || 0,
-    platform:      af.platform      || ''
+    runtime:       af.runtime       || '',
+    platform:      af.platform      || '',
+    tracks:        af.tracks        || []
   }));
   eid('bkT').value=''; eid('bkA').value=''; eid('bkN').value=''; eid('bkR').value='';
   if (eid('bkSearch')) eid('bkSearch').value = '';
