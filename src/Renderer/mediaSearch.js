@@ -16,10 +16,14 @@ let _searchTimer  = null;
 function onMediaTypeChange() {
   const el = eid('bkSearch');
   if (el) el.value = '';
+  eid('bkT').value = '';
+  eid('bkA').value = '';
   hideMediaDropdown();
   _autofillData = {};
   _ddResults    = [];
   updateSearchPlaceholder();
+  const lbl = eid('bkCreatorLabel');
+  if (lbl && typeof mediaCreatorLabel === 'function') lbl.textContent = mediaCreatorLabel(eid('bkType').value);
 }
 
 function updateSearchPlaceholder() {

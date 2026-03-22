@@ -392,6 +392,15 @@ function delBook(id) {
   renderBooks();
 }
 
+function openAddMedia() {
+  openModal('mBook');
+  const sel = eid('bkType');
+  if (sel) {
+    sel.value = mediaTypeF || 'book';
+    if (typeof onMediaTypeChange === 'function') onMediaTypeChange();
+  }
+}
+
 function saveBook() {
   const title = eid('bkT').value.trim();
   if (!title) return;
@@ -458,7 +467,7 @@ function renderBookDetails() {
   const isBook = b.mediaType === 'book';
   const isGame = b.mediaType === 'game';
 
-  eid('bdProgressBlock').style.display  = (isBook || isShow) ? '' : 'none';
+  eid('bdProgressBlock').style.display  = isBook ? '' : 'none';
   eid('bdFilmBlock').style.display      = isFilm ? '' : 'none';
   eid('bdChapterBlock').style.display   = isBook ? '' : 'none';
   eid('bdShowBlock').style.display      = isShow ? '' : 'none';
