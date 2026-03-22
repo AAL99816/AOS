@@ -397,16 +397,23 @@ function saveBook() {
   if (!title) return;
   if (!Array.isArray(S.media)) S.media = [];
   const type = eid('bkType').value;
+  const af = typeof consumeAutofillData === 'function' ? consumeAutofillData() : {};
   S.media.push(makeMedia({
     id: Date.now(),
     mediaType: type,
     title,
-    author: eid('bkA').value.trim(),
-    status: eid('bkS').value,
-    rating: parseFloat(eid('bkR').value) || null,
-    notes: eid('bkN').value.trim()
+    author:        eid('bkA').value.trim(),
+    status:        eid('bkS').value,
+    rating:        parseFloat(eid('bkR').value) || null,
+    notes:         eid('bkN').value.trim(),
+    coverUrl:      af.coverUrl      || '',
+    totalPages:    af.totalPages    || 0,
+    totalSeasons:  af.totalSeasons  || 0,
+    totalEpisodes: af.totalEpisodes || 0,
+    platform:      af.platform      || ''
   }));
   eid('bkT').value=''; eid('bkA').value=''; eid('bkN').value=''; eid('bkR').value='';
+  if (eid('bkSearch')) eid('bkSearch').value = '';
   scheduleSave();
   // Switch to the type tab of what was just added
   mediaTypeF = (type === 'other') ? 'book' : type;

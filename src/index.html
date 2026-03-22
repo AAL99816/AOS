@@ -487,6 +487,9 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 .mf textarea{resize:vertical; min-height:65px; line-height:1.5;}
 .mf input[type=range]{padding:0; background:none; border:none; accent-color:var(--blush); cursor:pointer;}
 .modal-acts{display:flex; gap:7px; margin-top:14px; justify-content:flex-end;}
+.media-dd-item{display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s;}
+.media-dd-item:last-child{border-bottom:none;}
+.media-dd-item:hover{background:color-mix(in srgb,var(--rose) 12%,transparent);}
 
 /* ══ REVIEW ══ */
 .review-week-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;}
@@ -859,6 +862,18 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       </div>
       <div id="calorieHistory"></div>
     </div>
+    <div class="card" style="margin-bottom:16px">
+      <div style="margin-bottom:8px">
+        <span style="font-size:0.7rem;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase;font-family:'DM Mono',monospace">Body Weight</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+        <input id="weightKg" class="add-inp" type="number" step="0.1" min="0" style="flex:1;min-width:90px" placeholder="Weight (kg)">
+        <input id="weightDate" type="date" class="add-inp" style="flex:1;min-width:110px">
+        <input id="weightNotes" class="add-inp" style="flex:2;min-width:120px" placeholder="Notes (optional)">
+        <button class="btn btn-p" onclick="logWeightEntry()">Log</button>
+      </div>
+      <div id="weightHistory"></div>
+    </div>
     <div class="sec" style="justify-content:space-between">
       <span data-i18n="training_week">Training Week</span>
       <button class="btn btn-g" style="font-size:0.68rem" onclick="addWorkoutCard()">+ Card</button>
@@ -971,7 +986,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 <div class="modal-bg" id="mBook"><div class="modal">
   <h2 data-i18n="library">Library</h2>
   <div class="mf"><label data-i18n="type">Type</label>
-    <select id="bkType">
+    <select id="bkType" onchange="onMediaTypeChange()">
       <option value="book"  data-i18n="book">Book</option>
       <option value="film"  data-i18n="film">Film</option>
       <option value="show"  data-i18n="show">Show</option>
@@ -979,6 +994,11 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <option value="album" data-i18n="album">Album</option>
       <option value="game"  data-i18n="game">Game</option>
     </select>
+  </div>
+  <div class="mf" style="position:relative">
+    <label>Search</label>
+    <input id="bkSearch" placeholder="Search books…" oninput="onMediaSearchInput()" autocomplete="off">
+    <div id="bkDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:300;background:var(--panel);border:1px solid var(--border-lt);border-radius:10px;max-height:260px;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,0.5);margin-top:3px"></div>
   </div>
   <div class="mf"><label data-i18n="title_lbl">Title</label><input id="bkT" placeholder="Title"></div>
   <div class="mf"><label id="bkCreatorLabel" data-i18n="author">Author / Creator</label><input id="bkA" placeholder="Author, director, artist…"></div>
@@ -1333,6 +1353,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 <script src="./Renderer/fitness.js"></script>
 <script src="./Renderer/goals.js"></script>
 <script src="./Renderer/projects.js"></script>
+<script src="./Renderer/mediaSearch.js"></script>
 <script src="./Renderer/media.js"></script>
 <script src="./Renderer/review.js"></script>
 <script src="./Renderer/modals.js"></script>

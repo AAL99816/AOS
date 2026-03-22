@@ -481,6 +481,87 @@ async function saveNotes() {
   ]);
 }
 
+/* ── exercise_pbs ── */
+async function saveExercisePbs() {
+  if (!currentUser) return;
+  const hist = S.exerciseHistory || {};
+  const pbs = Object.entries(hist).map(([name, entries]) => {
+    if (!entries?.length) return null;
+    const best = entries.reduce((b, e) => (Number(e.weight)||0) > (Number(b.weight)||0) ? e : b, entries[0]);
+    const last = entries[entries.length - 1];
+    return {
+      user_id: currentUser.id,
+      exercise_name: name,
+      best_weight_kg: Number(best.weight) || null,
+      best_reps: Number(best.reps) || null,
+      last_logged_date: last.date || null
+    };
+  }).filter(Boolean);
+  if (pbs.length) {
+    await sb.from('exercise_pbs').upsert(pbs, { onConflict: 'user_id,exercise_name' });
+  }
+}
+
+/* ── workout_schedule ── */
+async function loadWorkoutSchedule() {
+  if (!currentUser) return;
+  const { data, error } = await sb.from('workout_schedule').select('*').eq('user_id', currentUser.id).order('weekday');
+  if (error || !data?.length) return;
+  const { data: tmpls } = await sb.from('workout_templates').select('id, app_id').eq('user_id', currentUser.id);
+  const uuidToAppId = {};
+  for (const t of (tmpls || [])) uuidToAppId[t.id] = Number(t.app_id);
+  S.workout = data.map(row => ({
+    type:   row.label   || '',
+    rest:   !!row.is_rest,
+    cardId: row.template_id ? (uuidToAppId[row.template_id] || null) : null
+  }));
+}
+
+async function saveWorkoutSchedule() {
+  if (!currentUser) return;
+  const schedule = S.workout || [];
+  const { data: tmpls } = await sb.from('workout_templates').select('id, app_id').eq('user_id', currentUser.id).not('app_id', 'is', null);
+  const tmplMap = {};
+  for (const t of (tmpls || [])) tmplMap[t.app_id] = t.id;
+  await sb.from('workout_schedule').delete().eq('user_id', currentUser.id);
+  const rows = schedule.map((day, i) => ({
+    user_id:     currentUser.id,
+    weekday:     i,
+    label:       day.type || '',
+    is_rest:     !!day.rest,
+    template_id: day.cardId ? (tmplMap[String(day.cardId)] || null) : null
+  }));
+  if (rows.length) await sb.from('workout_schedule').insert(rows);
+}
+
+/* ── body_weight_logs ── */
+async function loadBodyWeight() {
+  if (!currentUser) return;
+  const { data, error } = await sb.from('body_weight_logs').select('*').eq('user_id', currentUser.id).order('logged_date', { ascending: false });
+  if (error || !data?.length) return;
+  S.weightLog = data.map(row => ({
+    id:     row.id,
+    date:   row.logged_date,
+    weight: Number(row.weight_kg),
+    notes:  row.notes || ''
+  }));
+}
+
+async function saveBodyWeight() {
+  if (!currentUser) return;
+  const entries = S.weightLog || [];
+  if (!entries.length) return;
+  await sb.from('body_weight_logs').upsert(
+    entries.map(e => ({
+      user_id:     currentUser.id,
+      logged_date: e.date,
+      weight_kg:   Number(e.weight),
+      notes:       e.notes || ''
+    })),
+    { onConflict: 'user_id,logged_date' }
+  );
+}
+
 /* ── fitness: workout templates, sessions, cardio, calories ── */
 async function loadFitness() {
   if (!currentUser) return;
@@ -646,6 +727,12 @@ async function saveFitness() {
   }
   const calIds = calories.map(e => `"${e.id}"`).join(',');
   if (calIds) await sb.from('calorie_entries').delete().eq('user_id', currentUser.id).not('app_id', 'in', `(${calIds})`);
+
+  // ── Exercise PBs + workout schedule (depend on templates being saved above) ──
+  await Promise.all([
+    saveExercisePbs().catch(e => console.error('[sync] saveExercisePbs failed:', e)),
+    saveWorkoutSchedule().catch(e => console.error('[sync] saveWorkoutSchedule failed:', e))
+  ]);
 }
 
 function setSyncStatus(status) {
@@ -709,7 +796,8 @@ async function saveToSupabase() {
     saveMedia().catch(e => console.error('[sync] saveMedia failed:', e)),
     saveHabits().catch(e => console.error('[sync] saveHabits failed:', e)),
     savePrayer().catch(e => console.error('[sync] savePrayer failed:', e)),
-    saveNotes().catch(e => console.error('[sync] saveNotes failed:', e))
+    saveNotes().catch(e => console.error('[sync] saveNotes failed:', e)),
+    saveBodyWeight().catch(e => console.error('[sync] saveBodyWeight failed:', e))
   ]);
 
   if (error) {
@@ -753,7 +841,7 @@ async function loadFromSupabase() {
   }
 
   S = normalizeAppState(data.data);
-  await Promise.all([loadUserSettings(), loadProjects(), loadMedia(), loadHabits(), loadPrayer(), loadNotes(), loadFitness()]);
+  await Promise.all([loadUserSettings(), loadProjects(), loadMedia(), loadHabits(), loadPrayer(), loadNotes(), loadBodyWeight(), loadWorkoutSchedule(), loadFitness()]);
   setSyncStatus('synced');
   return true;
 }

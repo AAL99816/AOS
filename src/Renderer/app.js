@@ -250,6 +250,7 @@ function renderAll(){
   renderProjects();
   renderBooks();
   if (typeof renderCardioSection === 'function') renderCardioSection();
+  if (typeof renderWeightLog === 'function') renderWeightLog();
   if (typeof renderWeeklyReview === 'function') renderWeeklyReview();
   applyReflectionVisibility();
 }

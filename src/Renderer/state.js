@@ -31,6 +31,7 @@ notes:{},
 workoutHistory:[],
 exerciseHistory:{},
 weeklyReflections:{},
+weightLog:[],
 appPrefs:{ showReflection: true, calorieMode: 'meal' },
 customStreaks:[],
 onboarded:false
@@ -173,6 +174,7 @@ function normalizeAppState(raw={}){
   out.exerciseHistory = out.exerciseHistory && typeof out.exerciseHistory === 'object' ? out.exerciseHistory : {};
   out.prayerLog = out.prayerLog && typeof out.prayerLog === 'object' ? out.prayerLog : {};
   out.weeklyReflections = out.weeklyReflections && typeof out.weeklyReflections === 'object' ? out.weeklyReflections : {};
+  out.weightLog = Array.isArray(out.weightLog) ? out.weightLog : [];
   out.appPrefs = deepMerge(DS.appPrefs, out.appPrefs || {});
   out.onboarded = typeof src.onboarded === 'boolean' ? src.onboarded : false;
   out.customStreaks = (Array.isArray(src.customStreaks) ? src.customStreaks : []).map(cs => ({

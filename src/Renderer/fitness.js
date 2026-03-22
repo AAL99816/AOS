@@ -10,6 +10,7 @@ function ensureFitnessState() {
   if (!Array.isArray(S.calorieHistory)) S.calorieHistory = [];
   if (!Array.isArray(S.workoutHistory)) S.workoutHistory = [];
   if (!S.exerciseHistory || typeof S.exerciseHistory !== 'object') S.exerciseHistory = {};
+  if (!Array.isArray(S.weightLog)) S.weightLog = [];
 }
 
 function normExerciseKey(name) {
@@ -44,6 +45,50 @@ function fmtPct(pct) {
   if (pct === null || Number.isNaN(pct)) return '';
   const sign = pct > 0 ? '+' : '';
   return `${sign}${pct.toFixed(1)}%`;
+}
+
+/* ══ BODY WEIGHT ══ */
+function logWeightEntry() {
+  ensureFitnessState();
+  const kg    = parseFloat(eid('weightKg').value);
+  const date  = eid('weightDate').value || today();
+  const notes = (eid('weightNotes').value || '').trim();
+  if (!kg || kg <= 0) { toast('Enter a weight'); return; }
+
+  // Replace existing entry for same date or push new
+  const idx = S.weightLog.findIndex(e => e.date === date);
+  const entry = { id: Date.now(), date, weight: kg, notes };
+  if (idx >= 0) S.weightLog[idx] = entry;
+  else S.weightLog.push(entry);
+
+  eid('weightKg').value    = '';
+  eid('weightNotes').value = '';
+  scheduleSave();
+  renderWeightLog();
+  toast('Weight logged');
+}
+
+function renderWeightLog() {
+  ensureFitnessState();
+  const c = eid('weightHistory');
+  if (!c) return;
+  const entries = [...S.weightLog].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 30);
+  if (!entries.length) { c.innerHTML = ''; return; }
+  c.innerHTML = entries.map(e =>
+    `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border-lt);font-size:0.78rem">
+      <span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:0.7rem;min-width:80px">${e.date}</span>
+      <span style="color:var(--cream);font-weight:600">${e.weight} kg</span>
+      ${e.notes ? `<span style="color:var(--muted-lt);flex:1">${escapeHtml(e.notes)}</span>` : ''}
+      <button onclick="deleteWeightEntry('${e.date}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.8rem;padding:0 4px">×</button>
+    </div>`
+  ).join('');
+}
+
+function deleteWeightEntry(date) {
+  ensureFitnessState();
+  S.weightLog = S.weightLog.filter(e => e.date !== date);
+  scheduleSave();
+  renderWeightLog();
 }
 
 /* ══ GYM WEEK ══ */
@@ -479,8 +524,11 @@ function logWorkoutSession(wcId) {
 
 /* ══ CARDIO ══ */
 function renderCardioSection() {
+  const wdEl = eid('weightDate');
+  if (wdEl && !wdEl.value) wdEl.value = today();
   renderCardioHistory();
   renderCalorieSection();
+  renderWeightLog();
 }
 
 function renderCardioHistory() {
