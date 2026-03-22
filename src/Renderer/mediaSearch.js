@@ -260,9 +260,12 @@ async function selectMediaResult(i) {
   eid('bkA').value = _autofillData.creator || r.creator || '';
   hideMediaDropdown();
 
-  // Upload cover to Supabase so it's always fast and permanent
+  // Upload cover to Supabase — disable Save until done so cover is always stored
   if (_autofillData.coverUrl) {
+    const saveBtn = document.querySelector('#mBook .btn-p');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Uploading cover…'; }
     _autofillData.coverUrl = await uploadExternalCover(_autofillData.coverUrl);
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
   }
 }
 
