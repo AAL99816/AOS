@@ -1254,6 +1254,14 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   </div>
 </div></div>
 
+<div class="modal-bg" id="mNoteExpand" onclick="if(event.target===this)closeNoteExpand()"><div class="modal" style="max-width:640px;width:96vw">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <input id="neLabel" class="editable" style="font-size:1rem;color:var(--cream);flex:1;margin-right:8px" placeholder="Note title…" oninput="updateExpandedLabel(this.value)">
+    <button class="btn btn-g" onclick="closeNoteExpand()">Done</button>
+  </div>
+  <textarea id="neBody" class="editable-area" style="min-height:60vh;resize:none" placeholder="Write here…" oninput="updateExpandedNote(this.value)"></textarea>
+</div></div>
+
 <div class="modal-bg" id="mOnboard"><div class="modal" style="width:480px">
   <h2 style="margin-bottom:6px" data-i18n="welcome_aos">Welcome to AOS</h2>
   <div style="font-size:0.72rem;color:var(--muted);margin-bottom:18px">Let's set up your personal dashboard in 3 steps.</div>

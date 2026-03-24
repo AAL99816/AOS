@@ -550,6 +550,7 @@ function renderChapterNotes() {
     card.innerHTML = `
       <div class="chapter-note-top">
         <input class="editable" value="${escapeAttr(n.label||'')}" onchange="updateChapterLabel(${n.id},this.value)">
+        <button class="chapter-note-del" onclick="expandNote(${n.id})" title="Expand" style="margin-right:2px;opacity:0.6">⤢</button>
         <button class="chapter-note-del" onclick="deleteChapterNote(${n.id})">✕</button>
       </div>
       <textarea class="editable-area" rows="4" placeholder="${t('notes_ph')}" oninput="updateChapterNote(${n.id},this.value)">${escapeHtml(n.note||'')}</textarea>
@@ -641,6 +642,37 @@ function addChapterNote() {
   scheduleSave(); renderChapterNotes();
 }
 
+let _expandNoteId = null;
+
+function expandNote(noteId) {
+  const b = getActiveBook(); if (!b) return;
+  const n = (b.chapterNotes || []).find(n => n.id === noteId);
+  if (!n) return;
+  _expandNoteId = noteId;
+  eid('neLabel').value = n.label || '';
+  eid('neBody').value  = n.note  || '';
+  openModal('mNoteExpand');
+}
+
+function updateExpandedLabel(val) {
+  const b = getActiveBook(); if (!b || !_expandNoteId) return;
+  const n = (b.chapterNotes || []).find(n => n.id === _expandNoteId);
+  if (n) { n.label = val; scheduleSave(); renderChapterNotes(); renderAlbumNotes(); }
+}
+
+function updateExpandedNote(val) {
+  const b = getActiveBook(); if (!b || !_expandNoteId) return;
+  const n = (b.chapterNotes || []).find(n => n.id === _expandNoteId);
+  if (n) { n.note = val; scheduleSave(); }
+}
+
+function closeNoteExpand() {
+  _expandNoteId = null;
+  closeModal('mNoteExpand');
+  renderChapterNotes();
+  renderAlbumNotes();
+}
+
 function updateChapterLabel(noteId, value) {
   const b = getActiveBook(); if (!b) return;
   const n = b.chapterNotes.find(n => n.id === noteId);
@@ -722,6 +754,7 @@ function renderAlbumNotes() {
     card.innerHTML = `
       <div class="chapter-note-top">
         <input class="editable" value="${escapeAttr(n.label||'')}" onchange="updateChapterLabel(${n.id},this.value);renderAlbumNotes()">
+        <button class="chapter-note-del" onclick="expandNote(${n.id})" title="Expand" style="margin-right:2px;opacity:0.6">⤢</button>
         <button class="chapter-note-del" onclick="deleteChapterNote(${n.id});renderAlbumNotes()">✕</button>
       </div>
       <textarea class="editable-area" rows="4" placeholder="${t('notes_ph')}" oninput="updateChapterNote(${n.id},this.value)">${escapeHtml(n.note||'')}</textarea>

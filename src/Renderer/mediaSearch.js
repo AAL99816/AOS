@@ -116,7 +116,8 @@ async function searchGames(q) {
     creator:  '',
     coverUrl: g.background_image || '',
     year:     (g.released || '').slice(0, 4),
-    platform: (g.platforms || []).map(p => p.platform.name).slice(0, 2).join(', ')
+    platform: (g.platforms || []).map(p => p.platform.name).slice(0, 2).join(', '),
+    rawgId:   g.id
   }));
 }
 
@@ -242,6 +243,16 @@ async function selectMediaResult(i) {
       _autofillData.runtime = fmtRuntime(detail.runtime);
       const director = (detail.credits?.crew || []).find(c => c.job === 'Director');
       if (director) _autofillData.creator = director.name;
+    } catch (e) { /* silently skip */ }
+  }
+
+  // Games — fetch developer from RAWG detail endpoint
+  if (type === 'game' && r.rawgId && RAWG_KEY) {
+    try {
+      const res    = await fetch(`https://api.rawg.io/api/games/${r.rawgId}?key=${RAWG_KEY}`);
+      const detail = await res.json();
+      const dev    = (detail.developers || [])[0]?.name || '';
+      if (dev) _autofillData.creator = dev;
     } catch (e) { /* silently skip */ }
   }
 
