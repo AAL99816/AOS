@@ -448,6 +448,75 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 .media-film-card .book-cover { height: 130px; }
 .media-album-card .book-cover { height: 140px; }
 
+/* ── Mobile: fix iOS zoom (inputs need 16px+) ── */
+@media(max-width:600px){
+  .mf input,.mf select,.mf textarea,
+  .add-inp,.editable { font-size:16px !important; }
+}
+
+/* ── Mobile: type filter tabs scroll horizontally ── */
+@media(max-width:700px){
+  .book-type-filters,.book-status-filters{
+    overflow-x:auto; overflow-y:hidden;
+    flex-wrap:nowrap; scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:4px;
+  }
+  .book-type-filters::-webkit-scrollbar,
+  .book-status-filters::-webkit-scrollbar{ display:none; }
+  .book-type-filters .fpill,
+  .book-status-filters .fpill{ flex-shrink:0; }
+}
+
+/* ── Mobile: album track rows stack vertically ── */
+@media(max-width:600px){
+  .track-row{
+    grid-template-columns: 20px 1fr 20px;
+    grid-template-rows: auto auto auto;
+  }
+  .track-dur-inp{ grid-column:2; }
+  .track-stars  { grid-column:2; }
+  .track-review { grid-column:1/-1; }
+}
+
+/* ── Mobile: search dropdown positioning ── */
+@media(max-width:600px){
+  #bkDropdown{
+    position:fixed !important;
+    left:3vw !important; right:3vw !important;
+    top:auto !important;
+    width:94vw !important;
+    max-height:50vh;
+    z-index:999;
+  }
+}
+
+/* ── Mobile: modal fills screen, sticky footer for Done/Save ── */
+@media(max-width:600px){
+  .modal{
+    width:100vw !important;
+    max-width:100vw !important;
+    max-height:92vh;
+    border-radius:18px 18px 0 0;
+    margin-top:auto;
+    padding:20px 18px 24px;
+  }
+  .modal-bg{ align-items:flex-end; }
+  .modal-acts{
+    position:sticky; bottom:0;
+    background:var(--panel);
+    padding:12px 0 4px;
+    margin-top:16px;
+  }
+  .book-detail-modal{ width:100vw !important; }
+}
+
+/* ── Upload cover progress indicator ── */
+#mBook .btn-p:disabled{
+  opacity:0.7; cursor:wait;
+  background:color-mix(in srgb,var(--blush) 40%,transparent);
+}
+
 /* Track row in album detail */
 .track-row {
   display: grid;
