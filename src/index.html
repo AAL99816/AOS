@@ -673,13 +673,39 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
   .review-grid{grid-template-columns:1fr;}
   .review-habit-name{width:100px;}
 }
+/* ── Pull-to-refresh indicator ── */
+#pullIndicator{
+  display:none; position:fixed; top:0; left:0; right:0; z-index:999;
+  justify-content:center; align-items:center; padding:10px;
+  background:color-mix(in srgb,var(--panel) 90%,transparent);
+  font-size:0.65rem; color:var(--muted); font-family:'DM Mono',monospace;
+  letter-spacing:0.08em; border-bottom:1px solid var(--border);
+}
+
 @media(max-width:600px){
-  nav{overflow-x:auto;overflow-y:hidden;gap:0;scrollbar-width:none;}
+  /* Safe area insets for notched phones */
+  nav{
+    position:fixed; bottom:0; left:0; right:0; top:auto;
+    border-top:1px solid var(--border); border-bottom:none;
+    padding:0 4px;
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    justify-content:space-around; overflow:visible; z-index:100;
+  }
   nav::-webkit-scrollbar{display:none;}
-  .tab{padding:12px 13px;font-size:0.65rem;}
+  .tab{
+    padding:10px 8px 8px;font-size:0.6rem;flex:1;
+    flex-direction:column;display:flex;align-items:center;gap:3px;
+    border-bottom:none;border-radius:0;
+  }
   /* Hide secondary nav buttons on mobile — accessible via Settings page */
-  .nav-right .nav-btn{display:none;}
-  .nav-right .sync-dot{display:flex;}
+  .nav-right{display:none;}
+  /* Main content clears fixed bottom nav */
+  main{
+    padding-top:18px;
+    padding-bottom:calc(70px + env(safe-area-inset-bottom, 0px) + 18px);
+  }
+  /* Hero clears top safe area */
+  .hero{padding-top:env(safe-area-inset-top,0px);}
   .hero-title h1{font-size:2rem;}
   .hero{height:170px;}
   .hero-content{padding:0 18px 18px;}
@@ -785,6 +811,15 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   font-size: 0.55rem; letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--blush); font-family: var(--font-mono); margin-bottom: 10px;
 }
+/* ── Touch active states ── */
+@media(hover:none){
+  .book-card:active,.project-card:active{transform:scale(0.97);opacity:0.88;transition:transform 0.08s,opacity 0.08s;}
+  .btn:active{transform:scale(0.95);transition:transform 0.08s;}
+  .tab:active{opacity:0.7;}
+  .fpill:active{transform:scale(0.96);}
+  .day-dot:active{transform:scale(0.9);}
+  .prayer-slot:active{transform:scale(0.95);}
+}
 </style>
 </head>
 <body>
@@ -847,6 +882,8 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 </div>
 
 <!-- ══ HERO ══ -->
+<div id="pullIndicator">↓ Release to sync</div>
+
 <div class="hero">
   <img class="hero-img" id="heroImg" src="" alt="">
   <div class="hero-overlay"></div>
@@ -1201,6 +1238,14 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 
   <div class="book-detail-kicker" style="margin-bottom:8px" data-i18n="tracklist">Tracklist</div>
   <div id="adTracks"></div>
+
+  <div class="book-detail-block" style="margin-top:14px">
+    <div class="book-detail-kicker">Listening Notes</div>
+    <div id="adChapterNotes" class="chapter-notes"></div>
+    <div class="book-detail-actions">
+      <button class="btn btn-g" onclick="addAlbumNote()">+ Add Note</button>
+    </div>
+  </div>
 
   <div class="book-detail-actions" style="margin-top:12px">
     <button class="btn btn-g" onclick="addTrack(activeBookId)" data-i18n="add_track">+ Add Track</button>

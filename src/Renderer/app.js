@@ -265,6 +265,7 @@ function setupInlineEdits(){
 /* ══ INIT ══ */
 async function initApp(){
   if(typeof restoreAppearance === 'function') restoreAppearance();
+  setupMobileUX();
   const hasData = await loadFromSupabase();
   eid('dateBadge').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   setupInlineEdits();
@@ -321,6 +322,76 @@ function showPastNoteDetail(dateStr) {
   eid('pnDetailContent').textContent = v;
   eid('pnDetail').style.display = '';
   eid('pnList').style.display = 'none';
+}
+
+/* ══ MOBILE GESTURES & UX ══ */
+
+const _TAB_ORDER = ['summary','today','fitness','projects','media'];
+
+function _getCurrentTabIndex() {
+  const active = document.querySelector('.tab.active');
+  if (!active) return 0;
+  const m = (active.getAttribute('onclick') || '').match(/go\('(\w+)'/);
+  return m ? _TAB_ORDER.indexOf(m[1]) : 0;
+}
+
+function _goByIndex(i) {
+  if (i < 0 || i >= _TAB_ORDER.length) return;
+  const name = _TAB_ORDER[i];
+  const btn  = document.querySelector(`.tab[onclick*="go('${name}'"]`);
+  go(name, btn);
+  if (typeof haptic === 'function') haptic(8);
+}
+
+function setupMobileUX() {
+  /* ── Swipe between tabs ── */
+  let _tx = 0, _ty = 0, _tt = 0;
+  document.addEventListener('touchstart', e => {
+    _tx = e.touches[0].clientX;
+    _ty = e.touches[0].clientY;
+    _tt = Date.now();
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    if (e.target.closest('.modal-bg.open') || e.target.closest('#bkDropdown')) return;
+    const dx = e.changedTouches[0].clientX - _tx;
+    const dy = e.changedTouches[0].clientY - _ty;
+    if (Date.now() - _tt > 400) return;
+    if (Math.abs(dy) > Math.abs(dx) * 0.6) return;
+    if (Math.abs(dx) < 55) return;
+    _goByIndex(_getCurrentTabIndex() + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+
+  /* ── Pull-to-refresh ── */
+  let _py = 0, _pulling = false;
+  const _ind = eid('pullIndicator');
+  document.addEventListener('touchstart', e => {
+    if (window.scrollY === 0) { _py = e.touches[0].clientY; _pulling = true; }
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!_pulling) return;
+    if (_ind && (e.touches[0].clientY - _py) > 55) _ind.style.display = 'flex';
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (!_pulling) return;
+    const dy = e.changedTouches[0].clientY - _py;
+    if (dy > 80 && typeof saveToSupabase === 'function') {
+      saveToSupabase();
+      if (typeof haptic === 'function') haptic(18);
+      if (_ind) { _ind.textContent = '✓ Syncing…'; setTimeout(() => { _ind.style.display = 'none'; _ind.textContent = '↓ Release to sync'; }, 1600); }
+    } else if (_ind) { _ind.style.display = 'none'; }
+    _pulling = false;
+  }, { passive: true });
+
+  /* ── Keyboard-aware modals (iOS) ── */
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      const open = document.querySelector('.modal-bg.open');
+      if (!open) return;
+      const offset = window.innerHeight - window.visualViewport.offsetTop - window.visualViewport.height;
+      open.style.paddingBottom = offset > 50 ? `${offset}px` : '';
+    });
+  }
 }
 
 // Booted by auth.js after session restore or login.

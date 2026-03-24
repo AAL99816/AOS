@@ -33,7 +33,10 @@ function weekLabelForOffset(offset) {
 }
 
 /* ══ PRAYER ══ */
+function haptic(ms) { if (navigator.vibrate) navigator.vibrate(ms || 10); }
+
 function togglePrayer(name) {
+  haptic(12);
   const d = today();
   if (!S.prayerLog) S.prayerLog = {};
   if (!S.prayerLog[d]) S.prayerLog[d] = {};
@@ -201,6 +204,7 @@ function updateHabitName(id, val) {
 }
 
 function toggleH(id, date) {
+  haptic(10);
   const h = (S.habits || []).find(h => h.id === id);
   if (!h) return;
   if (!h.days) h.days = {};

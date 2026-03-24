@@ -34,7 +34,20 @@ function mediaUnitLabel(mt) {
 }
 
 function mediaNotesLabel(mt) {
-  return (mt === 'show' || mt === 'anime') ? t('episode_notes') : mt === 'film' ? t('notes') : t('chapter_notes');
+  if (mt === 'show' || mt === 'anime') return 'Episode Notes';
+  if (mt === 'film')  return 'Watch Notes';
+  if (mt === 'game')  return 'Session Notes';
+  if (mt === 'album') return 'Listening Notes';
+  return 'Chapter Notes';
+}
+
+function mediaNoteDefaultLabel(mt, count) {
+  const n = count + 1;
+  if (mt === 'show' || mt === 'anime') return `Episode ${n}`;
+  if (mt === 'film')  return n === 1 ? 'First Watch' : `Rewatch ${n}`;
+  if (mt === 'game')  return n === 1 ? 'Initial Thoughts' : `Session ${n}`;
+  if (mt === 'album') return n === 1 ? 'First Listen' : `Listen ${n}`;
+  return `Chapter ${n}`;
 }
 
 function getBookPct(item) {
@@ -114,7 +127,7 @@ function buildBookCard(b, idx) {
   div.innerHTML = `
     <div class="book-cover" style="background:${pal}">
       ${b.coverUrl
-        ? `<img src="${escapeAttr(b.coverUrl)}" alt="">`
+        ? `<img src="${escapeAttr(b.coverUrl)}" alt="" loading="lazy">`
         : `<div class="book-cover-ph"><div class="ph-icon">◆</div><div>${escapeHtml(b.title)}</div></div>`}
       <div class="book-cover-overlay" onclick="event.stopPropagation()">
         <span>${t('add_cover')}</span>
@@ -148,7 +161,7 @@ function buildFilmCard(b, idx) {
   div.innerHTML = `
     <div class="book-cover" style="background:${pal}; height:130px">
       ${b.coverUrl
-        ? `<img src="${escapeAttr(b.coverUrl)}" alt="">`
+        ? `<img src="${escapeAttr(b.coverUrl)}" alt="" loading="lazy">`
         : `<div class="book-cover-ph"><div class="ph-icon">▶</div><div>${escapeHtml(b.title)}</div></div>`}
       <div class="book-cover-overlay" onclick="event.stopPropagation()">
         <span>${t('add_cover')}</span>
@@ -188,7 +201,7 @@ function buildShowCard(b, idx) {
   div.innerHTML = `
     <div class="book-cover" style="background:${pal}; height:130px">
       ${b.coverUrl
-        ? `<img src="${escapeAttr(b.coverUrl)}" alt="">`
+        ? `<img src="${escapeAttr(b.coverUrl)}" alt="" loading="lazy">`
         : `<div class="book-cover-ph"><div class="ph-icon">▶</div><div>${escapeHtml(b.title)}</div></div>`}
       <div class="book-cover-overlay" onclick="event.stopPropagation()">
         <span>${t('add_cover')}</span>
@@ -225,7 +238,7 @@ function buildAlbumCard(b, idx) {
   div.innerHTML = `
     <div class="book-cover" style="background:${pal}; height:140px">
       ${b.coverUrl
-        ? `<img src="${escapeAttr(b.coverUrl)}" alt="">`
+        ? `<img src="${escapeAttr(b.coverUrl)}" alt="" loading="lazy">`
         : `<div class="book-cover-ph"><div class="ph-icon">♪</div><div>${escapeHtml(b.title)}</div></div>`}
       <div class="book-cover-overlay" onclick="event.stopPropagation()">
         <span>${t('add_cover')}</span>
@@ -259,7 +272,7 @@ function buildGameCard(b, idx) {
   div.innerHTML = `
     <div class="book-cover" style="background:${pal}; height:130px">
       ${b.coverUrl
-        ? `<img src="${escapeAttr(b.coverUrl)}" alt="">`
+        ? `<img src="${escapeAttr(b.coverUrl)}" alt="" loading="lazy">`
         : `<div class="book-cover-ph"><div class="ph-icon">◈</div><div>${escapeHtml(b.title)}</div></div>`}
       <div class="book-cover-overlay" onclick="event.stopPropagation()">
         <span>${t('add_cover')}</span>
@@ -469,7 +482,7 @@ function renderBookDetails() {
 
   eid('bdProgressBlock').style.display  = isBook ? '' : 'none';
   eid('bdFilmBlock').style.display      = isFilm ? '' : 'none';
-  eid('bdChapterBlock').style.display   = isBook ? '' : 'none';
+  eid('bdChapterBlock').style.display   = ''; // all types get labeled notes
   eid('bdShowBlock').style.display      = isShow ? '' : 'none';
   eid('bdGameBlock').style.display      = isGame ? '' : 'none';
 
@@ -624,8 +637,7 @@ function updateActiveBookNotes(value) {
 function addChapterNote() {
   const b = getActiveBook(); if (!b) return;
   if (!Array.isArray(b.chapterNotes)) b.chapterNotes = [];
-  const unitLbl = mediaUnitLabel(b.mediaType);
-  b.chapterNotes.push({ id: Date.now(), label: `${unitLbl} ${b.chapterNotes.length + 1}`, note: '' });
+  b.chapterNotes.push({ id: Date.now(), label: mediaNoteDefaultLabel(b.mediaType, b.chapterNotes.length), note: '' });
   scheduleSave(); renderChapterNotes();
 }
 
@@ -663,6 +675,7 @@ function renderAlbumDetail() {
   eid('adRating').value = b.rating || '';
   eid('adNotes').value  = b.notes  || '';
   eid('adStatus').value = b.status || 'unread';
+  renderAlbumNotes();
 
   const avgRating = getAlbumRating(b);
   eid('adAvgRating').textContent = avgRating
@@ -692,6 +705,36 @@ function renderAlbumDetail() {
     `;
     wrap.appendChild(row);
   });
+}
+
+function renderAlbumNotes() {
+  const b = getActiveBook(); if (!b) return;
+  if (!Array.isArray(b.chapterNotes)) b.chapterNotes = [];
+  const wrap = eid('adChapterNotes'); if (!wrap) return;
+  wrap.innerHTML = '';
+  if (!b.chapterNotes.length) {
+    wrap.innerHTML = `<div style="color:var(--muted);font-size:0.76rem">${t('no_notes_yet')}</div>`;
+    return;
+  }
+  b.chapterNotes.forEach(n => {
+    const card = document.createElement('div');
+    card.className = 'chapter-note-card';
+    card.innerHTML = `
+      <div class="chapter-note-top">
+        <input class="editable" value="${escapeAttr(n.label||'')}" onchange="updateChapterLabel(${n.id},this.value);renderAlbumNotes()">
+        <button class="chapter-note-del" onclick="deleteChapterNote(${n.id});renderAlbumNotes()">✕</button>
+      </div>
+      <textarea class="editable-area" rows="4" placeholder="${t('notes_ph')}" oninput="updateChapterNote(${n.id},this.value)">${escapeHtml(n.note||'')}</textarea>
+    `;
+    wrap.appendChild(card);
+  });
+}
+
+function addAlbumNote() {
+  const b = getActiveBook(); if (!b) return;
+  if (!Array.isArray(b.chapterNotes)) b.chapterNotes = [];
+  b.chapterNotes.push({ id: Date.now(), label: mediaNoteDefaultLabel('album', b.chapterNotes.length), note: '' });
+  scheduleSave(); renderAlbumNotes();
 }
 
 function addTrack(albumId) {
