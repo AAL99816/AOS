@@ -344,13 +344,20 @@ function openSessionDetail(id){
   eid('sdDate').textContent = s.date || '';
   const ex = eid('sdExercises');
   if(s.exercises && s.exercises.length){
-    ex.innerHTML = s.exercises.map(e => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
-        <span style="font-size:0.82rem;color:var(--mist)">${escapeHtml(e.name||'')}</span>
-        <span style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted-lt)">
-          ${[e.sets, e.weight!=null?e.weight+'kg':null, e.reps!=null?e.reps+' reps':null].filter(Boolean).join(' · ')}
-        </span>
-      </div>`).join('');
+    ex.innerHTML = s.exercises.map(e => {
+      // Support both old flat format { weight, reps, sets } and new { loggedSets: [...] }
+      const setsArr = Array.isArray(e.loggedSets) ? e.loggedSets
+        : (e.weight != null ? [{ weight: e.weight, reps: e.reps, sets: e.sets }] : []);
+      return `
+        <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+          <div style="font-size:0.82rem;color:var(--mist);margin-bottom:5px">${escapeHtml(e.name||'')}</div>
+          ${setsArr.map((set, i) => `
+            <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--muted-lt);padding:2px 0;font-family:'DM Mono',monospace">
+              <span style="color:var(--muted)">Set ${i + 1}</span>
+              <span>${set.weight != null ? set.weight + 'kg' : ''}${set.weight != null && set.reps != null ? ' × ' : ''}${set.reps != null ? set.reps + ' reps' : ''}</span>
+            </div>`).join('')}
+        </div>`;
+    }).join('');
   } else {
     ex.innerHTML = `<div style="font-size:0.75rem;color:var(--muted);text-align:center;padding:20px">${escapeHtml(s.summary||t('no_exercise_data'))}</div>`;
   }
@@ -486,19 +493,24 @@ function logWorkoutSession(wcId) {
   const wc = S.workoutCards.find(w => w.id === wcId);
   if (!wc) return;
 
-  const summary = (wc.exercises || [])
+  const summary = exercises
     .map(ex => {
-      const last = getLastExerciseLog(ex.name);
-      return last ? `${ex.name} ${last.weight}kg×${last.reps}` : null;
+      const best = (ex.loggedSets || []).reduce((b, s) => (!b || (parseFloat(s.weight)||0) > (parseFloat(b.weight)||0)) ? s : b, null);
+      return best ? `${ex.name} ${best.weight}kg×${best.reps}` : null;
     })
     .filter(Boolean)
     .slice(0, 5)
     .join(' · ');
 
+  const todayStr = today();
   const exercises = (wc.exercises||[]).map(ex => {
-    const last = getLastExerciseLog(ex.name);
-    return { name: ex.name, sets: ex.sets, weight: last?.weight ?? null, reps: last?.reps ?? null };
-  });
+    const todaySets = (S.exerciseHistory[ex.name] || []).filter(e => e.date === todayStr);
+    if (!todaySets.length) {
+      const last = getLastExerciseLog(ex.name);
+      return last ? { name: ex.name, loggedSets: [{ weight: last.weight, reps: last.reps, sets: last.sets }] } : null;
+    }
+    return { name: ex.name, loggedSets: todaySets };
+  }).filter(Boolean);
 
   S.workoutHistory.push({
     id: Date.now(),

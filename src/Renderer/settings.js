@@ -200,7 +200,7 @@ function applyReflectionVisibility() {
 }
 
 /* ══ SETTINGS SUB-TABS ══ */
-const SETTINGS_TABS = ['profile','summary','today','fitness','projects','media'];
+const SETTINGS_TABS = ['profile','summary','today','fitness','projects','media','features'];
 
 function switchSettingsTab(tab) {
   SETTINGS_TABS.forEach(t2 => {
@@ -213,6 +213,61 @@ function switchSettingsTab(tab) {
   if (tab === 'fitness') _refreshCalModeBtns();
   if (tab === 'today')   { const stRef = eid('st-reflection'); if (stRef) stRef.checked = S.appPrefs?.showReflection !== false; }
   if (tab === 'summary') { const swRef = eid('st-weekly-reflection'); if (swRef) swRef.checked = S.appPrefs?.showWeeklyReflection !== false; }
+  if (tab === 'features') renderFeaturesPane();
+}
+
+function renderFeaturesPane() {
+  const pane = eid('stPane-features');
+  if (!pane) return;
+  const feats = [
+    { key:'moodTracking',      label:'Mood Tracking',       desc:'Log a daily mood score (1–10) in the Today tab' },
+    { key:'bodyWeight',        label:'Body Weight Log',      desc:'Track weight over time in the Fitness tab' },
+    { key:'annualGoals',       label:'Annual Goals',         desc:'Set yearly reading and workout targets in Summary' },
+    { key:'pomodoro',          label:'Pomodoro Timer',       desc:'Focus timer for projects (25 min work / 5 min break)' },
+    { key:'globalSearch',      label:'Global Search',        desc:'Search across all projects, media, habits, and notes' },
+    { key:'dataExport',        label:'Data Export',          desc:'Export your data as CSV files' },
+    { key:'exercisePbs',       label:'Exercise PBs',         desc:'Auto-track personal bests per exercise in Fitness' },
+    { key:'streakProtection',  label:'Streak Protection',    desc:'Allow one grace day per week without breaking streaks' },
+    { key:'financialTracking', label:'Financial Tracking',   desc:'Log income and expenses (coming soon)' },
+    { key:'aiInsights',        label:'AI Insights',          desc:'Weekly summary generated from your data (coming soon)' },
+  ];
+  pane.innerHTML = `
+    <div style="margin-bottom:14px">
+      <div style="font-size:0.7rem;color:var(--muted);margin-bottom:12px">Toggle features on or off. Changes apply immediately and are saved with your data.</div>
+      ${feats.map(f => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-size:0.82rem;color:var(--cream);margin-bottom:2px">${f.label}</div>
+            <div style="font-size:0.68rem;color:var(--muted)">${f.desc}</div>
+          </div>
+          <label class="toggle-switch" style="flex-shrink:0;margin-left:12px">
+            <input type="checkbox" ${(S.features||{})[f.key] ? 'checked' : ''} onchange="toggleFeature('${f.key}',this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      `).join('')}
+    </div>
+    <div style="margin-top:20px">
+      <div style="font-size:0.72rem;color:var(--cream);margin-bottom:10px;font-weight:500">Export Data</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px" id="exportBtns">
+        <button class="btn btn-g" onclick="exportCSV('media')" style="font-size:0.68rem">📚 Media</button>
+        <button class="btn btn-g" onclick="exportCSV('workouts')" style="font-size:0.68rem">🏋️ Workouts</button>
+        <button class="btn btn-g" onclick="exportCSV('habits')" style="font-size:0.68rem">🔥 Habits</button>
+        <button class="btn btn-g" onclick="exportCSV('cardio')" style="font-size:0.68rem">🏃 Cardio</button>
+        <button class="btn btn-g" onclick="exportCSV('calories')" style="font-size:0.68rem">🥗 Calories</button>
+        <button class="btn btn-g" onclick="exportCSV('weight')" style="font-size:0.68rem">⚖️ Weight</button>
+      </div>
+    </div>
+  `;
+}
+
+function toggleFeature(key, on) {
+  if (!S.features) S.features = {};
+  S.features[key] = on;
+  scheduleSave();
+  renderAll();
+  // Re-apply feature-specific visibility
+  if (typeof applyAllFeatures === 'function') applyAllFeatures();
 }
 
 function _refreshCalModeBtns() {

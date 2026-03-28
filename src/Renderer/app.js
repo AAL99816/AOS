@@ -253,6 +253,11 @@ function renderAll(){
   if (typeof renderWeightLog === 'function') renderWeightLog();
   if (typeof renderWeeklyReview === 'function') renderWeeklyReview();
   applyReflectionVisibility();
+  if (typeof applyAllFeatures         === 'function') applyAllFeatures();
+  if (typeof renderMoodSection        === 'function') renderMoodSection();
+  if (typeof renderBodyWeightSection  === 'function') renderBodyWeightSection();
+  if (typeof renderAnnualGoals        === 'function') renderAnnualGoals();
+  if (typeof renderExercisePbs        === 'function') renderExercisePbs();
 }
 
 /* ══ INLINE TITLE EDITING ══ */
@@ -342,6 +347,14 @@ function _goByIndex(i) {
   go(name, btn);
   if (typeof haptic === 'function') haptic(8);
 }
+
+// FEATURE: Global Search — Ctrl+K / Cmd+K shortcut — remove to disable
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    if (typeof openGlobalSearch === 'function' && feat('globalSearch')) openGlobalSearch();
+  }
+});
 
 function setupMobileUX() {
   /* ── Swipe between tabs ── */

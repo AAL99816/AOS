@@ -32,9 +32,23 @@ workoutHistory:[],
 exerciseHistory:{},
 weeklyReflections:{},
 weightLog:[],
+moodLog:{},
+annualGoals:null,
 appPrefs:{ showReflection: true, calorieMode: 'meal' },
 customStreaks:[],
-onboarded:false
+onboarded:false,
+features:{
+  moodTracking:      true,
+  bodyWeight:        true,
+  annualGoals:       true,
+  pomodoro:          true,
+  globalSearch:      true,
+  dataExport:        true,
+  exercisePbs:       true,
+  streakProtection:  false,
+  financialTracking: false,
+  aiInsights:        false,
+}
 
 };
 
@@ -175,6 +189,9 @@ function normalizeAppState(raw={}){
   out.prayerLog = out.prayerLog && typeof out.prayerLog === 'object' ? out.prayerLog : {};
   out.weeklyReflections = out.weeklyReflections && typeof out.weeklyReflections === 'object' ? out.weeklyReflections : {};
   out.weightLog = Array.isArray(out.weightLog) ? out.weightLog : [];
+  out.moodLog = out.moodLog && typeof out.moodLog === 'object' ? out.moodLog : {};
+  out.annualGoals = (out.annualGoals && typeof out.annualGoals === 'object') ? out.annualGoals : null;
+  out.features = deepMerge(DS.features, (src.features && typeof src.features === 'object') ? src.features : {});
   out.appPrefs = deepMerge(DS.appPrefs, out.appPrefs || {});
   out.onboarded = typeof src.onboarded === 'boolean' ? src.onboarded : false;
   out.customStreaks = (Array.isArray(src.customStreaks) ? src.customStreaks : []).map(cs => ({
