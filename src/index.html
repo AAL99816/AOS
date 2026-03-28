@@ -1029,17 +1029,9 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       </div>
       <div id="cardioHistory"></div>
     </div>
-    <div class="card" style="margin-bottom:16px">
-      <div style="margin-bottom:8px">
-        <span style="font-size:0.7rem;letter-spacing:0.08em;color:var(--muted)" data-i18n="calories">Calories</span>
-      </div>
-      <div id="calorieInputRow" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
-        <input id="calorieMeal" class="add-inp" style="flex:2;min-width:120px" placeholder="Meal / description" data-i18n-ph="calorie_meal_ph">
-        <input id="calorieAmount" class="add-inp" style="flex:1;min-width:80px" placeholder="kcal">
-        <input id="calorieDate" type="date" class="add-inp" style="flex:1;min-width:110px">
-        <button id="calorieLogBtn" class="btn btn-p" onclick="logCalorieSession()" data-i18n="log">Log</button>
-      </div>
-      <div id="calorieHistory"></div>
+    <div class="card" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <span style="font-size:0.72rem;color:var(--muted-lt)">Track meals and macros in the Food tab.</span>
+      <button class="btn btn-g" style="font-size:0.66rem;white-space:nowrap;flex-shrink:0" onclick="go('food',document.querySelector('.tab[onclick*=food]'))">Open Food</button>
     </div>
     <div class="card" style="margin-bottom:16px">
       <div style="margin-bottom:8px">
@@ -1572,17 +1564,52 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 <!-- Food Search Modal -->
 <div class="modal-bg" id="mFoodSearch" onclick="if(event.target===this)closeFoodSearch()">
   <div class="modal" style="max-width:480px;width:96vw;padding:0;overflow:hidden;border-radius:14px">
+
+    <!-- Header -->
     <div style="padding:13px 16px;border-bottom:1px solid var(--border)">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <span style="font-size:0.82rem;color:var(--cream)">Add to <span id="foodMealLabel" style="color:var(--gold-lt)">Breakfast</span></span>
         <button onclick="closeFoodSearch()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.78rem">✕</button>
       </div>
-      <input id="foodSearchInput" class="add-inp" placeholder="Search food…" autocomplete="off"
+      <!-- Mode tabs -->
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <button id="foodModeSearch" class="fpill active" style="font-size:0.68rem" onclick="setFoodMode('search')">Search</button>
+        <button id="foodModeQuick" class="fpill" style="font-size:0.68rem" onclick="setFoodMode('quick')">Quick Add</button>
+      </div>
+      <!-- Search input (hidden in quick mode) -->
+      <input id="foodSearchInput" class="add-inp" placeholder="Search food database…" autocomplete="off"
         style="width:100%;box-sizing:border-box" oninput="onFoodSearchInput()">
     </div>
-    <div id="foodSearchResults" style="max-height:40vh;overflow-y:auto"></div>
 
-    <!-- Add form (shown after selection) -->
+    <!-- Search results / recent foods -->
+    <div id="foodSearchResults" style="max-height:42vh;overflow-y:auto"></div>
+
+    <!-- Quick Add form (full macros, no search needed) -->
+    <div id="foodQuickAddForm" style="display:none;padding:14px 16px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div class="mf" style="margin:0;grid-column:1/-1"><label style="font-size:0.7rem">Name</label><input id="qaName" class="add-inp" placeholder="e.g. Chicken rice bowl"></div>
+        <div class="mf" style="margin:0"><label style="font-size:0.7rem">Calories (kcal)</label><input id="qaKcal" type="number" class="add-inp" placeholder="0" min="0" oninput="_qaEstimateMacros()"></div>
+        <div class="mf" style="margin:0"><label style="font-size:0.7rem">Protein (g)</label><input id="qaProtein" type="number" class="add-inp" placeholder="0" min="0"></div>
+        <div class="mf" style="margin:0"><label style="font-size:0.7rem">Carbs (g)</label><input id="qaCarbs" type="number" class="add-inp" placeholder="0" min="0"></div>
+        <div class="mf" style="margin:0"><label style="font-size:0.7rem">Fat (g)</label><input id="qaFat" type="number" class="add-inp" placeholder="0" min="0"></div>
+        <div class="mf" style="margin:0"><label style="font-size:0.7rem">Fiber (g)</label><input id="qaFiber" type="number" class="add-inp" placeholder="0" min="0"></div>
+        <div class="mf" style="margin:0;grid-column:1/-1"><label style="font-size:0.7rem">Meal</label>
+          <select id="qaMeal" class="add-inp" style="width:100%">
+            <option value="breakfast">Breakfast</option>
+            <option value="lunch">Lunch</option>
+            <option value="dinner">Dinner</option>
+            <option value="snacks">Snacks</option>
+          </select>
+        </div>
+      </div>
+      <div id="qaCalcHint" style="font-size:0.62rem;color:var(--muted);margin-bottom:10px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-g" onclick="closeFoodSearch()">Cancel</button>
+        <button class="btn btn-p" onclick="saveQuickAdd()">Add</button>
+      </div>
+    </div>
+
+    <!-- Add form (shown after search result selection) -->
     <div id="foodAddForm" style="display:none;padding:14px 16px;border-top:1px solid var(--border)">
       <div class="mf" style="margin-bottom:8px"><label style="font-size:0.7rem">Name</label><input id="foodAddName" class="add-inp" placeholder="Food name"></div>
       <div class="mf" style="margin-bottom:8px"><label style="font-size:0.7rem">Brand</label><input id="foodAddBrand" class="add-inp" placeholder="Brand (optional)"></div>
@@ -1609,7 +1636,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
         </div>
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
-        <button class="btn btn-g" onclick="closeFoodSearch()">Cancel</button>
+        <button class="btn btn-g" onclick="_backToSearch()">Back</button>
         <button class="btn btn-p" onclick="saveFoodEntry()">Add</button>
       </div>
     </div>

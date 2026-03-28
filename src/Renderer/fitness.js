@@ -549,7 +549,6 @@ function renderCardioSection() {
   const wdEl = eid('weightDate');
   if (wdEl && !wdEl.value) wdEl.value = today();
   renderCardioHistory();
-  renderCalorieSection();
   renderWeightLog();
 }
 

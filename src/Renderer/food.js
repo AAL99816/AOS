@@ -47,14 +47,36 @@ function renderFoodMacroBar() {
   const entries = S.foodLog[_foodEffectiveDate()] || [];
   const totals = _sumMacros(entries);
   const T = S.foodTargets;
+
+  const remaining = T.kcal - Math.round(totals.kcal);
+  const over      = remaining < 0;
+  const remColor  = over ? 'var(--petal)' : 'var(--gold-lt)';
+  const remLabel  = over ? `${Math.abs(remaining)} kcal over` : `${remaining} kcal remaining`;
+  const consumed  = Math.round(totals.kcal);
+  const pct       = T.kcal ? Math.min(100, Math.round((consumed / T.kcal) * 100)) : 0;
+
   el.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px">
-      ${_macroCell('Calories', totals.kcal, T.kcal, 'kcal', 'var(--blush)')}
-      ${_macroCell('Protein',  totals.protein, T.protein, 'g', 'var(--gold)')}
-      ${_macroCell('Carbs',    totals.carbs,   T.carbs,   'g', 'var(--petal)')}
-      ${_macroCell('Fat',      totals.fat,     T.fat,     'g', 'var(--muted-lt)')}
+    <!-- Calorie budget banner -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div>
+        <div style="font-size:1.6rem;font-family:'DM Mono',monospace;color:${remColor};font-weight:500;line-height:1">${Math.abs(remaining)}</div>
+        <div style="font-size:0.62rem;color:var(--muted);margin-top:2px">${over ? 'kcal over goal' : 'kcal remaining'}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:0.68rem;color:var(--muted);font-family:'DM Mono',monospace">${consumed} <span style="color:var(--muted)">/ ${T.kcal} eaten</span></div>
+        <div style="font-size:0.58rem;color:var(--muted);margin-top:2px;cursor:pointer;text-decoration:underline" onclick="openFoodTargets()">Edit targets</div>
+      </div>
     </div>
-    <div style="font-size:0.64rem;color:var(--muted);text-align:right;cursor:pointer;text-decoration:underline" onclick="openFoodTargets()">Edit targets</div>`;
+    <!-- Calorie progress bar -->
+    <div style="height:5px;background:var(--mid);border-radius:3px;overflow:hidden;margin-bottom:14px">
+      <div style="height:100%;width:${pct}%;background:${over?'var(--petal)':'var(--blush)'};border-radius:3px;transition:width 0.3s"></div>
+    </div>
+    <!-- Macro grid -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      ${_macroCell('Protein', totals.protein, T.protein, 'g', 'var(--gold)')}
+      ${_macroCell('Carbs',   totals.carbs,   T.carbs,   'g', 'var(--petal)')}
+      ${_macroCell('Fat',     totals.fat,     T.fat,     'g', 'var(--muted-lt)')}
+    </div>`;
 }
 
 function _macroCell(label, val, target, unit, color) {
@@ -128,19 +150,22 @@ function _foodEntryRow(e) {
 // ── Food search ───────────────────────────────────────────────
 
 let _currentMeal = 'breakfast';
+let _foodMode    = 'search'; // 'search' | 'quick'
 
 function openFoodSearch(meal) {
   _currentMeal = meal || 'breakfast';
   _foodResults = [];
+  _foodMode    = 'search';
   const modal = eid('mFoodSearch');
   if (!modal) return;
   modal.classList.add('open');
-  const inp = eid('foodSearchInput');
-  if (inp) { inp.value = ''; inp.focus(); }
-  eid('foodSearchResults').innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:20px;text-align:center">Search for any food…</div>`;
-  eid('foodAddForm').style.display = 'none';
+  _applyFoodMode('search');
+  // Pre-select the correct meal in Quick Add
+  const qaMeal = eid('qaMeal');
+  if (qaMeal) qaMeal.value = _currentMeal;
   const lbl = eid('foodMealLabel');
   if (lbl) lbl.textContent = MEAL_LABELS[meal] || meal;
+  setTimeout(() => eid('foodSearchInput')?.focus(), 80);
 }
 
 function closeFoodSearch() {
@@ -149,10 +174,124 @@ function closeFoodSearch() {
   _foodResults = [];
 }
 
+function setFoodMode(mode) {
+  _foodMode = mode;
+  _applyFoodMode(mode);
+}
+
+function _applyFoodMode(mode) {
+  const searchInp     = eid('foodSearchInput');
+  const resultsPane   = eid('foodSearchResults');
+  const quickForm     = eid('foodQuickAddForm');
+  const addForm       = eid('foodAddForm');
+  const modeBtnSearch = eid('foodModeSearch');
+  const modeBtnQuick  = eid('foodModeQuick');
+
+  if (mode === 'quick') {
+    if (searchInp)     searchInp.style.display   = 'none';
+    if (resultsPane)   resultsPane.style.display  = 'none';
+    if (quickForm)     quickForm.style.display    = '';
+    if (addForm)       addForm.style.display      = 'none';
+    if (modeBtnSearch) modeBtnSearch.classList.remove('active');
+    if (modeBtnQuick)  modeBtnQuick.classList.add('active');
+    // Clear + focus name field
+    const qaName = eid('qaName');
+    if (qaName) { qaName.value = ''; setTimeout(() => qaName.focus(), 80); }
+    ['qaKcal','qaProtein','qaCarbs','qaFat','qaFiber'].forEach(id => { const el = eid(id); if (el) el.value = ''; });
+    const qaMeal = eid('qaMeal');
+    if (qaMeal) qaMeal.value = _currentMeal;
+    const hint = eid('qaCalcHint');
+    if (hint) hint.textContent = '';
+  } else {
+    if (searchInp)     searchInp.style.display   = '';
+    if (resultsPane)   resultsPane.style.display  = '';
+    if (quickForm)     quickForm.style.display    = 'none';
+    if (addForm)       addForm.style.display      = 'none';
+    if (modeBtnSearch) modeBtnSearch.classList.add('active');
+    if (modeBtnQuick)  modeBtnQuick.classList.remove('active');
+    if (searchInp)     searchInp.value = '';
+    _showRecentFoods();
+  }
+}
+
+function _backToSearch() {
+  const addForm = eid('foodAddForm');
+  if (addForm) addForm.style.display = 'none';
+  const searchInp   = eid('foodSearchInput');
+  const resultsPane = eid('foodSearchResults');
+  if (searchInp)   searchInp.style.display   = '';
+  if (resultsPane) resultsPane.style.display  = '';
+  if (searchInp)   { searchInp.value = ''; searchInp.focus(); }
+  _showRecentFoods();
+}
+
+function _getRecentFoods(limit = 10) {
+  // Collect all entries across all days, deduplicate by name, most recent first
+  const seen = new Set();
+  const recents = [];
+  const allDays = Object.keys(S.foodLog || {}).sort().reverse();
+  for (const d of allDays) {
+    for (const e of [...(S.foodLog[d] || [])].reverse()) {
+      const key = e.name.toLowerCase();
+      if (!seen.has(key) && e.name) {
+        seen.add(key);
+        recents.push(e);
+        if (recents.length >= limit) return recents;
+      }
+    }
+  }
+  return recents;
+}
+
+function _showRecentFoods() {
+  const el = eid('foodSearchResults');
+  if (!el) return;
+  const recents = _getRecentFoods(10);
+  if (!recents.length) {
+    el.innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:20px;text-align:center">Search the food database or use Quick Add</div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">Recent</div>
+    ${recents.map((r, i) => `
+      <div onclick="selectRecentFood(${i})"
+        style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
+        onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.82rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.name)}</div>
+          ${r.brand ? `<div style="font-size:0.62rem;color:var(--muted)">${escapeHtml(r.brand)}</div>` : ''}
+        </div>
+        <div style="font-size:0.68rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(r.kcal)} kcal</div>
+      </div>`).join('')}`;
+  // store for later reference
+  el._recentFoods = recents;
+}
+
+function selectRecentFood(i) {
+  const el = eid('foodSearchResults');
+  const recents = el?._recentFoods || _getRecentFoods(10);
+  const r = recents[i];
+  if (!r) return;
+  // Re-add with same macros, no gram scaling needed (stored as consumed values)
+  if (!S.foodLog) S.foodLog = {};
+  const _date = _foodEffectiveDate();
+  if (!S.foodLog[_date]) S.foodLog[_date] = [];
+  S.foodLog[_date].push({
+    id: Date.now(),
+    name: r.name, brand: r.brand || '', meal: _currentMeal,
+    grams: r.grams, kcal: r.kcal, protein: r.protein,
+    carbs: r.carbs, fat: r.fat, fiber: r.fiber, per100g: r.per100g
+  });
+  scheduleSave();
+  closeFoodSearch();
+  renderFoodTab();
+  toast(`${r.name} added`);
+}
+
 function onFoodSearchInput() {
   clearTimeout(_foodSearchTimer);
   const q = eid('foodSearchInput')?.value.trim();
-  if (!q) { eid('foodSearchResults').innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:20px;text-align:center">Start typing to search…</div>`; return; }
+  if (!q) { _showRecentFoods(); return; }
   eid('foodSearchResults').innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:20px;text-align:center">Searching…</div>`;
   _foodSearchTimer = setTimeout(() => _doFoodSearch(q), 400);
 }
@@ -178,7 +317,7 @@ async function _doFoodSearch(q) {
       .filter(p => p.per100g.kcal > 0);
 
     if (!_foodResults.length) {
-      eid('foodSearchResults').innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:20px;text-align:center">No results — try a different search or add manually</div>`;
+      eid('foodSearchResults').innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:20px;text-align:center">No results — try Quick Add to enter manually</div>`;
       return;
     }
     eid('foodSearchResults').innerHTML = _foodResults.map((r, i) => `
@@ -190,14 +329,9 @@ async function _doFoodSearch(q) {
           ${r.brand ? `<div style="font-size:0.65rem;color:var(--muted)">${escapeHtml(r.brand)}</div>` : ''}
         </div>
         <div style="font-size:0.7rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(r.per100g.kcal)} kcal/100g</div>
-      </div>`).join('') +
-      `<div onclick="selectFoodManual()"
-        style="padding:10px 14px;cursor:pointer;color:var(--muted);font-size:0.74rem;border-top:1px solid var(--border);transition:background 0.12s"
-        onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
-        Add manually instead
-      </div>`;
+      </div>`).join('');
   } catch(e) {
-    eid('foodSearchResults').innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:20px;text-align:center">Search failed — check connection or add manually</div>`;
+    eid('foodSearchResults').innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:20px;text-align:center">Search failed — use Quick Add to enter manually</div>`;
   }
 }
 
@@ -213,6 +347,57 @@ function selectFoodManual() {
   eid('foodAddName').value  = '';
   eid('foodAddBrand').value = '';
   _showFoodAddForm(null, true);
+}
+
+// ── Quick Add ─────────────────────────────────────────────────
+
+function _qaEstimateMacros() {
+  // If only kcal is entered and protein/carbs/fat are all 0, show a hint
+  const kcal    = parseFloat(eid('qaKcal')?.value) || 0;
+  const protein = parseFloat(eid('qaProtein')?.value) || 0;
+  const carbs   = parseFloat(eid('qaCarbs')?.value) || 0;
+  const fat     = parseFloat(eid('qaFat')?.value) || 0;
+  const hint    = eid('qaCalcHint');
+  if (!hint) return;
+  if (kcal > 0 && protein === 0 && carbs === 0 && fat === 0) {
+    hint.textContent = 'Tip: enter protein/carbs/fat for full macro tracking, or leave blank for kcal-only.';
+  } else {
+    const fromMacros = protein * 4 + carbs * 4 + fat * 9;
+    if (fromMacros > 0 && Math.abs(fromMacros - kcal) > 20) {
+      hint.textContent = `Macro total: ~${Math.round(fromMacros)} kcal (differs from entered ${Math.round(kcal)})`;
+    } else {
+      hint.textContent = '';
+    }
+  }
+}
+
+function saveQuickAdd() {
+  const name    = eid('qaName')?.value.trim();
+  const kcal    = parseFloat(eid('qaKcal')?.value)    || 0;
+  const protein = parseFloat(eid('qaProtein')?.value) || 0;
+  const carbs   = parseFloat(eid('qaCarbs')?.value)   || 0;
+  const fat     = parseFloat(eid('qaFat')?.value)     || 0;
+  const fiber   = parseFloat(eid('qaFiber')?.value)   || 0;
+  const meal    = eid('qaMeal')?.value || _currentMeal;
+
+  if (!name)          { toast('Enter a food name'); return; }
+  if (!kcal && !protein && !carbs && !fat) { toast('Enter at least calories or macros'); return; }
+
+  if (!S.foodLog) S.foodLog = {};
+  const _date = _foodEffectiveDate();
+  if (!S.foodLog[_date]) S.foodLog[_date] = [];
+
+  S.foodLog[_date].push({
+    id: Date.now(),
+    name, brand: '', meal, grams: 0,
+    kcal, protein, carbs, fat, fiber,
+    per100g: null
+  });
+
+  scheduleSave();
+  closeFoodSearch();
+  renderFoodTab();
+  toast(`${name} added`);
 }
 
 function _showFoodAddForm(per100g, manual) {

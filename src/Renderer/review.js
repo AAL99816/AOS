@@ -65,6 +65,11 @@ function renderWeeklyReview() {
   /* ── Cardio ── */
   const cardioTotal = days.reduce((sum, d) => sum + ((S.cardioLog||{})[d]||0), 0);
 
+  /* ── Food / Calories ── */
+  const foodDayKcals = days.map(d => ((S.foodLog||{})[d]||[]).reduce((s,e) => s+(e.kcal||0), 0));
+  const foodLoggedDays = foodDayKcals.filter(v => v > 0).length;
+  const foodAvgKcal = foodLoggedDays ? Math.round(foodDayKcals.reduce((s,v)=>s+v,0) / foodLoggedDays) : 0;
+
   /* ── Media ── */
   const activeMedia = (S.media||[]).filter(m => m.status === 'reading');
   const finishedMedia = (S.media||[]).filter(m => m.status === 'done' && days.includes(m.finishedOn));
@@ -130,6 +135,21 @@ function renderWeeklyReview() {
         <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">${t('cardio')}</div>
         <div style="font-size:0.9rem;color:${cardioTotal>0?'var(--gold-lt)':'var(--muted)'};font-family:'DM Mono',monospace">${cardioTotal>0?cardioTotal+' min':'—'}</div>
       </div>
+
+      ${foodLoggedDays > 0 ? `
+      <div class="review-block">
+        <div class="review-kicker">Nutrition</div>
+        <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Daily avg · ${foodLoggedDays} day${foodLoggedDays!==1?'s':''} logged</div>
+        <div style="font-size:1.4rem;color:var(--gold-lt);font-family:'DM Mono',monospace;font-weight:500">${foodAvgKcal.toLocaleString()} <span style="font-size:0.7rem;color:var(--muted)">kcal</span></div>
+        <div style="margin-top:8px;display:flex;gap:14px;font-size:0.68rem;font-family:'DM Mono',monospace">
+          ${['protein','carbs','fat'].map(m => {
+            const total = days.reduce((s,d) => s+((S.foodLog?.[d]||[]).reduce((ss,e)=>ss+(e[m]||0),0)),0);
+            const avg = foodLoggedDays ? Math.round(total/foodLoggedDays) : 0;
+            const colors = {protein:'var(--gold)',carbs:'var(--petal)',fat:'var(--muted-lt)'};
+            return `<span style="color:${colors[m]}">${avg}g <span style="color:var(--muted);font-size:0.58rem">${m}</span></span>`;
+          }).join('')}
+        </div>
+      </div>` : ''}
 
     </div>
 
