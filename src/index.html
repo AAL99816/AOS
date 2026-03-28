@@ -932,6 +932,8 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   <button class="tab" onclick="go('fitness',this)" data-i18n="nav_fitness">Fitness</button>
   <button class="tab" onclick="go('projects',this)" data-i18n="nav_projects">Projects</button>
   <button class="tab" onclick="go('media',this)" data-i18n="nav_media">Media</button>
+  <button class="tab" onclick="go('focus',this)">Focus</button>
+  <button class="tab" onclick="go('food',this)">Food</button>
   <div class="nav-right">
     <div class="sync-dot" id="syncDot" title="Sync status"></div>
     <!-- FEATURE: Global Search button — remove to disable -->
@@ -1010,12 +1012,6 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <div id="bodyWeightList"></div>
     </div>
     <!-- END FEATURE: Body Weight Log -->
-    <!-- FEATURE: Exercise PBs — remove this block to disable -->
-    <div id="exercisePbsSection" class="card" style="margin-bottom:16px;display:none">
-      <div style="font-size:0.7rem;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:10px">Personal Bests</div>
-      <div id="exercisePbsList"></div>
-    </div>
-    <!-- END FEATURE: Exercise PBs -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div class="sec" style="margin:0" data-i18n="cardio">Cardio</div>
     </div>
@@ -1061,6 +1057,56 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
     <div class="gym-week" id="gymWeek"></div>
     <div class="g3" id="workoutCards"></div>
     <div id="trainingLog" style="margin-top:26px"></div>
+    <!-- FEATURE: Exercise PBs — remove this block to disable -->
+    <div id="exercisePbsSection" class="card" style="margin-top:20px;display:none">
+      <div style="font-size:0.7rem;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:10px">Personal Bests</div>
+      <div id="exercisePbsList"></div>
+    </div>
+    <!-- END FEATURE: Exercise PBs -->
+  </div>
+
+  <!-- FOCUS TAB -->
+  <div id="panel-focus" class="panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div class="sec" style="margin:0">Focus</div>
+      <button class="btn btn-p" onclick="addFocusItem()" style="font-size:0.74rem">+ Add</button>
+    </div>
+
+    <!-- Timer -->
+    <div class="card" style="text-align:center;margin-bottom:20px;padding:28px 20px">
+      <div id="focusActiveLabel" style="font-size:0.7rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;min-height:1rem"></div>
+      <div id="focusTimerDisplay" style="font-size:3.5rem;font-family:'DM Mono',monospace;color:var(--cream);letter-spacing:0.04em;line-height:1">25:00</div>
+      <div id="focusPhaseLabel" style="font-size:0.68rem;color:var(--muted);margin-top:6px;margin-bottom:16px">Work session</div>
+      <div style="display:flex;justify-content:center;gap:10px">
+        <button id="focusStartBtn" class="btn btn-p" onclick="toggleFocusTimer()" style="min-width:90px">Start</button>
+        <button class="btn btn-g" onclick="resetFocusTimer()" style="font-size:0.72rem">Reset</button>
+      </div>
+      <div style="margin-top:14px;display:flex;justify-content:center;gap:18px;font-size:0.68rem;color:var(--muted)">
+        <label style="cursor:pointer">Work <input type="number" id="focusWorkMins" value="25" min="1" max="120" style="width:36px;background:none;border:none;border-bottom:1px solid var(--border-lt);color:var(--gold-lt);text-align:center;font-size:0.68rem;outline:none"> min</label>
+        <label style="cursor:pointer">Break <input type="number" id="focusBreakMins" value="5" min="1" max="60" style="width:28px;background:none;border:none;border-bottom:1px solid var(--border-lt);color:var(--gold-lt);text-align:center;font-size:0.68rem;outline:none"> min</label>
+      </div>
+    </div>
+
+    <!-- Focus items list -->
+    <div id="focusItemsList"></div>
+  </div>
+
+  <!-- FOOD TAB -->
+  <div id="panel-food" class="panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="sec" style="margin:0">Food</div>
+      <input id="foodDate" type="date" class="add-inp" style="width:auto;font-size:0.74rem">
+    </div>
+
+    <!-- Macro bar -->
+    <div class="card" style="margin-bottom:16px" id="foodMacroBar"></div>
+
+    <!-- Meal sections -->
+    <div id="foodMeals"></div>
+
+    <div style="font-size:0.62rem;color:var(--muted);text-align:center;margin-top:8px">
+      Food data from <a href="https://world.openfoodfacts.org" target="_blank" style="color:var(--muted);text-decoration:underline">Open Food Facts</a> (CC BY-SA)
+    </div>
   </div>
 
   <!-- GOALS -->
@@ -1523,6 +1569,80 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   </div>
 </div>
 
+<!-- Food Search Modal -->
+<div class="modal-bg" id="mFoodSearch" onclick="if(event.target===this)closeFoodSearch()">
+  <div class="modal" style="max-width:480px;width:96vw;padding:0;overflow:hidden;border-radius:14px">
+    <div style="padding:13px 16px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:0.82rem;color:var(--cream)">Add to <span id="foodMealLabel" style="color:var(--gold-lt)">Breakfast</span></span>
+        <button onclick="closeFoodSearch()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.78rem">✕</button>
+      </div>
+      <input id="foodSearchInput" class="add-inp" placeholder="Search food…" autocomplete="off"
+        style="width:100%;box-sizing:border-box" oninput="onFoodSearchInput()">
+    </div>
+    <div id="foodSearchResults" style="max-height:40vh;overflow-y:auto"></div>
+
+    <!-- Add form (shown after selection) -->
+    <div id="foodAddForm" style="display:none;padding:14px 16px;border-top:1px solid var(--border)">
+      <div class="mf" style="margin-bottom:8px"><label style="font-size:0.7rem">Name</label><input id="foodAddName" class="add-inp" placeholder="Food name"></div>
+      <div class="mf" style="margin-bottom:8px"><label style="font-size:0.7rem">Brand</label><input id="foodAddBrand" class="add-inp" placeholder="Brand (optional)"></div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <div class="mf" style="flex:1;margin:0"><label style="font-size:0.7rem">Grams</label><input id="foodAddGrams" type="number" class="add-inp" value="100" min="1" oninput="_updateFoodMacroPreview()"></div>
+        <div class="mf" style="flex:1;margin:0"><label style="font-size:0.7rem">Meal</label>
+          <select id="foodAddMeal" class="add-inp" style="width:100%">
+            <option value="breakfast">Breakfast</option>
+            <option value="lunch">Lunch</option>
+            <option value="dinner">Dinner</option>
+            <option value="snacks">Snacks</option>
+          </select>
+        </div>
+      </div>
+      <div id="foodMacroPreview"></div>
+      <!-- Manual macro fields -->
+      <div id="foodManualMacros" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div class="mf" style="margin:0"><label style="font-size:0.7rem">Calories (kcal)</label><input id="foodManualKcal" type="number" class="add-inp" placeholder="0" min="0"></div>
+          <div class="mf" style="margin:0"><label style="font-size:0.7rem">Protein (g)</label><input id="foodManualProtein" type="number" class="add-inp" placeholder="0" min="0"></div>
+          <div class="mf" style="margin:0"><label style="font-size:0.7rem">Carbs (g)</label><input id="foodManualCarbs" type="number" class="add-inp" placeholder="0" min="0"></div>
+          <div class="mf" style="margin:0"><label style="font-size:0.7rem">Fat (g)</label><input id="foodManualFat" type="number" class="add-inp" placeholder="0" min="0"></div>
+          <div class="mf" style="margin:0"><label style="font-size:0.7rem">Fiber (g)</label><input id="foodManualFiber" type="number" class="add-inp" placeholder="0" min="0"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+        <button class="btn btn-g" onclick="closeFoodSearch()">Cancel</button>
+        <button class="btn btn-p" onclick="saveFoodEntry()">Add</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Food Targets Modal -->
+<div class="modal-bg" id="mFoodTargets" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:340px">
+    <h2>Daily Targets</h2>
+    <div class="mf"><label>Calories (kcal)</label><input id="ftKcal" type="number" class="add-inp" min="0"></div>
+    <div class="mf"><label>Protein (g)</label><input id="ftProtein" type="number" class="add-inp" min="0"></div>
+    <div class="mf"><label>Carbs (g)</label><input id="ftCarbs" type="number" class="add-inp" min="0"></div>
+    <div class="mf"><label>Fat (g)</label><input id="ftFat" type="number" class="add-inp" min="0"></div>
+    <div class="modal-acts">
+      <button class="btn btn-g" onclick="eid('mFoodTargets').classList.remove('open')">Cancel</button>
+      <button class="btn btn-p" onclick="saveFoodTargets()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Focus Add Modal -->
+<div class="modal-bg" id="mFocusAdd" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:400px">
+    <h2>Add Focus Item</h2>
+    <div id="focusAddBody"></div>
+    <div class="modal-acts">
+      <button class="btn btn-g" onclick="eid('mFocusAdd').classList.remove('open')">Cancel</button>
+      <button class="btn btn-p" onclick="saveFocusItem()">Add</button>
+    </div>
+  </div>
+</div>
+
 <!-- FEATURE: Pomodoro Widget — remove this block to disable -->
 <div id="pomodoroWidget" style="display:none;position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 74px);right:16px;z-index:150;background:var(--panel);border:2px solid var(--blush);border-radius:16px;padding:12px 18px;box-shadow:0 8px 32px rgba(0,0,0,0.6);min-width:130px;text-align:center">
   <div id="pomodoroPhase" style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px">Focus</div>
@@ -1584,6 +1704,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 <script src="./Renderer/modals.js"></script>
 <script src="./Renderer/settings.js"></script>
 <script src="./Renderer/features.js"></script>
+<script src="./Renderer/food.js"></script>
 <script src="./Renderer/app.js"></script>
 <div id="updateBanner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--blush);color:var(--cream);padding:10px 22px;border-radius:20px;font-size:0.78rem;font-family:'Jost',sans-serif;letter-spacing:0.04em;z-index:9999;cursor:pointer;box-shadow:0 4px 24px rgba(0,0,0,0.5)" onclick="window.location.reload()">
   Update available — tap to reload

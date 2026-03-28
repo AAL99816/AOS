@@ -373,15 +373,187 @@ function renderExercisePbs() {
     const w = e.best.weight ? `${e.best.weight}kg` : '';
     const r = e.best.reps   ? `${e.best.reps} reps` : '';
     const sep = w && r ? ' × ' : '';
-    return `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:0.78rem">
-        <span style="color:var(--cream)">${escapeHtml(name)}</span>
-        <span style="color:var(--gold-lt);font-family:'DM Mono',monospace">${w}${sep}${r}</span>
-      </div>`.replace('escapeHtml(name)', `escapeHtml('${e.name.replace(/'/g,"\\'")}')`)
-      .replace(`escapeHtml('${e.name.replace(/'/g,"\\'")}')`, escapeHtml(e.name));
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:0.78rem">
+      <span style="color:var(--cream)">${escapeHtml(e.name)}</span>
+      <span style="color:var(--gold-lt);font-family:'DM Mono',monospace">${w}${sep}${r}</span>
+    </div>`;
   }).join('');
 }
 // END — Exercise PBs
+
+// ── Focus Tab ─────────────────────────────────────────────────
+// Full dedicated tab with configurable work/break timer and focus items.
+// Data: S.focusItems = [{ id, label, projectId, pomodorosDone, color }]
+
+let _focusTimer    = null;
+let _focusSecs     = 0;
+let _focusPhase    = 'work';  // 'work' | 'break'
+let _focusItemId   = null;
+let _focusRunning  = false;
+
+function renderFocusTab() {
+  renderFocusItems();
+  _renderFocusTimer();
+}
+
+function renderFocusItems() {
+  const el = eid('focusItemsList');
+  if (!el) return;
+  const items = S.focusItems || [];
+  if (!items.length) {
+    el.innerHTML = `<div style="color:var(--muted);font-size:0.78rem;text-align:center;padding:24px">Add a focus item above — link a project or create a custom goal</div>`;
+    return;
+  }
+  el.innerHTML = items.map(item => {
+    const project = item.projectId ? (S.projects||[]).find(p => p.id == item.projectId) : null;
+    const label   = item.label || project?.title || 'Focus';
+    const done    = item.pomodorosDone || 0;
+    const target  = item.pomodorosTarget || 0;
+    const isActive = _focusItemId === item.id;
+    return `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--panel);border:1px solid ${isActive ? 'var(--blush)' : 'var(--border)'};border-radius:12px;margin-bottom:10px;transition:border-color 0.2s">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.84rem;color:var(--cream);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(label)}</div>
+          <div style="font-size:0.68rem;color:var(--muted)">
+            🍅 ${done}${target ? ' / ' + target : ''} pomodoro${done !== 1 ? 's' : ''}
+            ${project ? `<span style="margin-left:6px;color:var(--muted-lt)">· ${escapeHtml(project.title)}</span>` : ''}
+          </div>
+        </div>
+        <button onclick="startFocusOn(${item.id})" class="btn ${isActive ? 'btn-p' : 'btn-g'}" style="font-size:0.68rem;flex-shrink:0">${isActive ? '▶ Active' : 'Focus'}</button>
+        <button onclick="deleteFocusItem(${item.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.78rem;padding:0 4px;flex-shrink:0">✕</button>
+      </div>`;
+  }).join('');
+}
+
+function addFocusItem() {
+  const projects = S.projects || [];
+  const projOpts = projects.map(p => `<option value="${p.id}">${escapeHtml(p.title||'(untitled)')}</option>`).join('');
+  const html = `
+    <div class="mf"><label>Label</label><input id="fiLabel" class="add-inp" placeholder="e.g. Deep work, Study session…"></div>
+    <div class="mf"><label>Link to project (optional)</label>
+      <select id="fiProject" style="width:100%">
+        <option value="">— none —</option>${projOpts}
+      </select>
+    </div>
+    <div class="mf"><label>Target pomodoros</label><input id="fiTarget" type="number" class="add-inp" placeholder="e.g. 8" min="0"></div>
+  `;
+  const modal = eid('mFocusAdd');
+  if (modal) { eid('focusAddBody').innerHTML = html; modal.classList.add('open'); }
+}
+
+function saveFocusItem() {
+  const label   = eid('fiLabel')?.value.trim();
+  const projId  = eid('fiProject')?.value || null;
+  const target  = parseInt(eid('fiTarget')?.value) || 0;
+  if (!label && !projId) { toast('Enter a label or select a project'); return; }
+  const project = projId ? (S.projects||[]).find(p => p.id == projId) : null;
+  if (!S.focusItems) S.focusItems = [];
+  S.focusItems.push({
+    id: Date.now(),
+    label: label || project?.title || 'Focus',
+    projectId: projId,
+    pomodorosTarget: target,
+    pomodorosDone: 0
+  });
+  scheduleSave();
+  renderFocusItems();
+  const modal = eid('mFocusAdd');
+  if (modal) modal.classList.remove('open');
+}
+
+function deleteFocusItem(id) {
+  S.focusItems = (S.focusItems||[]).filter(f => f.id !== id);
+  if (_focusItemId === id) { _focusItemId = null; eid('focusActiveLabel').textContent = ''; }
+  scheduleSave();
+  renderFocusItems();
+}
+
+function startFocusOn(id) {
+  _focusItemId = id;
+  const item = (S.focusItems||[]).find(f => f.id === id);
+  const lbl  = eid('focusActiveLabel');
+  if (lbl && item) lbl.textContent = item.label;
+  renderFocusItems();
+  if (!_focusRunning) toggleFocusTimer();
+}
+
+function toggleFocusTimer() {
+  if (_focusRunning) {
+    // Pause
+    clearInterval(_focusTimer);
+    _focusTimer   = null;
+    _focusRunning = false;
+    const btn = eid('focusStartBtn');
+    if (btn) btn.textContent = 'Resume';
+  } else {
+    // Start / Resume
+    if (_focusSecs <= 0) {
+      const workMins  = parseInt(eid('focusWorkMins')?.value)  || 25;
+      _focusPhase = 'work';
+      _focusSecs  = workMins * 60;
+    }
+    _focusRunning = true;
+    const btn = eid('focusStartBtn');
+    if (btn) btn.textContent = 'Pause';
+    _focusTimer = setInterval(_tickFocusTimer, 1000);
+    if (navigator.vibrate) navigator.vibrate(30);
+  }
+}
+
+function resetFocusTimer() {
+  clearInterval(_focusTimer);
+  _focusTimer   = null;
+  _focusRunning = false;
+  _focusSecs    = 0;
+  _focusPhase   = 'work';
+  const btn = eid('focusStartBtn');
+  if (btn) btn.textContent = 'Start';
+  _renderFocusTimer();
+}
+
+function _tickFocusTimer() {
+  _focusSecs--;
+  if (_focusSecs <= 0) {
+    clearInterval(_focusTimer);
+    _focusTimer   = null;
+    _focusRunning = false;
+    if (_focusPhase === 'work') {
+      // Count a pomodoro
+      if (_focusItemId) {
+        const item = (S.focusItems||[]).find(f => f.id === _focusItemId);
+        if (item) { item.pomodorosDone = (item.pomodorosDone || 0) + 1; scheduleSave(); renderFocusItems(); }
+      }
+      // Switch to break
+      const breakMins = parseInt(eid('focusBreakMins')?.value) || 5;
+      _focusPhase = 'break';
+      _focusSecs  = breakMins * 60;
+      toast('Pomodoro complete! Take a break 🎉');
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      _focusRunning = true;
+      const btn = eid('focusStartBtn');
+      if (btn) btn.textContent = 'Pause';
+      _focusTimer = setInterval(_tickFocusTimer, 1000);
+    } else {
+      _focusPhase = 'work';
+      _focusSecs  = 0;
+      const btn = eid('focusStartBtn');
+      if (btn) btn.textContent = 'Start';
+      toast('Break over — ready for the next session?');
+    }
+  }
+  _renderFocusTimer();
+}
+
+function _renderFocusTimer() {
+  const workMins = parseInt(eid('focusWorkMins')?.value) || 25;
+  const secs = _focusSecs > 0 ? _focusSecs : workMins * 60;
+  const m = String(Math.floor(secs / 60)).padStart(2, '0');
+  const s = String(secs % 60).padStart(2, '0');
+  const disp  = eid('focusTimerDisplay');
+  const phase = eid('focusPhaseLabel');
+  if (disp)  disp.textContent  = `${m}:${s}`;
+  if (phase) phase.textContent = _focusPhase === 'work' ? 'Work session' : 'Break ☕';
+}
 
 // ── FEATURE: Streak Protection ────────────────────────────────
 // START — remove from here to END to disable streak protection

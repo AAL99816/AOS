@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'aos-v26';
+const CACHE = 'aos-v28';
 
 const SHELL = [
   '/manifest.json',
@@ -21,6 +21,7 @@ const SHELL = [
   '/Renderer/review.js',
   '/Renderer/settings.js',
   '/Renderer/features.js',
+  '/Renderer/food.js',
   '/Renderer/modals.js',
   '/Renderer/app.js',
 ];

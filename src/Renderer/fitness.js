@@ -525,6 +525,16 @@ function logWorkoutSession(wcId) {
   if (gh) gh.days[today()] = true;
   S.gymLog[today()] = true;
 
+  // Auto-link this card to today in the training week
+  const week = weekDays();
+  const todayIdx = week.indexOf(today());
+  if (todayIdx >= 0) {
+    if (!S.workout[todayIdx]) S.workout[todayIdx] = {};
+    S.workout[todayIdx].cardId = wc.id;
+    S.workout[todayIdx].type   = wc.title || 'Workout';
+    S.workout[todayIdx].rest   = false;
+  }
+
   scheduleSave();
   renderWorkoutCards();
   renderGymWeek();

@@ -253,6 +253,8 @@ function renderAll(){
   if (typeof renderWeightLog === 'function') renderWeightLog();
   if (typeof renderWeeklyReview === 'function') renderWeeklyReview();
   applyReflectionVisibility();
+  if (typeof renderFocusTab           === 'function') renderFocusTab();
+  if (typeof renderFoodTab            === 'function') renderFoodTab();
   if (typeof applyAllFeatures         === 'function') applyAllFeatures();
   if (typeof renderMoodSection        === 'function') renderMoodSection();
   if (typeof renderBodyWeightSection  === 'function') renderBodyWeightSection();
@@ -283,6 +285,7 @@ async function initApp(){
     return;
   }
   if(!S.onboarded){ S.onboarded=true; scheduleSave(); }
+  if (typeof initFoodTab === 'function') initFoodTab();
   renderAll();
 }
 
