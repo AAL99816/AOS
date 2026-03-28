@@ -80,7 +80,10 @@ function renderProjects() {
 
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
         <button class="btn btn-d" style="font-size:0.66rem;padding:3px 9px" onclick="deleteProject(${p.id})">${t('remove')}</button>
-        <button class="btn btn-p" style="font-size:0.68rem;padding:3px 12px" onclick="openProjectDetail(${p.id})">${t('open_detail')}</button>
+        <div style="display:flex;gap:6px">
+          ${typeof feat === 'function' && feat('pomodoro') ? `<button class="btn btn-g" style="font-size:0.66rem;padding:3px 9px" onclick="focusOnProject(${p.id})">Focus</button>` : ''}
+          <button class="btn btn-p" style="font-size:0.68rem;padding:3px 12px" onclick="openProjectDetail(${p.id})">${t('open_detail')}</button>
+        </div>
       </div>
     `;
 

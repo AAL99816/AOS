@@ -10,18 +10,25 @@ const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snacks'];
 const MEAL_LABELS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snacks: 'Snacks' };
 
 let _foodSearchTimer = null;
-let _foodDate        = '';
+let _foodDate        = null; // null means "use today()" — set on init
 let _foodResults     = [];
 let _foodEditId      = null; // id of entry being edited
 
 // ── Init ─────────────────────────────────────────────────────
+
+function _foodEffectiveDate() {
+  return _foodDate || today();
+}
 
 function initFoodTab() {
   if (!S.foodLog)     S.foodLog     = {};
   if (!S.foodTargets) S.foodTargets = { kcal: 2000, protein: 150, carbs: 200, fat: 65 };
   _foodDate = today();
   const dateEl = eid('foodDate');
-  if (dateEl) { dateEl.value = _foodDate; dateEl.onchange = () => { _foodDate = dateEl.value; renderFoodTab(); }; }
+  if (dateEl) {
+    dateEl.value = _foodDate;
+    dateEl.onchange = () => { _foodDate = dateEl.value || today(); renderFoodTab(); };
+  }
   renderFoodTab();
 }
 
@@ -37,7 +44,7 @@ function renderFoodTab() {
 function renderFoodMacroBar() {
   const el = eid('foodMacroBar');
   if (!el) return;
-  const entries = (_foodDate && S.foodLog[_foodDate]) || [];
+  const entries = S.foodLog[_foodEffectiveDate()] || [];
   const totals = _sumMacros(entries);
   const T = S.foodTargets;
   el.innerHTML = `
@@ -78,7 +85,7 @@ function _sumMacros(entries) {
 function renderFoodMeals() {
   const el = eid('foodMeals');
   if (!el) return;
-  const entries = (_foodDate && S.foodLog[_foodDate]) || [];
+  const entries = S.foodLog[_foodEffectiveDate()] || [];
   el.innerHTML = MEAL_TYPES.map(meal => {
     const items = entries.filter(e => e.meal === meal);
     const totals = _sumMacros(items);
@@ -187,7 +194,7 @@ async function _doFoodSearch(q) {
       `<div onclick="selectFoodManual()"
         style="padding:10px 14px;cursor:pointer;color:var(--muted);font-size:0.74rem;border-top:1px solid var(--border);transition:background 0.12s"
         onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
-        ✏️ Add manually instead
+        Add manually instead
       </div>`;
   } catch(e) {
     eid('foodSearchResults').innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:20px;text-align:center">Search failed — check connection or add manually</div>`;
@@ -275,10 +282,11 @@ function saveFoodEntry() {
     per100g = r;
   }
 
-  if (!S.foodLog)          S.foodLog = {};
-  if (!S.foodLog[_foodDate]) S.foodLog[_foodDate] = [];
+  if (!S.foodLog) S.foodLog = {};
+  const _date = _foodEffectiveDate();
+  if (!S.foodLog[_date]) S.foodLog[_date] = [];
 
-  S.foodLog[_foodDate].push({
+  S.foodLog[_date].push({
     id: Date.now(),
     name, brand, meal, grams,
     kcal, protein, carbs, fat, fiber, per100g
@@ -291,8 +299,9 @@ function saveFoodEntry() {
 }
 
 function deleteFoodEntry(id) {
-  if (!_foodDate || !S.foodLog?.[_foodDate]) return;
-  S.foodLog[_foodDate] = S.foodLog[_foodDate].filter(e => String(e.id) !== String(id));
+  const _date = _foodEffectiveDate();
+  if (!S.foodLog?.[_date]) return;
+  S.foodLog[_date] = S.foodLog[_date].filter(e => String(e.id) !== String(id));
   scheduleSave();
   renderFoodTab();
 }

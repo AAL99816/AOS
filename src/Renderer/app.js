@@ -77,11 +77,42 @@ async function doImport(){
 }
 
 /* ══ NAV ══ */
+let _activeTab = 'summary';
+
 function go(name,btn){
+  _activeTab = name;
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  eid('panel-'+name).classList.add('active');if(btn)btn.classList.add('active');
-  if((name==='summary'||name==='review') && typeof renderWeeklyReview==='function') renderWeeklyReview();
+  const panel = eid('panel-'+name);
+  if (panel) panel.classList.add('active');
+  if(btn) btn.classList.add('active');
+  _renderTab(name);
+}
+
+function _renderTab(name) {
+  if (name === 'summary' || name === 'review') {
+    if (typeof renderWeeklyReview === 'function') renderWeeklyReview();
+    if (typeof renderAnnualGoals  === 'function') renderAnnualGoals();
+  }
+  if (name === 'today') {
+    renderHabits();
+    renderPrayer();
+    renderTodaySummary();
+    if (typeof renderMoodSection === 'function') renderMoodSection();
+  }
+  if (name === 'fitness') {
+    renderGymWeek();
+    renderWorkoutCards();
+    renderTrainingLog();
+    if (typeof renderCardioSection     === 'function') renderCardioSection();
+    if (typeof renderWeightLog         === 'function') renderWeightLog();
+    if (typeof renderBodyWeightSection === 'function') renderBodyWeightSection();
+    if (typeof renderExercisePbs       === 'function') renderExercisePbs();
+  }
+  if (name === 'food'     && typeof renderFoodTab     === 'function') renderFoodTab();
+  if (name === 'projects' && typeof renderProjects    === 'function') renderProjects();
+  if (name === 'media'    && typeof renderBooks       === 'function') renderBooks();
+  if (name === 'focus'    && typeof renderFocusTab    === 'function') renderFocusTab();
 }
 
 /* ══ ONBOARDING ══ */
@@ -222,44 +253,26 @@ function renderTodaySummary(){
 
 /* ══ RENDER ALL ══ */
 function renderAll(){
+  // ── Global elements (always update) ──
   eid('appTitle').textContent = S.appTitle;
   eid('appSub').textContent = getSeasonLabel();
 
   const img = eid('heroImg');
-  if (S.heroImg) {
-    img.src = S.heroImg;
-    img.classList.add('has-image');
-  } else {
-    img.src = '';
-    img.classList.remove('has-image');
-  }
+  if (S.heroImg) { img.src = S.heroImg; img.classList.add('has-image'); }
+  else { img.src = ''; img.classList.remove('has-image'); }
 
-  eid('quoteText').value = S.quote.text;
+  eid('quoteText').value  = S.quote.text;
   eid('quoteAuthor').value = S.quote.author;
   if(eid('cardioTarget')) eid('cardioTarget').value = S.cardioTarget || '';
-  eid('dailyNotes').value=S.notes[today()]||'';
-
+  eid('dailyNotes').value = S.notes[today()] || '';
   if(eid('cardioDate'))  eid('cardioDate').value  = today();
   if(eid('calorieDate')) eid('calorieDate').value = today();
-  renderTodaySummary();
-  renderHabits();
-  renderPrayer();
-  renderGymWeek();
-  renderWorkoutCards();
-  renderTrainingLog();
-  renderProjects();
-  renderBooks();
-  if (typeof renderCardioSection === 'function') renderCardioSection();
-  if (typeof renderWeightLog === 'function') renderWeightLog();
-  if (typeof renderWeeklyReview === 'function') renderWeeklyReview();
+
   applyReflectionVisibility();
-  if (typeof renderFocusTab           === 'function') renderFocusTab();
-  if (typeof renderFoodTab            === 'function') renderFoodTab();
-  if (typeof applyAllFeatures         === 'function') applyAllFeatures();
-  if (typeof renderMoodSection        === 'function') renderMoodSection();
-  if (typeof renderBodyWeightSection  === 'function') renderBodyWeightSection();
-  if (typeof renderAnnualGoals        === 'function') renderAnnualGoals();
-  if (typeof renderExercisePbs        === 'function') renderExercisePbs();
+  if (typeof applyAllFeatures === 'function') applyAllFeatures();
+
+  // ── Active tab content only ──
+  _renderTab(_activeTab);
 }
 
 /* ══ INLINE TITLE EDITING ══ */

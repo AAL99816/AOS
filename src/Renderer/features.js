@@ -128,18 +128,18 @@ function renderAnnualGoals() {
   const workoutsEl = eid('agWorkoutsProgress');
   const bPct = Math.min(100, ag.booksTarget ? Math.round((booksRead / ag.booksTarget) * 100) : 0);
   const wPct = Math.min(100, ag.workoutsTarget ? Math.round((workoutsDone / ag.workoutsTarget) * 100) : 0);
-  if (booksEl) booksEl.innerHTML = _goalBar('📚', 'Books', booksRead, ag.booksTarget, bPct, "setAnnualTarget('booksTarget',+this.value)", 'var(--blush)');
-  if (workoutsEl) workoutsEl.innerHTML = _goalBar('🏋️', 'Workouts', workoutsDone, ag.workoutsTarget, wPct, "setAnnualTarget('workoutsTarget',+this.value)", 'var(--gold)');
+  if (booksEl) booksEl.innerHTML = _goalBar('Books', booksRead, ag.booksTarget, bPct, "setAnnualTarget('booksTarget',+this.value)", 'var(--blush)');
+  if (workoutsEl) workoutsEl.innerHTML = _goalBar('Workouts', workoutsDone, ag.workoutsTarget, wPct, "setAnnualTarget('workoutsTarget',+this.value)", 'var(--gold)');
 }
 
-function _goalBar(icon, label, done, target, pct, onchange, color) {
+function _goalBar(label, done, target, pct, onchange, color) {
   return `
     <div style="margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;font-size:0.76rem">
-        <span style="color:var(--cream)">${icon} ${label}</span>
+        <span style="color:var(--cream)">${label}</span>
         <span style="color:var(--muted)">${done} / <input type="number" value="${target}" min="1" max="9999"
           onchange="${onchange}"
-          style="width:42px;background:none;border:none;border-bottom:1px solid var(--border-lt);color:var(--gold-lt);text-align:center;font-size:0.74rem;outline:none"> this year</span>
+          style="width:48px;background:rgba(255,255,255,0.06);border:1px solid var(--border-lt);border-radius:4px;color:var(--gold-lt);text-align:center;font-size:0.74rem;outline:none;padding:1px 4px"> this year</span>
       </div>
       <div style="height:6px;background:var(--mid);border-radius:4px;overflow:hidden">
         <div style="height:100%;width:${pct}%;background:${color};border-radius:4px;transition:width 0.4s"></div>
@@ -182,7 +182,7 @@ function _tickPomodoro() {
     if (_pomodoroPhase === 'work') {
       _pomodoroPhase    = 'break';
       _pomodoroSecsLeft = 5 * 60;
-      toast('Pomodoro done! Take a 5-minute break 🎉');
+      toast('Pomodoro done — take a 5-minute break.');
       if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     } else {
       stopPomodoro();
@@ -200,7 +200,7 @@ function _renderPomodoroWidget() {
   const phaseEl = eid('pomodoroPhase');
   const widget  = eid('pomodoroWidget');
   if (timeEl)  timeEl.textContent  = `${mins}:${secs}`;
-  if (phaseEl) phaseEl.textContent = _pomodoroPhase === 'work' ? 'Focus' : 'Break ☕';
+  if (phaseEl) phaseEl.textContent = _pomodoroPhase === 'work' ? 'Focus' : 'Break';
   if (widget)  widget.style.borderColor = _pomodoroPhase === 'work' ? 'var(--blush)' : 'var(--gold)';
 }
 
@@ -351,7 +351,7 @@ function renderExercisePbs() {
   const el = eid('exercisePbsList');
   if (!el) return;
   const hist = S.exerciseHistory || {};
-  const names = Object.keys(hist);
+  const names = Object.keys(hist).filter(n => n && n.trim());
   if (!names.length) {
     el.innerHTML = `<div style="color:var(--muted);font-size:0.74rem;padding:4px 0">Log workouts to see your personal bests here</div>`;
     return;
@@ -415,7 +415,7 @@ function renderFocusItems() {
         <div style="flex:1;min-width:0">
           <div style="font-size:0.84rem;color:var(--cream);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(label)}</div>
           <div style="font-size:0.68rem;color:var(--muted)">
-            🍅 ${done}${target ? ' / ' + target : ''} pomodoro${done !== 1 ? 's' : ''}
+            ${done}${target ? ' / ' + target : ''} pomodoro${done !== 1 ? 's' : ''}
             ${project ? `<span style="margin-left:6px;color:var(--muted-lt)">· ${escapeHtml(project.title)}</span>` : ''}
           </div>
         </div>
@@ -527,7 +527,7 @@ function _tickFocusTimer() {
       const breakMins = parseInt(eid('focusBreakMins')?.value) || 5;
       _focusPhase = 'break';
       _focusSecs  = breakMins * 60;
-      toast('Pomodoro complete! Take a break 🎉');
+      toast('Pomodoro complete — take a break.');
       if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
       _focusRunning = true;
       const btn = eid('focusStartBtn');
@@ -552,7 +552,7 @@ function _renderFocusTimer() {
   const disp  = eid('focusTimerDisplay');
   const phase = eid('focusPhaseLabel');
   if (disp)  disp.textContent  = `${m}:${s}`;
-  if (phase) phase.textContent = _focusPhase === 'work' ? 'Work session' : 'Break ☕';
+  if (phase) phase.textContent = _focusPhase === 'work' ? 'Work session' : 'Break';
 }
 
 // ── FEATURE: Streak Protection ────────────────────────────────
@@ -562,3 +562,34 @@ function _renderFocusTimer() {
 
 function isStreakProtected() { return feat('streakProtection'); }
 // END — Streak Protection
+
+// ── Focus from Project ─────────────────────────────────────────
+// Called from project cards — navigates to Focus tab and activates
+// an existing focus item for the project, or creates one on the fly.
+
+function focusOnProject(projectId) {
+  if (!S.focusItems) S.focusItems = [];
+  const project = (S.projects || []).find(p => p.id == projectId);
+  if (!project) return;
+
+  // Reuse an existing item linked to this project, else create one
+  let item = S.focusItems.find(f => f.projectId == projectId);
+  if (!item) {
+    item = {
+      id: Date.now(),
+      label: project.title || 'Focus',
+      projectId,
+      pomodorosTarget: 0,
+      pomodorosDone: 0
+    };
+    S.focusItems.push(item);
+    scheduleSave();
+  }
+
+  // Navigate to Focus tab
+  const focusBtn = document.querySelector('.tab[onclick*="focus"]');
+  go('focus', focusBtn);
+
+  // Activate the item
+  startFocusOn(item.id);
+}
