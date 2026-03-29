@@ -1004,17 +1004,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 
   <!-- FITNESS -->
   <div id="panel-fitness" class="panel">
-    <!-- FEATURE: Body Weight Log — remove this block to disable -->
-    <div id="bodyWeightSection" class="card" style="margin-bottom:16px;display:none">
-      <div style="font-size:0.7rem;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:10px">Body Weight</div>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
-        <input id="weightInput" type="number" class="add-inp" placeholder="e.g. 75.5" step="0.1" min="10" max="500" style="flex:1;min-width:100px">
-        <span style="color:var(--muted);font-size:0.78rem">kg</span>
-        <button class="btn btn-p" onclick="logWeight()" style="font-size:0.74rem">Log</button>
-      </div>
-      <div id="bodyWeightList"></div>
-    </div>
-    <!-- END FEATURE: Body Weight Log -->
+    <!-- Body Weight Log handled by the card below -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div class="sec" style="margin:0" data-i18n="cardio">Cardio</div>
     </div>
@@ -1033,7 +1023,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <span style="font-size:0.72rem;color:var(--muted-lt)">Track meals and macros in the Food tab.</span>
       <button class="btn btn-g" style="font-size:0.66rem;white-space:nowrap;flex-shrink:0" onclick="go('food',document.querySelector('.tab[onclick*=food]'))">Open Food</button>
     </div>
-    <div class="card" style="margin-bottom:16px">
+    <div id="bodyWeightSection" class="card" style="margin-bottom:16px">
       <div style="margin-bottom:8px">
         <span style="font-size:0.7rem;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase;font-family:'DM Mono',monospace">Body Weight</span>
       </div>
@@ -1062,18 +1052,35 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 
   <!-- FOOD TAB -->
   <div id="panel-food" class="panel">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <div class="sec" style="margin:0">Food</div>
-      <input id="foodDate" type="date" class="add-inp" style="width:auto;font-size:0.74rem">
+    <!-- Tab row: Diary | History | Meal Plans -->
+    <div style="display:flex;gap:6px;margin-bottom:16px">
+      <button class="fpill active" id="ftabDiary"    onclick="setFoodTab('diary')">Diary</button>
+      <button class="fpill"        id="ftabHistory"  onclick="setFoodTab('history')">History</button>
+      <button class="fpill"        id="ftabMeals"    onclick="setFoodTab('meals')">Meal Plans</button>
+      <input id="foodDate" type="date" class="add-inp" style="width:auto;font-size:0.74rem;margin-left:auto">
     </div>
 
-    <!-- Macro bar -->
-    <div class="card" style="margin-bottom:16px" id="foodMacroBar"></div>
+    <!-- DIARY VIEW -->
+    <div id="foodPaneDiary">
+      <div class="card" style="margin-bottom:16px" id="foodMacroBar"></div>
+      <div id="foodMeals"></div>
+    </div>
 
-    <!-- Meal sections -->
-    <div id="foodMeals"></div>
+    <!-- HISTORY VIEW -->
+    <div id="foodPaneHistory" style="display:none">
+      <div id="foodHistoryList"></div>
+    </div>
 
-    <div style="font-size:0.62rem;color:var(--muted);text-align:center;margin-top:8px">
+    <!-- MEAL PLANS VIEW -->
+    <div id="foodPaneMeals" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <span style="font-size:0.7rem;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase">Saved Plans</span>
+        <button class="btn btn-p" style="font-size:0.7rem" onclick="openSaveMealPlan()">Save Today as Plan</button>
+      </div>
+      <div id="mealPlansList"></div>
+    </div>
+
+    <div style="font-size:0.62rem;color:var(--muted);text-align:center;margin-top:10px">
       Food data from <a href="https://world.openfoodfacts.org" target="_blank" style="color:var(--muted);text-decoration:underline">Open Food Facts</a> (CC BY-SA)
     </div>
   </div>
@@ -1639,6 +1646,19 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
         <button class="btn btn-g" onclick="_backToSearch()">Back</button>
         <button class="btn btn-p" onclick="saveFoodEntry()">Add</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Save Meal Plan Modal -->
+<div class="modal-bg" id="mSaveMealPlan" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:360px">
+    <h2>Save as Meal Plan</h2>
+    <div class="mf"><label>Plan Name</label><input id="mealPlanName" class="add-inp" placeholder="e.g. Bulk day, Cut day, Rest day…"></div>
+    <div id="mealPlanPreview" style="margin-top:10px;font-size:0.72rem;color:var(--muted-lt)"></div>
+    <div class="modal-acts">
+      <button class="btn btn-g" onclick="eid('mSaveMealPlan').classList.remove('open')">Cancel</button>
+      <button class="btn btn-p" onclick="saveMealPlan()">Save</button>
     </div>
   </div>
 </div>

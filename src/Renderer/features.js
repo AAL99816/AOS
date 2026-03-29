@@ -61,47 +61,12 @@ function logMood(score) {
 // END — Mood Tracking
 
 // ── FEATURE: Body Weight Log ──────────────────────────────────
-// START — remove from here to END to disable body weight log
-// UI: card in Fitness tab  |  Data: S.weightLog = [{ date, weight }]
+// UI handled by fitness.js renderWeightLog() / logWeightEntry()
+// Feature flag controls visibility of #bodyWeightSection
 
 function renderBodyWeightSection() {
-  if (!feat('bodyWeight')) { _applyVis('bodyWeightSection', false); return; }
-  _applyVis('bodyWeightSection', true);
-  const el = eid('bodyWeightList');
-  if (!el) return;
-  const log = (S.weightLog || []).slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
-  if (!log.length) {
-    el.innerHTML = `<div style="color:var(--muted);font-size:0.74rem;padding:4px 0">No entries yet — log your first weight above</div>`;
-    return;
-  }
-  el.innerHTML = log.map(e => `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.78rem">
-      <span style="color:var(--muted);font-family:'DM Mono',monospace">${e.date}</span>
-      <span style="color:var(--gold-lt);font-weight:500">${e.weight} kg</span>
-      <button onclick="deleteWeightEntry('${e.date}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.68rem;padding:0 4px;line-height:1">✕</button>
-    </div>`).join('');
-}
-
-function logWeight() {
-  const input = eid('weightInput');
-  const w = parseFloat(input?.value);
-  if (!w || w < 10 || w > 500) { toast('Enter a valid weight (kg)'); return; }
-  if (!S.weightLog) S.weightLog = [];
-  const todayKey = today();
-  S.weightLog = S.weightLog.filter(e => e.date !== todayKey);
-  S.weightLog.push({ date: todayKey, weight: w });
-  S.weightLog.sort((a, b) => a.date.localeCompare(b.date));
-  if (input) input.value = '';
-  scheduleSave();
-  renderBodyWeightSection();
-  toast('Weight logged');
-  if (navigator.vibrate) navigator.vibrate(30);
-}
-
-function deleteWeightEntry(date) {
-  S.weightLog = (S.weightLog || []).filter(e => e.date !== date);
-  scheduleSave();
-  renderBodyWeightSection();
+  _applyVis('bodyWeightSection', feat('bodyWeight'));
+  if (feat('bodyWeight') && typeof renderWeightLog === 'function') renderWeightLog();
 }
 // END — Body Weight Log
 

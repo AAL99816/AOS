@@ -297,30 +297,40 @@ function onFoodSearchInput() {
 }
 
 async function _doFoodSearch(q) {
+  const resultsEl = eid('foodSearchResults');
   try {
-    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=10&fields=product_name,brands,nutriments,serving_size`;
-    const r = await fetch(url);
+    // Use v2 API — more reliable than legacy cgi/search.pl
+    const url = `https://world.openfoodfacts.org/api/v2/search?search_terms=${encodeURIComponent(q)}&page_size=12&fields=product_name,brands,nutriments`;
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 8000);
+    const r = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(timeout);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const d = await r.json();
     _foodResults = (d.products || [])
       .filter(p => p.product_name && p.nutriments)
-      .map(p => ({
-        name:    p.product_name || '',
-        brand:   (p.brands || '').split(',')[0].trim(),
-        per100g: {
-          kcal:    parseFloat(p.nutriments['energy-kcal_100g'] || p.nutriments['energy_100g'] / 4.184 || 0),
-          protein: parseFloat(p.nutriments['proteins_100g']    || 0),
-          carbs:   parseFloat(p.nutriments['carbohydrates_100g'] || 0),
-          fat:     parseFloat(p.nutriments['fat_100g']          || 0),
-          fiber:   parseFloat(p.nutriments['fiber_100g']        || 0)
-        }
-      }))
-      .filter(p => p.per100g.kcal > 0);
+      .map(p => {
+        const n = p.nutriments;
+        const kcal = parseFloat(n['energy-kcal_100g'] ?? n['energy-kcal_serving'] ?? (n['energy_100g'] ? n['energy_100g'] / 4.184 : 0));
+        return {
+          name:    p.product_name.trim(),
+          brand:   ((p.brands || '').split(',')[0]).trim(),
+          per100g: {
+            kcal:    kcal    || 0,
+            protein: parseFloat(n['proteins_100g']        || 0),
+            carbs:   parseFloat(n['carbohydrates_100g']   || 0),
+            fat:     parseFloat(n['fat_100g']             || 0),
+            fiber:   parseFloat(n['fiber_100g']           || 0)
+          }
+        };
+      })
+      .filter(p => p.per100g.kcal > 0 && p.name);
 
     if (!_foodResults.length) {
-      eid('foodSearchResults').innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:20px;text-align:center">No results — try Quick Add to enter manually</div>`;
+      resultsEl.innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:20px;text-align:center">No results — try Quick Add to enter manually</div>`;
       return;
     }
-    eid('foodSearchResults').innerHTML = _foodResults.map((r, i) => `
+    resultsEl.innerHTML = _foodResults.map((r, i) => `
       <div onclick="selectFoodResult(${i})"
         style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
         onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
@@ -331,7 +341,8 @@ async function _doFoodSearch(q) {
         <div style="font-size:0.7rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(r.per100g.kcal)} kcal/100g</div>
       </div>`).join('');
   } catch(e) {
-    eid('foodSearchResults').innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:20px;text-align:center">Search failed — use Quick Add to enter manually</div>`;
+    const isTimeout = e.name === 'AbortError';
+    resultsEl.innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:20px;text-align:center">${isTimeout ? 'Search timed out' : 'Search unavailable'} — use Quick Add to enter manually</div>`;
   }
 }
 
@@ -512,4 +523,158 @@ function saveFoodTargets() {
   eid('mFoodTargets').classList.remove('open');
   renderFoodMacroBar();
   toast('Targets saved');
+}
+
+// ── Food sub-tab switching ────────────────────────────────────
+
+let _foodSubTab = 'diary';
+
+function setFoodTab(tab) {
+  _foodSubTab = tab;
+  ['diary','history','meals'].forEach(t => {
+    const btn  = eid(`ftab${t.charAt(0).toUpperCase()+t.slice(1)}`);
+    const pane = eid(`foodPane${t.charAt(0).toUpperCase()+t.slice(1)}`);
+    const active = t === tab;
+    if (btn)  btn.classList.toggle('active', active);
+    if (pane) pane.style.display = active ? '' : 'none';
+  });
+  if (tab === 'history') renderFoodHistory();
+  if (tab === 'meals')   renderMealPlansList();
+  if (tab === 'diary')   renderFoodTab();
+}
+
+// ── Food History (diary log of past days) ────────────────────
+
+function renderFoodHistory() {
+  const el = eid('foodHistoryList');
+  if (!el) return;
+  const log = S.foodLog || {};
+  // All days that have at least one entry, newest first
+  const days = Object.keys(log)
+    .filter(d => log[d] && log[d].length > 0)
+    .sort()
+    .reverse()
+    .slice(0, 30);
+
+  if (!days.length) {
+    el.innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:24px;text-align:center">No food logged yet — start in the Diary tab</div>`;
+    return;
+  }
+
+  el.innerHTML = days.map(d => {
+    const entries = log[d];
+    const totals  = _sumMacros(entries);
+    const T       = S.foodTargets || {};
+    const pct     = T.kcal ? Math.min(100, Math.round((totals.kcal / T.kcal) * 100)) : 0;
+    const over     = T.kcal && totals.kcal > T.kcal;
+    const dateLabel = new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+    const isToday  = d === today();
+
+    return `
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;cursor:pointer"
+           onclick="setFoodDateAndDiary('${d}')"
+           onmouseenter="this.style.borderColor='var(--blush)'" onmouseleave="this.style.borderColor='var(--border)'">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:0.82rem;color:var(--cream)">${dateLabel}${isToday ? ' <span style="font-size:0.6rem;color:var(--blush);margin-left:4px">Today</span>' : ''}</span>
+          <span style="font-size:0.86rem;color:${over?'var(--petal)':'var(--gold-lt)'};font-family:'DM Mono',monospace">${Math.round(totals.kcal)} kcal</span>
+        </div>
+        <div style="height:4px;background:var(--mid);border-radius:3px;overflow:hidden;margin-bottom:8px">
+          <div style="height:100%;width:${pct}%;background:${over?'var(--petal)':'var(--blush)'};border-radius:3px"></div>
+        </div>
+        <div style="display:flex;gap:14px;font-size:0.66rem;font-family:'DM Mono',monospace;color:var(--muted)">
+          <span>P <span style="color:var(--gold)">${Math.round(totals.protein)}g</span></span>
+          <span>C <span style="color:var(--petal)">${Math.round(totals.carbs)}g</span></span>
+          <span>F <span style="color:var(--muted-lt)">${Math.round(totals.fat)}g</span></span>
+          <span style="margin-left:auto">${entries.length} item${entries.length!==1?'s':''}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function setFoodDateAndDiary(d) {
+  _foodDate = d;
+  const dateEl = eid('foodDate');
+  if (dateEl) dateEl.value = d;
+  setFoodTab('diary');
+}
+
+// ── Meal Plans ────────────────────────────────────────────────
+
+function renderMealPlansList() {
+  const el = eid('mealPlansList');
+  if (!el) return;
+  const plans = S.mealPlans || [];
+  if (!plans.length) {
+    el.innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:24px;text-align:center">No saved plans yet.<br>Log a full day of food, then click "Save Today as Plan".</div>`;
+    return;
+  }
+  el.innerHTML = plans.map((plan, i) => {
+    const totals = _sumMacros(plan.foods || []);
+    return `
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:0.86rem;color:var(--cream)">${escapeHtml(plan.name)}</span>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-p" style="font-size:0.66rem;padding:3px 10px" onclick="applyMealPlan(${i})">Apply to Today</button>
+            <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.72rem;padding:0 4px" onclick="deleteMealPlan(${i})">✕</button>
+          </div>
+        </div>
+        <div style="font-size:0.68rem;font-family:'DM Mono',monospace;color:var(--muted)">
+          ${Math.round(totals.kcal)} kcal ·
+          P ${Math.round(totals.protein)}g · C ${Math.round(totals.carbs)}g · F ${Math.round(totals.fat)}g ·
+          ${(plan.foods||[]).length} item${(plan.foods||[]).length!==1?'s':''}
+        </div>
+        <div style="margin-top:8px;font-size:0.68rem;color:var(--muted-lt);line-height:1.7">
+          ${(plan.foods||[]).slice(0,5).map(f => escapeHtml(f.name)).join(', ')}${(plan.foods||[]).length > 5 ? ` +${(plan.foods||[]).length - 5} more` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function openSaveMealPlan() {
+  const entries = S.foodLog?.[_foodEffectiveDate()] || [];
+  if (!entries.length) { toast('No food logged today to save'); return; }
+  eid('mealPlanName').value = '';
+  const totals = _sumMacros(entries);
+  const prev = eid('mealPlanPreview');
+  if (prev) prev.innerHTML = `${entries.length} items · ${Math.round(totals.kcal)} kcal · P ${Math.round(totals.protein)}g · C ${Math.round(totals.carbs)}g · F ${Math.round(totals.fat)}g`;
+  eid('mSaveMealPlan').classList.add('open');
+  setTimeout(() => eid('mealPlanName')?.focus(), 80);
+}
+
+function saveMealPlan() {
+  const name = eid('mealPlanName')?.value.trim();
+  if (!name) { toast('Enter a plan name'); return; }
+  const entries = (S.foodLog?.[_foodEffectiveDate()] || []).map(e => ({...e}));
+  if (!entries.length) { toast('No food to save'); return; }
+  if (!S.mealPlans) S.mealPlans = [];
+  S.mealPlans.push({ id: Date.now(), name, foods: entries, createdOn: today() });
+  scheduleSave();
+  eid('mSaveMealPlan').classList.remove('open');
+  renderMealPlansList();
+  toast(`"${name}" saved`);
+}
+
+function applyMealPlan(i) {
+  const plan = (S.mealPlans || [])[i];
+  if (!plan) return;
+  if (!S.foodLog) S.foodLog = {};
+  const _date = _foodEffectiveDate();
+  if (!S.foodLog[_date]) S.foodLog[_date] = [];
+  // Append plan foods with new IDs
+  plan.foods.forEach(f => {
+    S.foodLog[_date].push({ ...f, id: Date.now() + Math.random() });
+  });
+  scheduleSave();
+  setFoodTab('diary');
+  toast(`"${plan.name}" applied to ${_date === today() ? 'today' : _date}`);
+}
+
+function deleteMealPlan(i) {
+  if (!S.mealPlans) return;
+  const plan = S.mealPlans[i];
+  S.mealPlans.splice(i, 1);
+  scheduleSave();
+  renderMealPlansList();
+  toast(`"${plan?.name}" deleted`);
 }

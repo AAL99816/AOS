@@ -40,6 +40,7 @@ onboarded:false,
 focusItems:[],
 foodLog:{},
 foodTargets:{ kcal:2000, protein:150, carbs:200, fat:65 },
+mealPlans:[],
 features:{
   moodTracking:      true,
   bodyWeight:        true,
@@ -187,6 +188,7 @@ function normalizeAppState(raw={}){
   delete out.calorieLog;
   delete out.calorieTarget;
   out.calorieHistory = Array.isArray(out.calorieHistory) ? out.calorieHistory : (Array.isArray(src.calorieHistory) ? src.calorieHistory : []);
+  out.mealPlans = Array.isArray(src.mealPlans) ? src.mealPlans : [];
   out.workoutHistory = (Array.isArray(out.workoutHistory) ? out.workoutHistory : []).map(makeWorkoutSession);
   out.exerciseHistory = out.exerciseHistory && typeof out.exerciseHistory === 'object' ? out.exerciseHistory : {};
   out.prayerLog = out.prayerLog && typeof out.prayerLog === 'object' ? out.prayerLog : {};
