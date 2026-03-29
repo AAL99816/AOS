@@ -399,58 +399,122 @@ function onFoodSearchInput() {
   clearTimeout(_foodSearchTimer);
   const q = eid('foodSearchInput')?.value.trim();
   if (!q) { _showRecentFoods(); return; }
-  eid('foodSearchResults').innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:20px;text-align:center">Searching…</div>`;
+  // Show My Foods matches instantly (no network needed)
+  const myMatches = (S.customFoods || []).filter(cf => cf.name.toLowerCase().includes(q.toLowerCase()));
+  const resultsEl = eid('foodSearchResults');
+  if (resultsEl) {
+    resultsEl.innerHTML = _myFoodsMatchHtml(myMatches) +
+      `<div style="padding:${myMatches.length ? '10px' : '20px'} 14px;font-size:0.72rem;color:var(--muted);text-align:center;${myMatches.length ? 'border-top:1px solid var(--border)' : ''}">Searching database\u2026</div>`;
+  }
   _foodSearchTimer = setTimeout(() => _doFoodSearch(q), 400);
+}
+
+function _myFoodsMatchHtml(matches) {
+  if (!matches.length) return '';
+  return `
+    <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--gold-lt);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">My Foods</div>
+    ${matches.map(cf => `
+      <div onclick="selectSearchCustomFood('${cf.id}')"
+        style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
+        onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.82rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(cf.name)}</div>
+          <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace">P${Math.round(cf.protein||0)}g \u00b7 C${Math.round(cf.carbs||0)}g \u00b7 F${Math.round(cf.fat||0)}g</div>
+        </div>
+        <div style="font-size:0.68rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(cf.kcal||0)} kcal</div>
+      </div>`).join('')}`;
 }
 
 async function _doFoodSearch(q) {
   const resultsEl = eid('foodSearchResults');
+  if (!resultsEl) return;
+
+  const myMatches = (S.customFoods || []).filter(cf => cf.name.toLowerCase().includes(q.toLowerCase()));
+
   try {
-    // Use v2 API — more reliable than legacy cgi/search.pl
-    const url = `https://world.openfoodfacts.org/api/v2/search?search_terms=${encodeURIComponent(q)}&page_size=12&fields=product_name,brands,nutriments`;
     const ctrl = new AbortController();
     const timeout = setTimeout(() => ctrl.abort(), 8000);
-    const r = await fetch(url, { signal: ctrl.signal });
-    clearTimeout(timeout);
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const d = await r.json();
-    _foodResults = (d.products || [])
-      .filter(p => p.product_name && p.nutriments)
-      .map(p => {
-        const n = p.nutriments;
-        const kcal = parseFloat(n['energy-kcal_100g'] ?? n['energy-kcal_serving'] ?? (n['energy_100g'] ? n['energy_100g'] / 4.184 : 0));
-        return {
-          name:    p.product_name.trim(),
-          brand:   ((p.brands || '').split(',')[0]).trim(),
-          per100g: {
-            kcal:    kcal    || 0,
-            protein: parseFloat(n['proteins_100g']        || 0),
-            carbs:   parseFloat(n['carbohydrates_100g']   || 0),
-            fat:     parseFloat(n['fat_100g']             || 0),
-            fiber:   parseFloat(n['fiber_100g']           || 0)
-          }
-        };
-      })
-      .filter(p => p.per100g.kcal > 0 && p.name);
 
-    if (!_foodResults.length) {
-      resultsEl.innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:20px;text-align:center">No results — try Quick Add to enter manually</div>`;
+    // Parallel: GCC-region first + global fallback
+    const [gcRes, worldRes] = await Promise.allSettled([
+      _fetchOFT(q, 'en:kuwait,en:saudi-arabia,en:united-arab-emirates', 6, ctrl.signal),
+      _fetchOFT(q, null, 14, ctrl.signal)
+    ]);
+    clearTimeout(timeout);
+
+    const gc    = gcRes.status    === 'fulfilled' ? gcRes.value    : [];
+    const world = worldRes.status === 'fulfilled' ? worldRes.value : [];
+
+    // Merge: GCC-tagged first, then global deduped by name
+    const gcNames = new Set(gc.map(r => r.name.toLowerCase()));
+    _foodResults = [
+      ...gc.map(r => ({ ...r, _gcc: true })),
+      ...world.filter(r => !gcNames.has(r.name.toLowerCase()))
+    ].slice(0, 16);
+
+    if (!_foodResults.length && !myMatches.length) {
+      resultsEl.innerHTML = `
+        <div style="padding:20px;text-align:center">
+          <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px">No results for "${escapeHtml(q)}"</div>
+          <div style="font-size:0.64rem;color:var(--muted);margin-bottom:12px">For Kuwait/local foods, save them in My Foods for instant access next time</div>
+          <button class="btn btn-p" style="font-size:0.72rem" onclick="setFoodMode('quick')">Add manually \u2192</button>
+        </div>`;
       return;
     }
-    resultsEl.innerHTML = _foodResults.map((r, i) => `
-      <div onclick="selectFoodResult(${i})"
-        style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
-        onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:0.82rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.name)}</div>
-          ${r.brand ? `<div style="font-size:0.65rem;color:var(--muted)">${escapeHtml(r.brand)}</div>` : ''}
-        </div>
-        <div style="font-size:0.7rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(r.per100g.kcal)} kcal/100g</div>
-      </div>`).join('');
+
+    const dbHtml = _foodResults.length ? `
+      <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">
+        Database${gc.length ? ` \u00b7 <span style="color:var(--gold-lt)">${gc.length} GCC match${gc.length > 1 ? 'es' : ''}</span>` : ''}
+      </div>
+      ${_foodResults.map((r, i) => `
+        <div onclick="selectFoodResult(${i})"
+          style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
+          onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:0.82rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.name)}</div>
+            <div style="font-size:0.62rem;color:var(--muted)">
+              ${r.brand ? escapeHtml(r.brand) : ''}${r._gcc ? `${r.brand ? ' \u00b7 ' : ''}<span style="color:var(--gold);font-size:0.58rem">GCC</span>` : ''}
+            </div>
+          </div>
+          <div style="font-size:0.7rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(r.per100g.kcal)} kcal/100g</div>
+        </div>`).join('')}` : '';
+
+    resultsEl.innerHTML = _myFoodsMatchHtml(myMatches) + dbHtml;
+
   } catch(e) {
     const isTimeout = e.name === 'AbortError';
-    resultsEl.innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:20px;text-align:center">${isTimeout ? 'Search timed out' : 'Search unavailable'} — use Quick Add to enter manually</div>`;
+    resultsEl.innerHTML = _myFoodsMatchHtml(myMatches) + `
+      <div style="padding:16px;text-align:center">
+        <div style="font-size:0.72rem;color:var(--muted);margin-bottom:10px">${isTimeout ? 'Search timed out' : 'Database unavailable'}</div>
+        <button class="btn btn-p" style="font-size:0.72rem" onclick="setFoodMode('quick')">Add manually \u2192</button>
+      </div>`;
   }
+}
+
+async function _fetchOFT(q, countries, size, signal) {
+  let url = `https://world.openfoodfacts.org/api/v2/search?search_terms=${encodeURIComponent(q)}&page_size=${size}&fields=product_name,brands,nutriments`;
+  if (countries) url += `&countries_tags=${encodeURIComponent(countries)}`;
+  const r = await fetch(url, { signal });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const d = await r.json();
+  return (d.products || [])
+    .filter(p => p.product_name && p.nutriments)
+    .map(p => {
+      const n = p.nutriments;
+      const kcal = parseFloat(n['energy-kcal_100g'] ?? n['energy-kcal_serving'] ?? (n['energy_100g'] ? n['energy_100g'] / 4.184 : 0));
+      return {
+        name:    p.product_name.trim(),
+        brand:   ((p.brands || '').split(',')[0]).trim(),
+        per100g: {
+          kcal:    kcal    || 0,
+          protein: parseFloat(n['proteins_100g']        || 0),
+          carbs:   parseFloat(n['carbohydrates_100g']   || 0),
+          fat:     parseFloat(n['fat_100g']             || 0),
+          fiber:   parseFloat(n['fiber_100g']           || 0)
+        }
+      };
+    })
+    .filter(p => p.per100g.kcal > 0 && p.name);
 }
 
 function selectFoodResult(i) {
@@ -459,6 +523,24 @@ function selectFoodResult(i) {
   eid('foodAddName').value  = r.name;
   eid('foodAddBrand').value = r.brand || '';
   _showFoodAddForm(r.per100g, false);
+}
+
+function selectSearchCustomFood(id) {
+  const cf = (S.customFoods || []).find(c => String(c.id) === String(id));
+  if (!cf) return;
+  if (!S.foodLog) S.foodLog = {};
+  const _date = _foodEffectiveDate();
+  if (!S.foodLog[_date]) S.foodLog[_date] = [];
+  S.foodLog[_date].push({
+    id: Date.now(),
+    name: cf.name, brand: '', meal: _currentMeal, grams: 0,
+    kcal: cf.kcal, protein: cf.protein, carbs: cf.carbs, fat: cf.fat, fiber: cf.fiber || 0,
+    per100g: null
+  });
+  scheduleSave();
+  closeFoodSearch();
+  renderFoodTab();
+  toast(`${cf.name} added`);
 }
 
 function selectFoodManual() {
@@ -692,7 +774,7 @@ let _foodSubTab = 'diary';
 
 function setFoodTab(tab) {
   _foodSubTab = tab;
-  ['diary','history','meals'].forEach(t => {
+  ['diary','history','meals','myfoods'].forEach(t => {
     const btn  = eid(`ftab${t.charAt(0).toUpperCase()+t.slice(1)}`);
     const pane = eid(`foodPane${t.charAt(0).toUpperCase()+t.slice(1)}`);
     const active = t === tab;
@@ -702,6 +784,7 @@ function setFoodTab(tab) {
   if (tab === 'history') renderFoodHistory();
   if (tab === 'meals')   renderMealPlansList();
   if (tab === 'diary')   renderFoodTab();
+  if (tab === 'myfoods') renderMyFoodsTab();
 }
 
 // ── Food History (diary log of past days) ────────────────────
@@ -899,4 +982,107 @@ function deleteMealPlan(i) {
   scheduleSave();
   renderMealPlansList();
   toast(`"${plan?.name}" removed`);
+}
+
+// ── My Foods library management ───────────────────────────────
+
+let _myFoodEditId = null;
+
+function renderMyFoodsTab() {
+  const el = eid('myFoodsList');
+  if (!el) return;
+  const q = (eid('myFoodsSearch')?.value || '').toLowerCase().trim();
+  const foods = (S.customFoods || []).filter(cf => !q || cf.name.toLowerCase().includes(q));
+
+  if (!foods.length) {
+    el.innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:24px;text-align:center;line-height:1.7">
+      ${q ? `No foods matching "${escapeHtml(q)}"` : 'No saved foods yet'}<br>
+      <span style="font-size:0.68rem">Tap <b style="color:var(--cream)">+ Add</b> to save a food, or use <b style="color:var(--cream)">Quick Add</b> in the diary<br>and check "Save to My Foods"</span>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = foods.map(cf => `
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:11px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:0.82rem;color:var(--cream)">${escapeHtml(cf.name)}</div>
+        <div style="font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">
+          ${Math.round(cf.kcal||0)} kcal \u00b7 P${Math.round(cf.protein||0)}g \u00b7 C${Math.round(cf.carbs||0)}g \u00b7 F${Math.round(cf.fat||0)}g${cf.fiber ? ` \u00b7 Fiber ${Math.round(cf.fiber)}g` : ''}
+        </div>
+      </div>
+      <button onclick="editCustomFood('${cf.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.72rem;padding:4px 6px;flex-shrink:0" title="Edit">\u270e</button>
+      <button onclick="deleteCustomFood('${cf.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.76rem;padding:4px 6px;flex-shrink:0">\u2715</button>
+    </div>`).join('');
+}
+
+function openAddToMyFoods() {
+  _myFoodEditId = null;
+  const title = eid('myFoodEditTitle');
+  if (title) title.textContent = 'Add to My Foods';
+  ['mfeeName','mfeeKcal','mfeeProtein','mfeeCarbs','mfeeFat','mfeeFiber'].forEach(id => {
+    const el = eid(id); if (el) el.value = '';
+  });
+  eid('mMyFoodEdit').classList.add('open');
+  setTimeout(() => eid('mfeeName')?.focus(), 80);
+}
+
+function editCustomFood(id) {
+  const cf = (S.customFoods || []).find(c => String(c.id) === String(id));
+  if (!cf) return;
+  _myFoodEditId = id;
+  const title = eid('myFoodEditTitle');
+  if (title) title.textContent = 'Edit Food';
+  const set = (elId, val) => { const el = eid(elId); if (el) el.value = val || ''; };
+  set('mfeeName',    cf.name);
+  set('mfeeKcal',    cf.kcal    || '');
+  set('mfeeProtein', cf.protein || '');
+  set('mfeeCarbs',   cf.carbs   || '');
+  set('mfeeFat',     cf.fat     || '');
+  set('mfeeFiber',   cf.fiber   || '');
+  eid('mMyFoodEdit').classList.add('open');
+  setTimeout(() => eid('mfeeName')?.focus(), 80);
+}
+
+function saveMyFoodEdit() {
+  const name    = eid('mfeeName')?.value.trim();
+  const kcal    = parseFloat(eid('mfeeKcal')?.value)    || 0;
+  const protein = parseFloat(eid('mfeeProtein')?.value) || 0;
+  const carbs   = parseFloat(eid('mfeeCarbs')?.value)   || 0;
+  const fat     = parseFloat(eid('mfeeFat')?.value)     || 0;
+  const fiber   = parseFloat(eid('mfeeFiber')?.value)   || 0;
+  if (!name) { toast('Enter a name'); return; }
+  if (!kcal && !protein && !carbs && !fat) { toast('Enter at least calories or macros'); return; }
+
+  if (!Array.isArray(S.customFoods)) S.customFoods = [];
+
+  if (_myFoodEditId !== null) {
+    const idx = S.customFoods.findIndex(cf => String(cf.id) === String(_myFoodEditId));
+    if (idx >= 0) S.customFoods[idx] = { ...S.customFoods[idx], name, kcal, protein, carbs, fat, fiber };
+  } else {
+    const exists = S.customFoods.some(cf => cf.name.toLowerCase() === name.toLowerCase());
+    if (exists) { toast('A food with that name already exists'); return; }
+    S.customFoods.push({ id: Date.now(), name, kcal, protein, carbs, fat, fiber });
+  }
+
+  _myFoodEditId = null;
+  scheduleSave();
+  eid('mMyFoodEdit').classList.remove('open');
+  renderMyFoodsTab();
+  toast(`${name} saved to My Foods`);
+}
+
+function deleteCustomFood(id) {
+  if (!Array.isArray(S.customFoods)) return;
+  const idx = S.customFoods.findIndex(cf => String(cf.id) === String(id));
+  if (idx < 0) return;
+  const removed = { ...S.customFoods[idx] };
+  S.customFoods.splice(idx, 1);
+  scheduleSave();
+  renderMyFoodsTab();
+  toastUndo(`"${removed.name}" removed`, () => {
+    if (!Array.isArray(S.customFoods)) S.customFoods = [];
+    S.customFoods.splice(idx, 0, removed);
+    scheduleSave();
+    renderMyFoodsTab();
+  });
 }

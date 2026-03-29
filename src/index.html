@@ -1054,11 +1054,12 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 
   <!-- FOOD TAB -->
   <div id="panel-food" class="panel">
-    <!-- Tab row: Diary | History | Meal Plans -->
-    <div style="display:flex;gap:6px;margin-bottom:16px">
+    <!-- Tab row: Diary | History | Meal Plans | My Foods -->
+    <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap">
       <button class="fpill active" id="ftabDiary"    onclick="setFoodTab('diary')">Diary</button>
       <button class="fpill"        id="ftabHistory"  onclick="setFoodTab('history')">History</button>
       <button class="fpill"        id="ftabMeals"    onclick="setFoodTab('meals')">Meal Plans</button>
+      <button class="fpill"        id="ftabMyfoods"  onclick="setFoodTab('myfoods')">My Foods</button>
       <input id="foodDate" type="date" class="add-inp" style="width:auto;font-size:0.74rem;margin-left:auto">
     </div>
 
@@ -1081,6 +1082,18 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
         <button class="btn btn-p" style="font-size:0.7rem" onclick="openSaveMealPlan()">Save Today as Plan</button>
       </div>
       <div id="mealPlansList"></div>
+    </div>
+
+    <!-- MY FOODS VIEW -->
+    <div id="foodPaneMyfoods" style="display:none">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <input id="myFoodsSearch" class="add-inp" placeholder="Filter my foods…" style="flex:1;font-size:0.76rem" oninput="renderMyFoodsTab()">
+        <button class="btn btn-p" style="font-size:0.7rem;white-space:nowrap" onclick="openAddToMyFoods()">+ Add</button>
+      </div>
+      <div id="myFoodsList"></div>
+      <div style="font-size:0.62rem;color:var(--muted);margin-top:12px;padding:10px;background:var(--panel);border-radius:8px;border:1px solid var(--border);line-height:1.5">
+        <b style="color:var(--muted-lt)">Tip for Kuwait &amp; local foods:</b> The global database has limited Kuwait coverage. Add your go-to foods here once — they'll appear instantly at the top of every search.
+      </div>
     </div>
 
     <div style="font-size:0.62rem;color:var(--muted);text-align:center;margin-top:10px">
@@ -1663,6 +1676,25 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
         <button class="btn btn-g" onclick="_backToSearch()">Back</button>
         <button class="btn btn-p" onclick="saveFoodEntry()">Add</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- My Food Edit Modal -->
+<div class="modal-bg" id="mMyFoodEdit" onclick="if(event.target===this)eid('mMyFoodEdit').classList.remove('open')">
+  <div class="modal" style="max-width:360px" onkeydown="if(event.key==='Enter'&&event.target.tagName!=='SELECT')saveMyFoodEdit()">
+    <h2 id="myFoodEditTitle">Add to My Foods</h2>
+    <div class="mf"><label>Name</label><input id="mfeeName" class="add-inp" placeholder="e.g. Sadia Chicken Strips"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="mf" style="margin:0"><label style="font-size:0.7rem">Calories (kcal)</label><input id="mfeeKcal" type="number" class="add-inp" placeholder="0" min="0"></div>
+      <div class="mf" style="margin:0"><label style="font-size:0.7rem">Protein (g)</label><input id="mfeeProtein" type="number" class="add-inp" placeholder="0" min="0"></div>
+      <div class="mf" style="margin:0"><label style="font-size:0.7rem">Carbs (g)</label><input id="mfeeCarbs" type="number" class="add-inp" placeholder="0" min="0"></div>
+      <div class="mf" style="margin:0"><label style="font-size:0.7rem">Fat (g)</label><input id="mfeeFat" type="number" class="add-inp" placeholder="0" min="0"></div>
+      <div class="mf" style="margin:0;grid-column:1/-1"><label style="font-size:0.7rem">Fiber (g, optional)</label><input id="mfeeFiber" type="number" class="add-inp" placeholder="0" min="0"></div>
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-g" onclick="eid('mMyFoodEdit').classList.remove('open')">Cancel</button>
+      <button class="btn btn-p" onclick="saveMyFoodEdit()">Save</button>
     </div>
   </div>
 </div>
