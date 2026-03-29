@@ -248,7 +248,7 @@ function renderFeaturesPane() {
       `).join('')}
     </div>
     <div style="margin-top:20px">
-      <div style="font-size:0.72rem;color:var(--cream);margin-bottom:10px;font-weight:500">Export Data</div>
+      <div style="font-size:0.72rem;color:var(--cream);margin-bottom:10px;font-weight:500">Export Data (CSV)</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px" id="exportBtns">
         <button class="btn btn-g" onclick="exportCSV('media')" style="font-size:0.68rem">📚 Media</button>
         <button class="btn btn-g" onclick="exportCSV('workouts')" style="font-size:0.68rem">🏋️ Workouts</button>
@@ -258,7 +258,40 @@ function renderFeaturesPane() {
         <button class="btn btn-g" onclick="exportCSV('weight')" style="font-size:0.68rem">⚖️ Weight</button>
       </div>
     </div>
+    <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border)">
+      <div style="font-size:0.72rem;color:var(--cream);margin-bottom:10px;font-weight:500">Full Backup</div>
+      <div style="font-size:0.66rem;color:var(--muted);margin-bottom:10px">Export or import your complete AOS data as JSON.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-g" onclick="doExport()" style="font-size:0.68rem">Export JSON Backup</button>
+        <button class="btn btn-g" onclick="doImport()" style="font-size:0.68rem">Import JSON Backup</button>
+      </div>
+      ${(()=>{ const ls = localStorage.getItem('aos_last_synced'); if(!ls) return ''; const d = new Date(ls); return `<div style="font-size:0.62rem;color:var(--muted);margin-top:8px;font-family:'DM Mono',monospace">Last synced: ${d.toLocaleString()}</div>`; })()}
+    </div>
+    <div style="margin-top:20px;padding-top:14px;border-top:1px solid rgba(180,60,60,0.28)">
+      <div style="font-size:0.72rem;color:#f09090;margin-bottom:10px;font-weight:500">Danger Zone</div>
+      <div style="font-size:0.66rem;color:var(--muted);margin-bottom:10px">Permanently delete all your AOS data. This cannot be undone.</div>
+      <button class="btn" onclick="clearAllData()"
+        style="font-size:0.68rem;background:rgba(180,60,60,0.15);border:1px solid rgba(180,60,60,0.35);color:#f09090;padding:6px 14px;border-radius:8px;cursor:pointer">
+        Clear All Data
+      </button>
+    </div>
   `;
+}
+
+async function clearAllData() {
+  const confirmed = confirm(
+    'This will permanently delete ALL your AOS data — habits, food logs, workouts, projects, media, notes and more.\n\nThis cannot be undone. Are you absolutely sure?'
+  );
+  if (!confirmed) return;
+  const confirmed2 = confirm('Last chance. Delete everything?');
+  if (!confirmed2) return;
+  // Auto-backup before wiping
+  try { await window.api.exportData(JSON.stringify(S, null, 2)); } catch(_) {}
+  S = normalizeAppState({});
+  scheduleSave();
+  closeModal('mSettings');
+  renderAll();
+  toast('All data cleared');
 }
 
 function toggleFeature(key, on) {

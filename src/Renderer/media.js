@@ -14,6 +14,7 @@ function renderStars(rating) {
 let bookF      = 'all';
 let mediaTypeF = 'book';   // default tab — no more 'all'
 let activeBookId = null;
+let _mediaSearchQ = '';    // M1: search filter
 
 /* removed: MEDIA_TYPES array — no longer needed */
 
@@ -79,12 +80,21 @@ function renderBooks() {
   renderMediaSection(mediaTypeF);
 }
 
+function setMediaSearch(q) {
+  _mediaSearchQ = (q || '').toLowerCase().trim();
+  renderBooks();
+}
+
 function renderMediaSection(type) {
   const c = eid('mediaGrid');
   c.innerHTML = '';
 
   let list = (S.media || []).filter(b => b.mediaType === type);
   if (bookF !== 'all') list = list.filter(b => b.status === bookF);
+  if (_mediaSearchQ) list = list.filter(b =>
+    (b.title||'').toLowerCase().includes(_mediaSearchQ) ||
+    (b.author||'').toLowerCase().includes(_mediaSearchQ)
+  );
 
   /* Update status filter labels for current type */
   updateStatusFilterLabels(type);
@@ -140,7 +150,7 @@ function buildBookCard(b, idx) {
       ${progressText}
       <div class="book-row" style="margin-top:6px">
         <span class="bstatus bs-${b.status}" onclick="event.stopPropagation();cycleBook(${b.id})" title="Click to change">${slbl}</span>
-        ${stars ? `<span class="b-stars">${stars}</span>` : ''}
+        ${stars ? `<span class="b-stars" title="${b.rating}/10">${stars} <span style="font-size:0.54rem;color:var(--muted);font-family:'DM Mono',monospace">${b.rating}</span></span>` : ''}
       </div>
     </div>
     <button class="book-del" onclick="event.stopPropagation();delBook(${b.id})">✕</button>
@@ -550,6 +560,8 @@ function renderChapterNotes() {
     card.innerHTML = `
       <div class="chapter-note-top">
         <input class="editable" value="${escapeAttr(n.label||'')}" onchange="updateChapterLabel(${n.id},this.value)">
+        <input type="date" value="${escapeAttr(n.date||today())}" onchange="updateChapterNoteDate(${n.id},this.value)"
+          style="background:none;border:none;color:var(--muted);font-size:0.58rem;font-family:'DM Mono',monospace;cursor:pointer;padding:0;max-width:96px">
         <button class="chapter-note-del" onclick="expandNote(${n.id})" title="Expand" style="margin-right:2px;opacity:0.6">⤢</button>
         <button class="chapter-note-del" onclick="deleteChapterNote(${n.id})">✕</button>
       </div>
@@ -638,7 +650,7 @@ function updateActiveBookNotes(value) {
 function addChapterNote() {
   const b = getActiveBook(); if (!b) return;
   if (!Array.isArray(b.chapterNotes)) b.chapterNotes = [];
-  b.chapterNotes.push({ id: Date.now(), label: mediaNoteDefaultLabel(b.mediaType, b.chapterNotes.length), note: '' });
+  b.chapterNotes.push({ id: Date.now(), label: mediaNoteDefaultLabel(b.mediaType, b.chapterNotes.length), note: '', date: today() });
   scheduleSave(); renderChapterNotes();
 }
 
@@ -683,6 +695,12 @@ function updateChapterNote(noteId, value) {
   const b = getActiveBook(); if (!b) return;
   const n = b.chapterNotes.find(n => n.id === noteId);
   if (n) { n.note = value; scheduleSave(); }
+}
+
+function updateChapterNoteDate(noteId, value) {
+  const b = getActiveBook(); if (!b) return;
+  const n = b.chapterNotes.find(n => n.id === noteId);
+  if (n) { n.date = value; scheduleSave(); }
 }
 
 function deleteChapterNote(noteId) {
@@ -820,4 +838,40 @@ function saveAlbumDetails() {
 /* ══ BOOK DETAIL FILTER (status) ══ */
 function setBookDetailStatus(value) {
   updateActiveBookStatus(value);
+}
+
+/* ══ QUEUE VIEW (M9) ══ */
+let _mediaQueueOpen = false;
+
+function toggleMediaQueue() {
+  _mediaQueueOpen = !_mediaQueueOpen;
+  renderMediaQueue();
+  const btn = eid('mediaQueueBtn');
+  if (btn) btn.classList.toggle('active', _mediaQueueOpen);
+  const qEl = eid('mediaQueuePanel');
+  if (qEl) qEl.style.display = _mediaQueueOpen ? '' : 'none';
+}
+
+function renderMediaQueue() {
+  const el = eid('mediaQueuePanel');
+  if (!el) return;
+  const queue = (S.media || [])
+    .filter(m => m.status === 'unread')
+    .sort((a, b) => a.id - b.id); // oldest added first
+  if (!queue.length) {
+    el.innerHTML = `<div style="padding:16px;color:var(--muted);font-size:0.78rem;text-align:center">Queue is empty</div>`;
+    return;
+  }
+  const typeIcons = { book:'◆', film:'▶', show:'▶', anime:'▶', album:'♪', game:'◈' };
+  el.innerHTML = queue.map(m => `
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer"
+         onclick="openBookDetails(${m.id})"
+         onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
+      <span style="font-size:0.8rem;color:var(--muted)">${typeIcons[m.mediaType]||'◆'}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:0.8rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(m.title)}</div>
+        ${m.author ? `<div style="font-size:0.62rem;color:var(--muted)">${escapeHtml(m.author)}</div>` : ''}
+      </div>
+      <span style="font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap">${m.mediaType}</span>
+    </div>`).join('');
 }

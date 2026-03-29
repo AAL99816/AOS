@@ -308,8 +308,9 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 .s-active  {background:color-mix(in srgb,var(--blush) 14%,transparent); color:var(--petal);   border:1px solid var(--border-lt);}
 .s-planning{background:rgba(240,204,213,0.08); color:var(--mist);   border:1px solid var(--border);}
 .s-paused  {background:rgba(201,149,106,0.13); color:var(--gold-lt); border:1px solid rgba(201,149,106,0.28);}
-.s-complete{background:rgba(61,184,122,0.12);  color:#72e8a0;        border:1px solid rgba(61,184,122,0.28);}
-.s-dropped {background:rgba(180,60,60,0.10);   color:#f09090;        border:1px solid rgba(180,60,60,0.22);}
+.s-complete {background:rgba(61,184,122,0.12);  color:#72e8a0;        border:1px solid rgba(61,184,122,0.28);}
+.s-dropped  {background:rgba(180,60,60,0.10);   color:#f09090;        border:1px solid rgba(180,60,60,0.22);}
+.s-archived {background:rgba(120,100,80,0.10);  color:#b0a090;        border:1px solid rgba(120,100,80,0.22);}
 
 /* ══ BOOKS ══ */
 .book-filters{display:flex; gap:6px; margin-bottom:14px;}
@@ -590,8 +591,9 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 .onboard-habit-opt.selected .onboard-check{background:var(--rose);color:var(--cream);}
 
 /* ══ TOAST ══ */
-#toast{position:fixed; bottom:20px; right:20px; z-index:300; background:linear-gradient(135deg,color-mix(in srgb,var(--rose) 92%,transparent),color-mix(in srgb,var(--panel) 96%,transparent)); border:1px solid var(--border-lt); border-radius:10px; padding:9px 15px; font-size:0.76rem; color:var(--mist); opacity:0; pointer-events:none; transition:opacity 0.25s; box-shadow:0 8px 30px rgba(0,0,0,0.5);}
-#toast.show{opacity:1;}
+#toast{position:fixed; bottom:20px; right:20px; z-index:300; background:linear-gradient(135deg,color-mix(in srgb,var(--rose) 92%,transparent),color-mix(in srgb,var(--panel) 96%,transparent)); border:1px solid var(--border-lt); border-radius:10px; padding:9px 15px; font-size:0.76rem; color:var(--mist); opacity:0; pointer-events:none; transition:opacity 0.25s; box-shadow:0 8px 30px rgba(0,0,0,0.5); display:flex; align-items:center; gap:0;}
+#toast.show{opacity:1; pointer-events:auto;}
+#toast .toast-undo{margin-left:12px;background:none;border:1px solid rgba(255,255,255,0.4);border-radius:4px;color:var(--cream);font-size:0.7rem;padding:1px 7px;cursor:pointer;font-family:inherit;flex-shrink:0;}
 
 .update-card{
   position:fixed;
@@ -1128,6 +1130,15 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <button class="fpill"        data-status="done"    onclick="setBookF('done',this)"    >Finished</button>
     </div>
 
+    <!-- Search + Queue (M1, M9) -->
+    <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+      <input id="mediaSearchInp" type="search" placeholder="Search title or author…"
+        oninput="setMediaSearch(this.value)"
+        style="flex:1;background:var(--mid);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:0.76rem;color:var(--mist);font-family:inherit;outline:none">
+      <button id="mediaQueueBtn" class="btn btn-g" style="font-size:0.64rem;padding:5px 10px;white-space:nowrap" onclick="toggleMediaQueue()">☰ Queue</button>
+    </div>
+    <div id="mediaQueuePanel" style="display:none;background:var(--panel);border:1px solid var(--border);border-radius:10px;margin-top:8px;overflow:hidden;max-height:280px;overflow-y:auto"></div>
+
     <div class="books-grid" id="mediaGrid" style="margin-top:14px"></div>
   </div>
 
@@ -1611,7 +1622,11 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
           </select>
         </div>
       </div>
-      <div id="qaCalcHint" style="font-size:0.62rem;color:var(--muted);margin-bottom:10px"></div>
+      <div id="qaCalcHint" style="font-size:0.62rem;color:var(--muted);margin-bottom:8px"></div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:0.68rem;color:var(--muted);margin-bottom:10px;cursor:pointer">
+        <input type="checkbox" id="qaSaveCustom" style="width:14px;height:14px;cursor:pointer">
+        Save to My Foods
+      </label>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button class="btn btn-g" onclick="closeFoodSearch()">Cancel</button>
         <button class="btn btn-p" onclick="saveQuickAdd()">Add</button>
@@ -1673,6 +1688,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
     <div class="mf"><label>Protein (g)</label><input id="ftProtein" type="number" class="add-inp" min="0"></div>
     <div class="mf"><label>Carbs (g)</label><input id="ftCarbs" type="number" class="add-inp" min="0"></div>
     <div class="mf"><label>Fat (g)</label><input id="ftFat" type="number" class="add-inp" min="0"></div>
+    <div class="mf"><label>Fiber (g)</label><input id="ftFiber" type="number" class="add-inp" min="0"></div>
     <div class="modal-acts">
       <button class="btn btn-g" onclick="eid('mFoodTargets').classList.remove('open')">Cancel</button>
       <button class="btn btn-p" onclick="saveFoodTargets()">Save</button>
@@ -1696,6 +1712,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 <div id="pomodoroWidget" style="display:none;position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 74px);right:16px;z-index:150;background:var(--panel);border:2px solid var(--blush);border-radius:16px;padding:12px 18px;box-shadow:0 8px 32px rgba(0,0,0,0.6);min-width:130px;text-align:center">
   <div id="pomodoroPhase" style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px">Focus</div>
   <div id="pomodoroTime" style="font-size:1.7rem;font-family:'DM Mono',monospace;color:var(--cream);letter-spacing:0.02em;line-height:1">25:00</div>
+  <div id="pomodoroCount" style="font-size:0.55rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px"></div>
   <button onclick="stopPomodoro()" style="margin-top:8px;font-size:0.62rem;color:var(--muted);background:none;border:none;cursor:pointer;text-decoration:underline">Stop</button>
 </div>
 <!-- END FEATURE: Pomodoro Widget -->
@@ -1716,6 +1733,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 </div>
 <!-- END FEATURE: Global Search Modal -->
 
+<datalist id="exerciseNameList"></datalist>
 <div id="toast"></div>
 
 <div id="updateCard" class="update-card hidden">

@@ -81,8 +81,10 @@ function copyYesterday() {
   const yesterday = _dateOffset(-1);
   const src = S.foodLog?.[yesterday] || [];
   if (!src.length) { toast('No entries yesterday to copy'); return; }
-  const date = today();
+  const date = _foodEffectiveDate();
   if (!S.foodLog) S.foodLog = {};
+  const existing = (S.foodLog[date] || []).length;
+  if (existing > 0 && !confirm(`Today already has ${existing} entr${existing === 1 ? 'y' : 'ies'}. Add yesterday's ${src.length} items anyway?`)) return;
   if (!S.foodLog[date]) S.foodLog[date] = [];
   src.forEach(e => S.foodLog[date].push({ ...e, id: Date.now() + Math.random() }));
   scheduleSave();
@@ -102,9 +104,9 @@ function renderFoodMacroBar() {
   const remaining = T.kcal - Math.round(totals.kcal);
   const over      = remaining < 0;
   const remColor  = over ? 'var(--petal)' : 'var(--gold-lt)';
-  const remLabel  = over ? `${Math.abs(remaining)} kcal over` : `${remaining} kcal remaining`;
   const consumed  = Math.round(totals.kcal);
   const pct       = T.kcal ? Math.min(100, Math.round((consumed / T.kcal) * 100)) : 0;
+  const itemCount = entries.length;
 
   el.innerHTML = `
     <!-- Calorie budget banner -->
@@ -115,7 +117,7 @@ function renderFoodMacroBar() {
       </div>
       <div style="text-align:right">
         <div style="font-size:0.68rem;color:var(--muted);font-family:'DM Mono',monospace">${consumed} <span style="color:var(--muted)">/ ${T.kcal} eaten</span></div>
-        <div style="font-size:0.58rem;color:var(--muted);margin-top:2px;cursor:pointer;text-decoration:underline" onclick="openFoodTargets()">Edit targets</div>
+        <div style="font-size:0.58rem;color:var(--muted);margin-top:2px">${itemCount} item${itemCount!==1?'s':''} · <span style="cursor:pointer;text-decoration:underline" onclick="openFoodTargets()">Edit targets</span></div>
       </div>
     </div>
     <!-- Calorie progress bar -->
@@ -132,9 +134,9 @@ function renderFoodMacroBar() {
     <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px">
       <span style="font-size:0.62rem;color:var(--muted);min-width:28px">Fiber</span>
       <div style="flex:1;height:3px;background:var(--mid);border-radius:2px;overflow:hidden">
-        <div style="height:100%;width:${Math.min(100,Math.round((totals.fiber/25)*100))}%;background:var(--muted-lt);border-radius:2px"></div>
+        <div style="height:100%;width:${T.fiber ? Math.min(100,Math.round((totals.fiber/T.fiber)*100)) : 0}%;background:var(--muted-lt);border-radius:2px"></div>
       </div>
-      <span style="font-size:0.62rem;color:var(--muted-lt);font-family:'DM Mono',monospace">${Math.round(totals.fiber)}g <span style="color:var(--muted)">/ 25g</span></span>
+      <span style="font-size:0.62rem;color:var(--muted-lt);font-family:'DM Mono',monospace">${Math.round(totals.fiber)}g <span style="color:var(--muted)">/ ${T.fiber||25}g</span></span>
     </div>` : ''}
   `;
 }
@@ -195,19 +197,21 @@ function renderFoodMeals() {
 }
 
 function _foodEntryRow(e) {
+  const macroLine = e.grams
+    ? `${e.grams}g · P ${Math.round(e.protein)}g · C ${Math.round(e.carbs)}g · F ${Math.round(e.fat)}g`
+    : `P ${Math.round(e.protein)}g · C ${Math.round(e.carbs)}g · F ${Math.round(e.fat)}g`;
   return `
     <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)">
       <div style="flex:1;min-width:0">
         <div style="font-size:0.8rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(e.name)}</div>
         ${e.brand ? `<div style="font-size:0.64rem;color:var(--muted)">${escapeHtml(e.brand)}</div>` : ''}
-        <div style="font-size:0.64rem;color:var(--muted-lt);font-family:'DM Mono',monospace;margin-top:1px">
-          ${e.grams}g · P ${Math.round(e.protein)}g · C ${Math.round(e.carbs)}g · F ${Math.round(e.fat)}g
-        </div>
+        <div style="font-size:0.64rem;color:var(--muted-lt);font-family:'DM Mono',monospace;margin-top:1px">${macroLine}</div>
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div style="font-size:0.86rem;color:var(--gold-lt);font-family:'DM Mono',monospace">${Math.round(e.kcal)}</div>
         <div style="font-size:0.6rem;color:var(--muted)">kcal</div>
       </div>
+      <button onclick="editFoodEntry('${e.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.66rem;padding:0 2px;flex-shrink:0" title="Edit">✎</button>
       <button onclick="deleteFoodEntry('${e.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.72rem;padding:0 2px;flex-shrink:0">✕</button>
     </div>`;
 }
@@ -237,6 +241,7 @@ function closeFoodSearch() {
   const modal = eid('mFoodSearch');
   if (modal) modal.classList.remove('open');
   _foodResults = [];
+  _foodEditId  = null;
 }
 
 function setFoodMode(mode) {
@@ -312,11 +317,27 @@ function _showRecentFoods() {
   const el = eid('foodSearchResults');
   if (!el) return;
   const recents = _getRecentFoods(10);
-  if (!recents.length) {
+  const customFoods = (S.customFoods || []).slice(0, 5);
+  if (!recents.length && !customFoods.length) {
     el.innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:20px;text-align:center">Search the food database or use Quick Add</div>`;
     return;
   }
-  el.innerHTML = `
+
+  // Show custom foods first if any
+  const customHtml = customFoods.length ? `
+    <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--gold-lt);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">My Foods</div>
+    ${customFoods.map((cf, i) => `
+      <div onclick="selectCustomFood(${i})"
+        style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
+        onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.82rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(cf.name)}</div>
+          <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace">P${cf.protein||0}g · C${cf.carbs||0}g · F${cf.fat||0}g</div>
+        </div>
+        <div style="font-size:0.68rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(cf.kcal||0)} kcal</div>
+      </div>`).join('')}` : '';
+
+  el.innerHTML = customHtml + (recents.length ? `
     <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">Recent</div>
     ${recents.map((r, i) => `
       <div onclick="selectRecentFood(${i})"
@@ -327,9 +348,30 @@ function _showRecentFoods() {
           ${r.brand ? `<div style="font-size:0.62rem;color:var(--muted)">${escapeHtml(r.brand)}</div>` : ''}
         </div>
         <div style="font-size:0.68rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(r.kcal)} kcal</div>
-      </div>`).join('')}`;
+      </div>`).join('')}` : '');
   // store for later reference
   el._recentFoods = recents;
+  el._customFoods = customFoods;
+}
+
+function selectCustomFood(i) {
+  const el = eid('foodSearchResults');
+  const customs = el?._customFoods || (S.customFoods || []).slice(0, 5);
+  const cf = customs[i];
+  if (!cf) return;
+  if (!S.foodLog) S.foodLog = {};
+  const _date = _foodEffectiveDate();
+  if (!S.foodLog[_date]) S.foodLog[_date] = [];
+  S.foodLog[_date].push({
+    id: Date.now(),
+    name: cf.name, brand: '', meal: _currentMeal, grams: 0,
+    kcal: cf.kcal, protein: cf.protein, carbs: cf.carbs, fat: cf.fat, fiber: cf.fiber,
+    per100g: null
+  });
+  scheduleSave();
+  closeFoodSearch();
+  renderFoodTab();
+  toast(`${cf.name} added`);
 }
 
 function selectRecentFood(i) {
@@ -463,17 +505,36 @@ function saveQuickAdd() {
   const _date = _foodEffectiveDate();
   if (!S.foodLog[_date]) S.foodLog[_date] = [];
 
-  S.foodLog[_date].push({
-    id: Date.now(),
-    name, brand: '', meal, grams: 0,
-    kcal, protein, carbs, fat, fiber,
-    per100g: null
-  });
+  // F10: Optionally save to custom foods library
+  const saveCustom = eid('qaSaveCustom')?.checked;
+  const isEdit = _foodEditId !== null;
+  if (saveCustom && !isEdit) {
+    if (!Array.isArray(S.customFoods)) S.customFoods = [];
+    const exists = S.customFoods.some(cf => cf.name.toLowerCase() === name.toLowerCase());
+    if (!exists) S.customFoods.push({ id: Date.now(), name, kcal, protein, carbs, fat, fiber });
+  }
+
+  if (_foodEditId !== null) {
+    // Update existing entry
+    const idx = S.foodLog[_date].findIndex(e => String(e.id) === String(_foodEditId));
+    if (idx >= 0) {
+      const existing = S.foodLog[_date][idx];
+      S.foodLog[_date][idx] = { ...existing, name, meal, kcal, protein, carbs, fat, fiber };
+    }
+    _foodEditId = null;
+  } else {
+    S.foodLog[_date].push({
+      id: Date.now(),
+      name, brand: '', meal, grams: 0,
+      kcal, protein, carbs, fat, fiber,
+      per100g: null
+    });
+  }
 
   scheduleSave();
   closeFoodSearch();
   renderFoodTab();
-  toast(`${name} added`);
+  toast(`${name} added${saveCustom && !isEdit ? ' · saved to My Foods' : ''}`);
 }
 
 function _showFoodAddForm(per100g, manual) {
@@ -559,9 +620,41 @@ function saveFoodEntry() {
   toast(`${name} added`);
 }
 
+function editFoodEntry(id) {
+  const _date = _foodEffectiveDate();
+  const entry = (S.foodLog?.[_date] || []).find(e => String(e.id) === String(id));
+  if (!entry) return;
+  _currentMeal = entry.meal || 'breakfast';
+  _foodEditId  = id;
+  const modal = eid('mFoodSearch');
+  if (!modal) return;
+  modal.classList.add('open');
+  _applyFoodMode('quick');
+  const lbl = eid('foodMealLabel');
+  if (lbl) lbl.textContent = MEAL_LABELS[entry.meal] || entry.meal;
+  // Pre-fill Quick Add fields
+  setTimeout(() => {
+    const qaName = eid('qaName'); if (qaName) qaName.value = entry.name || '';
+    const qaKcal = eid('qaKcal'); if (qaKcal) qaKcal.value = entry.kcal || '';
+    const qaProtein = eid('qaProtein'); if (qaProtein) qaProtein.value = entry.protein || '';
+    const qaCarbs = eid('qaCarbs'); if (qaCarbs) qaCarbs.value = entry.carbs || '';
+    const qaFat = eid('qaFat'); if (qaFat) qaFat.value = entry.fat || '';
+    const qaFiber = eid('qaFiber'); if (qaFiber) qaFiber.value = entry.fiber || '';
+    const qaMeal = eid('qaMeal'); if (qaMeal) qaMeal.value = entry.meal || _currentMeal;
+  }, 80);
+}
+
 function deleteFoodEntry(id) {
   const _date = _foodEffectiveDate();
   if (!S.foodLog?.[_date]) return;
+  const entry = (S.foodLog[_date] || []).find(e => String(e.id) === String(id));
+  if (!entry) return;
+  toastUndo(`"${entry.name}" removed`, () => {
+    if (!S.foodLog[_date]) S.foodLog[_date] = [];
+    S.foodLog[_date].push(entry);
+    scheduleSave();
+    renderFoodTab();
+  });
   S.foodLog[_date] = S.foodLog[_date].filter(e => String(e.id) !== String(id));
   scheduleSave();
   renderFoodTab();
@@ -575,6 +668,8 @@ function openFoodTargets() {
   eid('ftProtein').value = T.protein || 150;
   eid('ftCarbs').value   = T.carbs   || 200;
   eid('ftFat').value     = T.fat     || 65;
+  const ftFiber = eid('ftFiber');
+  if (ftFiber) ftFiber.value = T.fiber || 25;
   eid('mFoodTargets').classList.add('open');
 }
 
@@ -584,6 +679,7 @@ function saveFoodTargets() {
   S.foodTargets.protein = parseFloat(eid('ftProtein')?.value) || 150;
   S.foodTargets.carbs   = parseFloat(eid('ftCarbs')?.value)   || 200;
   S.foodTargets.fat     = parseFloat(eid('ftFat')?.value)     || 65;
+  S.foodTargets.fiber   = parseFloat(eid('ftFiber')?.value)   || 25;
   scheduleSave();
   eid('mFoodTargets').classList.remove('open');
   renderFoodMacroBar();

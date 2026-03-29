@@ -123,33 +123,104 @@ function setAnnualTarget(key, val) {
 
 // ── FEATURE: Pomodoro Timer ───────────────────────────────────
 // START — remove from here to END to disable pomodoro
-// UI: floating widget (global) + 🍅 button in project detail modal
-// Data: in-memory only — no state persistence
+// UI: floating widget (global) + button in project detail modal
+// Data: sessionStorage for persistence across refreshes
 
-let _pomodoroTimer   = null;
+let _pomodoroTimer    = null;
 let _pomodoroSecsLeft = 0;
-let _pomodoroPhase   = 'work';
+let _pomodoroPhase    = 'work';   // 'work' | 'break' | 'long-break'
+let _pomodoroCount    = 0;        // completed work sessions this cycle
 
-function startPomodoro(projectId) {
+const POMO_WORK       = 25 * 60;
+const POMO_BREAK      = 5  * 60;
+const POMO_LONG_BREAK = 20 * 60;
+const POMO_CYCLE      = 4;        // sessions before long break
+
+function _playChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = 528;
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+    osc.start();
+    osc.stop(ctx.currentTime + 1.2);
+  } catch {}
+}
+
+function _savePomodoroState() {
+  sessionStorage.setItem('pomo', JSON.stringify({
+    secsLeft: _pomodoroSecsLeft,
+    phase:    _pomodoroPhase,
+    count:    _pomodoroCount,
+    at:       Date.now()
+  }));
+}
+
+function _restorePomodoroState() {
+  try {
+    const raw = sessionStorage.getItem('pomo');
+    if (!raw) return false;
+    const saved = JSON.parse(raw);
+    const elapsed = Math.floor((Date.now() - saved.at) / 1000);
+    const remaining = saved.secsLeft - elapsed;
+    if (remaining > 0) {
+      _pomodoroSecsLeft = remaining;
+      _pomodoroPhase    = saved.phase;
+      _pomodoroCount    = saved.count || 0;
+      return true;
+    }
+    sessionStorage.removeItem('pomo');
+  } catch {}
+  return false;
+}
+
+function startPomodoro() {
   if (!feat('pomodoro')) return;
   if (_pomodoroTimer) clearInterval(_pomodoroTimer);
   _pomodoroPhase    = 'work';
-  _pomodoroSecsLeft = 25 * 60;
+  _pomodoroSecsLeft = POMO_WORK;
   _applyVis('pomodoroWidget', true);
   _renderPomodoroWidget();
   _pomodoroTimer = setInterval(_tickPomodoro, 1000);
+  _savePomodoroState();
   if (navigator.vibrate) navigator.vibrate(30);
 }
 
 function _tickPomodoro() {
   _pomodoroSecsLeft--;
+  _savePomodoroState();
   if (_pomodoroSecsLeft <= 0) {
     if (_pomodoroPhase === 'work') {
-      _pomodoroPhase    = 'break';
-      _pomodoroSecsLeft = 5 * 60;
-      toast('Pomodoro done — take a 5-minute break.');
+      _pomodoroCount++;
+      // Record pomodoro in history
+      if (!S.focusHistory) S.focusHistory = [];
+      S.focusHistory.push({ date: today(), mins: 25, at: new Date().toISOString() });
+      // Increment count on active focus item
+      if (_focusItemId) {
+        const item = (S.focusItems || []).find(i => i.id === _focusItemId);
+        if (item) { item.pomodorosDone = (item.pomodorosDone || 0) + 1; }
+      }
+      scheduleSave();
+      if (typeof renderFocusItems === 'function') renderFocusItems();
+      _playChime();
       if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      // FC7: Prompt for session note
+      _showSessionNotePrompt(_pomodoroCount);
+      if (_pomodoroCount % POMO_CYCLE === 0) {
+        _pomodoroPhase    = 'long-break';
+        _pomodoroSecsLeft = POMO_LONG_BREAK;
+      } else {
+        _pomodoroPhase    = 'break';
+        _pomodoroSecsLeft = POMO_BREAK;
+      }
     } else {
+      _playChime();
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
       stopPomodoro();
       toast('Break over — ready for the next session?');
       return;
@@ -159,20 +230,77 @@ function _tickPomodoro() {
 }
 
 function _renderPomodoroWidget() {
-  const mins = String(Math.floor(_pomodoroSecsLeft / 60)).padStart(2, '0');
-  const secs = String(_pomodoroSecsLeft % 60).padStart(2, '0');
+  const mins   = String(Math.floor(_pomodoroSecsLeft / 60)).padStart(2, '0');
+  const secs   = String(_pomodoroSecsLeft % 60).padStart(2, '0');
   const timeEl  = eid('pomodoroTime');
   const phaseEl = eid('pomodoroPhase');
   const widget  = eid('pomodoroWidget');
+  const countEl = eid('pomodoroCount');
   if (timeEl)  timeEl.textContent  = `${mins}:${secs}`;
-  if (phaseEl) phaseEl.textContent = _pomodoroPhase === 'work' ? 'Focus' : 'Break';
-  if (widget)  widget.style.borderColor = _pomodoroPhase === 'work' ? 'var(--blush)' : 'var(--gold)';
+  if (phaseEl) phaseEl.textContent = _pomodoroPhase === 'work' ? 'Focus' : _pomodoroPhase === 'long-break' ? 'Long Break' : 'Break';
+  if (countEl) countEl.textContent = _pomodoroCount > 0 ? `${_pomodoroCount} done` : '';
+  if (widget)  widget.style.borderColor = _pomodoroPhase === 'work' ? 'var(--blush)' : _pomodoroPhase === 'long-break' ? 'var(--gold-lt)' : 'var(--gold)';
+}
+
+function _showSessionNotePrompt(sessionNum) {
+  // FC7: Show a floating note prompt overlay after each work session
+  let overlay = eid('pomoNoteOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'pomoNoteOverlay';
+    overlay.style.cssText = 'position:fixed;bottom:100px;right:16px;z-index:200;background:var(--panel);border:1px solid var(--border-lt);border-radius:14px;padding:14px 16px;min-width:220px;max-width:280px;box-shadow:0 8px 32px rgba(0,0,0,0.6)';
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <div style="font-size:0.58rem;color:var(--blush);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:6px">Session ${sessionNum} complete</div>
+    <textarea id="pomoNoteText" placeholder="Quick note (optional)…" rows="2"
+      style="width:100%;background:var(--mid);border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:0.76rem;color:var(--mist);resize:none;font-family:inherit;outline:none"></textarea>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button class="btn btn-p" style="flex:1;font-size:0.66rem;padding:4px" onclick="_saveSessionNote()">Save</button>
+      <button class="btn btn-g" style="font-size:0.66rem;padding:4px 10px" onclick="_dismissSessionNote()">Skip</button>
+    </div>
+  `;
+  overlay.style.display = '';
+  setTimeout(() => eid('pomoNoteText')?.focus(), 80);
+}
+
+function _saveSessionNote() {
+  const text = eid('pomoNoteText')?.value.trim();
+  if (text) {
+    if (!S.focusHistory) S.focusHistory = [];
+    const last = S.focusHistory[S.focusHistory.length - 1];
+    if (last) last.note = text;
+    scheduleSave();
+  }
+  _closeSessionNoteOverlay();
+}
+
+function _dismissSessionNote() {
+  _closeSessionNoteOverlay();
+}
+
+function _closeSessionNoteOverlay() {
+  const overlay = eid('pomoNoteOverlay');
+  if (overlay) overlay.style.display = 'none';
+  const isLong = _pomodoroCount % POMO_CYCLE === 0;
+  toast(isLong ? `Session ${_pomodoroCount} done — long break (20 min)` : `Pomodoro done — short break (${_pomodoroCount % POMO_CYCLE}/${POMO_CYCLE})`);
 }
 
 function stopPomodoro() {
   if (_pomodoroTimer) clearInterval(_pomodoroTimer);
   _pomodoroTimer = null;
+  sessionStorage.removeItem('pomo');
   _applyVis('pomodoroWidget', false);
+}
+
+// Restore timer state on boot (handles page refresh mid-session)
+function _initPomodoroRestore() {
+  if (!feat('pomodoro')) return;
+  if (_restorePomodoroState()) {
+    _applyVis('pomodoroWidget', true);
+    _renderPomodoroWidget();
+    _pomodoroTimer = setInterval(_tickPomodoro, 1000);
+  }
 }
 // END — Pomodoro Timer
 
@@ -335,12 +463,18 @@ function renderExercisePbs() {
   }).filter(e => e.best);
   pbs.sort((a, b) => a.name.localeCompare(b.name));
   el.innerHTML = pbs.map(e => {
-    const w = e.best.weight ? `${e.best.weight}kg` : '';
-    const r = e.best.reps   ? `${e.best.reps} reps` : '';
-    const sep = w && r ? ' × ' : '';
+    const w    = e.best.weight ? `${e.best.weight}kg` : '';
+    const r    = e.best.reps   ? `${e.best.reps} reps` : '';
+    const sep  = w && r ? ' × ' : '';
+    const orm  = e.best.weight && e.best.reps > 1
+      ? Math.round(parseFloat(e.best.weight) * (1 + parseInt(e.best.reps) / 30))
+      : null;
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:0.78rem">
       <span style="color:var(--cream)">${escapeHtml(e.name)}</span>
-      <span style="color:var(--gold-lt);font-family:'DM Mono',monospace">${w}${sep}${r}</span>
+      <div style="text-align:right">
+        <div style="color:var(--gold-lt);font-family:'DM Mono',monospace">${w}${sep}${r}</div>
+        ${orm ? `<div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace">~${orm}kg 1RM</div>` : ''}
+      </div>
     </div>`;
   }).join('');
 }
@@ -364,30 +498,54 @@ function renderFocusTab() {
 function renderFocusItems() {
   const el = eid('focusItemsList');
   if (!el) return;
-  const items = S.focusItems || [];
-  if (!items.length) {
+  const items   = S.focusItems || [];
+  const active  = items.filter(i => !i.completed);
+  const archived = items.filter(i => i.completed);
+
+  if (!active.length && !archived.length) {
     el.innerHTML = `<div style="color:var(--muted);font-size:0.78rem;text-align:center;padding:24px">Add a focus item above — link a project or create a custom goal</div>`;
     return;
   }
-  el.innerHTML = items.map(item => {
-    const project = item.projectId ? (S.projects||[]).find(p => p.id == item.projectId) : null;
-    const label   = item.label || project?.title || 'Focus';
-    const done    = item.pomodorosDone || 0;
-    const target  = item.pomodorosTarget || 0;
+
+  const renderItem = item => {
+    const project  = item.projectId ? (S.projects||[]).find(p => p.id == item.projectId) : null;
+    const label    = item.label || project?.title || 'Focus';
+    const done     = item.pomodorosDone || 0;
+    const target   = item.pomodorosTarget || 0;
     const isActive = _focusItemId === item.id;
+    const pct      = target ? Math.min(100, Math.round(done / target * 100)) : 0;
     return `
-      <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--panel);border:1px solid ${isActive ? 'var(--blush)' : 'var(--border)'};border-radius:12px;margin-bottom:10px;transition:border-color 0.2s">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--panel);border:1px solid ${isActive ? 'var(--blush)' : 'var(--border)'};border-radius:12px;margin-bottom:10px;transition:border-color 0.2s;${item.completed?'opacity:0.5':''}">
+        <input type="checkbox" ${item.completed?'checked':''} onchange="toggleFocusItemDone(${item.id})" title="Mark complete" style="flex-shrink:0">
         <div style="flex:1;min-width:0">
-          <div style="font-size:0.84rem;color:var(--cream);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(label)}</div>
+          <div style="font-size:0.84rem;color:var(--cream);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${item.completed?'text-decoration:line-through;opacity:0.6':''}">${escapeHtml(label)}</div>
           <div style="font-size:0.68rem;color:var(--muted)">
             ${done}${target ? ' / ' + target : ''} pomodoro${done !== 1 ? 's' : ''}
+            ${target ? `<span style="margin-left:6px;color:var(--blush)">${pct}%</span>` : ''}
             ${project ? `<span style="margin-left:6px;color:var(--muted-lt)">· ${escapeHtml(project.title)}</span>` : ''}
           </div>
+          ${target ? `<div style="height:2px;background:var(--mid);border-radius:2px;margin-top:4px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--blush);border-radius:2px"></div></div>` : ''}
         </div>
-        <button onclick="startFocusOn(${item.id})" class="btn ${isActive ? 'btn-p' : 'btn-g'}" style="font-size:0.68rem;flex-shrink:0">${isActive ? '▶ Active' : 'Focus'}</button>
+        ${!item.completed ? `<button onclick="startFocusOn(${item.id})" class="btn ${isActive ? 'btn-p' : 'btn-g'}" style="font-size:0.68rem;flex-shrink:0">${isActive ? '▶ Active' : 'Focus'}</button>` : ''}
         <button onclick="deleteFocusItem(${item.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.78rem;padding:0 4px;flex-shrink:0">✕</button>
       </div>`;
-  }).join('');
+  };
+
+  let html = active.map(renderItem).join('');
+  if (archived.length) {
+    html += `<div style="font-size:0.58rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;margin:12px 0 6px">Completed (${archived.length})</div>`;
+    html += archived.map(renderItem).join('');
+  }
+  el.innerHTML = html;
+}
+
+function toggleFocusItemDone(id) {
+  const item = (S.focusItems || []).find(i => i.id === id);
+  if (!item) return;
+  item.completed = !item.completed;
+  if (item.completed && _focusItemId === id) _focusItemId = null;
+  scheduleSave();
+  renderFocusItems();
 }
 
 function addFocusItem() {

@@ -737,12 +737,20 @@ async function saveFitness() {
 
 function setSyncStatus(status) {
   const dot = eid('syncDot');
+  if (!dot) return;
   dot.className = 'sync-dot ' + status;
-  dot.title = {
-    synced: 'Synced',
-    syncing: 'Syncing…',
-    offline: 'Offline — changes saved locally'
-  }[status] || '';
+  if (status === 'synced') {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    dot.title = `Synced at ${timeStr}`;
+    // D1: store last-synced time for settings display
+    localStorage.setItem('aos_last_synced', now.toISOString());
+  } else {
+    dot.title = {
+      syncing: 'Syncing…',
+      offline: 'Offline — changes saved locally'
+    }[status] || '';
+  }
 }
 
 let saveTimer;

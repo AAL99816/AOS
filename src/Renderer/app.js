@@ -71,6 +71,8 @@ async function uploadHero(input){
 /* ══ EXPORT / IMPORT ══ */
 async function doExport(){const res=await window.api.exportData(JSON.stringify(S,null,2));if(res.ok)toast(t('backup_exported'));}
 async function doImport(){
+  // D4: Auto-backup current data before overwriting
+  try { await window.api.exportData(JSON.stringify(S, null, 2)); } catch(_) {}
   const res=await window.api.importData();if(!res.ok)return;
   try{S=normalizeAppState(JSON.parse(res.data));scheduleSave();renderAll();toast(t('data_imported'));}
   catch(e){alert(t('file_read_error'));}
@@ -223,8 +225,7 @@ function renderTodaySummary(){
   const habitsTotal = (S.habits||[]).length;
   const gymDone     = !!(S.gymLog&&S.gymLog[todayStr]);
   const cardioMins  = (S.cardioLog&&S.cardioLog[todayStr]) || 0;
-  const activeMedia = (S.media||[]).find(m=>m.status==='reading');
-  const activeGoals = 0; // Goals section removed — merged into Projects
+  const activeMediaItems = (S.media||[]).filter(m=>m.status==='reading');
   const activeProjs = (S.projects||[]).filter(p=>p.status==='Active').length;
   const insight     = calmInsight(todayStr, habitsDone, habitsTotal, gymDone, cardioMins);
 
@@ -232,9 +233,24 @@ function renderTodaySummary(){
     {label:t('habits'),  val: habitsTotal ? `${habitsDone} / ${habitsTotal}` : '—'},
     {label:t('gym'),     val: gymDone ? `✓ ${t('done')}` : t('not_logged')},
     ...(cardioMins>0 ? [{label:t('cardio'), val:`${cardioMins} ${t('min')}`}] : []),
-    ...(activeMedia   ? [{label: activeMedia.mediaType==='book' ? t('reading') : t('watching'), val:activeMedia.title}] : []),
     ...(activeProjs>0 ? [{label:t('projects'), val:`${activeProjs} ${t('active')}`}] : []),
   ];
+
+  // M4: In-progress media widget
+  const mediaHtml = activeMediaItems.length ? `
+    <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
+      <div style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;font-family:'DM Mono',monospace;margin-bottom:6px">In Progress</div>
+      ${activeMediaItems.slice(0,3).map(m => {
+        const pct = typeof getBookPct === 'function' ? getBookPct(m) : 0;
+        return `<div style="margin-bottom:6px;cursor:pointer" onclick="go('media');setMediaTypeF('${m.mediaType}')">
+          <div style="display:flex;justify-content:space-between;margin-bottom:2px">
+            <span style="font-size:0.76rem;color:var(--mist);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:75%">${escapeHtml(m.title)}</span>
+            ${pct > 0 ? `<span style="font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace">${pct}%</span>` : ''}
+          </div>
+          ${pct > 0 ? `<div style="height:2px;background:var(--mid);border-radius:2px"><div style="height:2px;width:${pct}%;background:var(--blush);border-radius:2px"></div></div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>` : '';
 
   c.innerHTML = `
     <div class="card" style="padding:14px 20px">
@@ -246,6 +262,7 @@ function renderTodaySummary(){
             <div style="font-size:0.82rem;color:var(--mist)">${escapeHtml(String(s.val))}</div>
           </div>`).join('')}
       </div>
+      ${mediaHtml}
       <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:0.8rem;color:var(--muted-lt);font-style:italic;font-family:'Cormorant Garamond',serif;">${escapeHtml(insight)}</div>
     </div>
   `;

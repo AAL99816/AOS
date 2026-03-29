@@ -44,6 +44,10 @@ function renderWeeklyReview() {
   const fmt    = d => new Date(d + 'T00:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
   const isCurr = reviewWeekOffset === 0;
 
+  /* ── Previous-week data for deltas (R1) ── */
+  const prevStart = weekStartFor(reviewWeekOffset - 1);
+  const prevDays  = weekDaysFor(prevStart);
+
   /* ── Prayer ── */
   const prayerCounts = PRAYERS.map(key => ({
     key,
@@ -60,15 +64,24 @@ function renderWeeklyReview() {
 
   /* ── Gym ── */
   const gymDays     = days.filter(d => !!(S.gymLog||{})[d]).length;
+  const prevGymDays = prevDays.filter(d => !!(S.gymLog||{})[d]).length;
   const gymSessions = (S.workoutHistory||[]).filter(s => days.includes(s.date));
 
   /* ── Cardio ── */
-  const cardioTotal = days.reduce((sum, d) => sum + ((S.cardioLog||{})[d]||0), 0);
+  const cardioTotal     = days.reduce((sum, d) => sum + ((S.cardioLog||{})[d]||0), 0);
+  const prevCardioTotal = prevDays.reduce((sum, d) => sum + ((S.cardioLog||{})[d]||0), 0);
 
   /* ── Food / Calories ── */
   const foodDayKcals = days.map(d => ((S.foodLog||{})[d]||[]).reduce((s,e) => s+(e.kcal||0), 0));
   const foodLoggedDays = foodDayKcals.filter(v => v > 0).length;
   const foodAvgKcal = foodLoggedDays ? Math.round(foodDayKcals.reduce((s,v)=>s+v,0) / foodLoggedDays) : 0;
+  const prevFoodKcals = prevDays.map(d => ((S.foodLog||{})[d]||[]).reduce((s,e) => s+(e.kcal||0), 0));
+  const prevFoodLoggedDays = prevFoodKcals.filter(v => v > 0).length;
+  const prevFoodAvgKcal = prevFoodLoggedDays ? Math.round(prevFoodKcals.reduce((s,v)=>s+v,0) / prevFoodLoggedDays) : 0;
+
+  /* ── Mood sparkline (R6) ── */
+  const moodLog = S.moodLog || {};
+  const moodVals = days.map(d => moodLog[d] ? Number(moodLog[d]) : null);
 
   /* ── Media ── */
   const activeMedia = (S.media||[]).filter(m => m.status === 'reading');
@@ -99,7 +112,7 @@ function renderWeeklyReview() {
         const isToday    = d === today();
         const future     = d > today();
         return `<button
-          onclick="selectDayDetail('${d}')"
+          ${future ? 'disabled' : `onclick="selectDayDetail('${d}')"`}
           style="padding:6px 2px;border-radius:var(--r-sm);font-size:0.55rem;font-family:'DM Mono',monospace;letter-spacing:0.04em;
             background:${isSelected?'var(--blush)':'var(--mid)'};
             color:${isSelected?'var(--cream)':'var(--muted)'};
@@ -127,20 +140,29 @@ function renderWeeklyReview() {
       <div class="review-block">
         <div class="review-kicker">${t('nav_fitness')}</div>
         <div style="margin-bottom:12px">
-          <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px">${t('gym')} · ${gymDays} ${t('day_s')}</div>
+          <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px">
+            ${t('gym')} · ${gymDays} ${t('day_s')}
+            ${prevGymDays > 0 ? `<span style="color:${gymDays>=prevGymDays?'var(--gold-lt)':'var(--petal)'};margin-left:6px">${gymDays>=prevGymDays?'↑':'↓'}${Math.abs(gymDays-prevGymDays)} vs prev</span>` : ''}
+          </div>
           ${gymSessions.length
             ? gymSessions.map(s=>`<div style="font-size:0.76rem;color:var(--mist);padding:3px 0;border-bottom:1px solid var(--blush-dim);cursor:pointer" onclick="openSessionDetail(${s.id})">${escapeHtml(s.date.slice(5))} · ${escapeHtml(s.title)}</div>`).join('')
             : `<div style="font-size:0.7rem;color:var(--muted)">${t('no_sessions_logged')}</div>`}
         </div>
         <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">${t('cardio')}</div>
-        <div style="font-size:0.9rem;color:${cardioTotal>0?'var(--gold-lt)':'var(--muted)'};font-family:'DM Mono',monospace">${cardioTotal>0?cardioTotal+' min':'—'}</div>
+        <div style="font-size:0.9rem;color:${cardioTotal>0?'var(--gold-lt)':'var(--muted)'};font-family:'DM Mono',monospace">
+          ${cardioTotal>0?cardioTotal+' min':'—'}
+          ${cardioTotal>0 && prevCardioTotal>0 ? `<span style="font-size:0.62rem;color:${cardioTotal>=prevCardioTotal?'var(--gold-lt)':'var(--petal)'};margin-left:6px">${cardioTotal>=prevCardioTotal?'↑':'↓'}${Math.abs(cardioTotal-prevCardioTotal)} min</span>` : ''}
+        </div>
       </div>
 
       ${foodLoggedDays > 0 ? `
       <div class="review-block">
         <div class="review-kicker">Nutrition</div>
         <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Daily avg · ${foodLoggedDays} day${foodLoggedDays!==1?'s':''} logged</div>
-        <div style="font-size:1.4rem;color:var(--gold-lt);font-family:'DM Mono',monospace;font-weight:500">${foodAvgKcal.toLocaleString()} <span style="font-size:0.7rem;color:var(--muted)">kcal</span></div>
+        <div style="font-size:1.4rem;color:var(--gold-lt);font-family:'DM Mono',monospace;font-weight:500">
+          ${foodAvgKcal.toLocaleString()} <span style="font-size:0.7rem;color:var(--muted)">kcal</span>
+          ${prevFoodAvgKcal > 0 ? `<span style="font-size:0.62rem;color:${foodAvgKcal>=prevFoodAvgKcal?'var(--gold-lt)':'var(--petal)'};margin-left:8px">${foodAvgKcal>=prevFoodAvgKcal?'↑':'↓'}${Math.abs(foodAvgKcal-prevFoodAvgKcal)} vs prev</span>` : ''}
+        </div>
         <div style="margin-top:8px;display:flex;gap:14px;font-size:0.68rem;font-family:'DM Mono',monospace">
           ${['protein','carbs','fat'].map(m => {
             const total = days.reduce((s,d) => s+((S.foodLog?.[d]||[]).reduce((ss,e)=>ss+(e[m]||0),0)),0);
@@ -179,6 +201,22 @@ function renderWeeklyReview() {
       ${finishedMedia.map(m=>`<div style="font-size:0.8rem;color:var(--gold-lt);padding:3px 0">✓ ${escapeHtml(m.title)}<span style="color:var(--muted);font-size:0.65rem"> — ${escapeHtml(m.author||'')}</span>${m.rating?`<span style="color:var(--gold);font-size:0.65rem;margin-left:6px">${'★'.repeat(m.rating)}</span>`:''}</div>`).join('')}
     </div>` : ''}
 
+    ${moodVals.some(v => v !== null) ? `
+    <div class="review-block" style="margin-bottom:16px">
+      <div class="review-kicker">Mood</div>
+      <div style="display:flex;align-items:flex-end;gap:3px;height:32px;margin-top:4px">
+        ${days.map((d, i) => {
+          const v = moodVals[i];
+          const h = v !== null ? Math.round((v / 10) * 32) : 2;
+          const col = v === null ? 'var(--mid)' : v >= 7 ? 'var(--gold-lt)' : v >= 4 ? 'var(--petal)' : 'var(--rose)';
+          return `<div style="flex:1;height:${h}px;background:${col};border-radius:2px;min-height:2px" title="${d}${v!==null?' · '+v+'/10':''}"></div>`;
+        }).join('')}
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:2px;font-size:0.45rem;color:var(--muted);font-family:'DM Mono',monospace">
+        ${days.map((_, i) => `<span>${DAY_SHORT[i].slice(0,2)}</span>`).join('')}
+      </div>
+    </div>` : ''}
+
     <div class="review-block">
       <div class="review-kicker">${t('reflection')}</div>
       <textarea class="editable-area" rows="5"
@@ -186,7 +224,23 @@ function renderWeeklyReview() {
         oninput="saveReflection(this.value)"
         style="font-size:0.8rem;color:var(--mist);line-height:1.65;"
       >${escapeHtml(reflection)}</textarea>
-      ${reflection ? `<div style="margin-top:8px;padding:10px 12px;background:var(--blush-dim);border-radius:7px;font-size:0.78rem;color:var(--mist);line-height:1.7;">${renderMd(reflection)}</div>` : ''}
+      ${(() => {
+        const pastReflections = Object.entries(S.weeklyReflections||{})
+          .filter(([k,v]) => k !== start && v)
+          .sort(([a],[b]) => b.localeCompare(a))
+          .slice(0, 3);
+        if (!pastReflections.length) return '';
+        return `<div style="margin-top:14px">
+          <div style="font-size:0.54rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:8px">Past Reflections</div>
+          ${pastReflections.map(([k,v]) => `
+            <details style="margin-bottom:6px">
+              <summary style="font-size:0.62rem;color:var(--muted-lt);cursor:pointer;font-family:'DM Mono',monospace;list-style:none;padding:4px 0">
+                ▸ ${new Date(k+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+              </summary>
+              <div style="margin-top:6px;padding:8px 10px;background:var(--blush-dim);border-radius:7px;font-size:0.75rem;color:var(--mist);line-height:1.65">${renderMd(v)}</div>
+            </details>`).join('')}
+        </div>`;
+      })()}
     </div>
   `;
 

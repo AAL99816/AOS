@@ -89,7 +89,10 @@ function renderHabits() {
   nav.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)';
   nav.innerHTML = `
     <button class="btn btn-g" style="padding:2px 8px;font-size:0.62rem" onclick="habitWeekOffset--;renderHabits()">‹ Prev</button>
-    <span style="font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.06em">${escapeHtml(weekLabelForOffset(habitWeekOffset))}</span>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+      <span style="font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.06em">${escapeHtml(weekLabelForOffset(habitWeekOffset))}</span>
+      ${habitWeekOffset !== 0 ? `<button class="btn btn-g" style="padding:1px 7px;font-size:0.54rem" onclick="habitWeekOffset=0;renderHabits()">Today</button>` : ''}
+    </div>
     <button class="btn btn-g" style="padding:2px 8px;font-size:0.62rem" onclick="if(habitWeekOffset<0){habitWeekOffset++;renderHabits()}" ${habitWeekOffset >= 0 ? 'disabled style="opacity:0.3"' : ''}>Next ›</button>
   `;
   c.appendChild(nav);
@@ -111,9 +114,9 @@ function renderHabits() {
         const on      = !!(h.days && h.days[d]);
         const isToday = d === todayStr;
         const future  = d > todayStr;
-        return `<div class="day-dot ${on ? (isToday ? 'today-on' : 'on') : ''}" title="${d}"
+        return `<div class="day-dot ${on ? (isToday ? 'today-on' : 'on') : ''}" title="${future ? '' : d}"
           onclick="${future ? '' : `toggleH(${h.id},'${d}')`}"
-          style="${future ? 'opacity:0.2;cursor:default' : ''}${isToday && !on ? ';outline:1px solid var(--blush);outline-offset:1px' : ''}">
+          style="${future ? 'visibility:hidden' : ''}${isToday && !on ? ';outline:1px solid var(--blush);outline-offset:1px' : ''}">
         </div>`;
       }).join('')}
       <button class="btn btn-g" style="padding:2px 5px;font-size:0.55rem" onclick="openHabitHistory(${h.id})" title="History">📅</button>
@@ -223,10 +226,18 @@ function toggleH(id, date) {
 }
 
 function delHabit(id) {
-  if (!confirm(t('remove_habit'))) return;
+  const h = (S.habits || []).find(h => h.id === id);
+  if (!h) return;
+  const backup = JSON.parse(JSON.stringify(h));
   S.habits = (S.habits || []).filter(h => h.id !== id);
   scheduleSave();
   renderHabits();
+  toastUndo(`"${h.name}" removed`, () => {
+    if (!Array.isArray(S.habits)) S.habits = [];
+    S.habits.push(backup);
+    scheduleSave();
+    renderHabits();
+  });
 }
 
 function addHabit() {

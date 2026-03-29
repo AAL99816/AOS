@@ -229,10 +229,13 @@ function renderWorkoutCards() {
             const last = getLastExerciseLog(ex.name);
             const prev = getPrevExerciseLog(ex.name);
             const pct  = last && prev ? calcPctIncrease(prev.weight, last.weight) : null;
+            // Progressive overload: suggest last weight +2.5kg if previous session was clean
+            const overloadHint  = last && pct === null && prev === null ? '' :
+              (last && last.reps >= 8 && last.weight > 0 ? `<span style="color:var(--gold);margin-left:6px" title="Suggested increase">↑ try ${last.weight + 2.5}kg</span>` : '');
             return `
               <div class="ex-item" style="display:block;">
                 <div style="display:flex;align-items:center;gap:7px;">
-                  <input class="editable ex-name-inp" value="${escapeHtml(ex.name||'')}" onchange="updateEx(${wc.id},${ex.id},'name',this.value)" title="Edit exercise">
+                  <input class="editable ex-name-inp" value="${escapeHtml(ex.name||'')}" onchange="updateEx(${wc.id},${ex.id},'name',this.value)" title="Edit exercise" list="exerciseNameList">
                   <button class="ex-del" onclick="delEx(${wc.id},${ex.id})">✕</button>
                 </div>
                 <div style="display:flex;align-items:center;gap:6px;margin-top:7px;padding-left:14px;">
@@ -242,43 +245,51 @@ function renderWorkoutCards() {
                   <button class="btn btn-g" style="font-size:0.66rem;padding:4px 9px" onclick="logExercise(${wc.id},${ex.id})">${t('log')}</button>
                 </div>
                 <div id="lastLog-${ex.id}" style="margin-top:6px;padding-left:14px;font-size:0.64rem;color:var(--muted-lt);font-family:'DM Mono',monospace;">
-                  ${last ? `${t('last_colon')} ${last.sets>1?last.sets+' × ':''}${last.weight}kg × ${last.reps}${pct!==null?` <span style="color:var(--gold-lt)">${fmtPct(pct)}</span>`:''}` : t('no_log_yet')}
+                  ${last ? `${t('last_colon')} ${last.sets>1?last.sets+' × ':''}${last.weight}kg × ${last.reps}${pct!==null?` <span style="color:${pct>0?'var(--gold-lt)':'var(--petal)'}">${fmtPct(pct)}</span>`:''}${overloadHint}` : t('no_log_yet')}
                 </div>
               </div>`;
           }).join('')}
         </div>
 
         <div class="add-ex-row" style="margin-top:9px">
-          <input class="add-inp" id="exN-${wc.id}" placeholder="${t('exercise_ph')}" style="flex:1">
+          <input class="add-inp" id="exN-${wc.id}" placeholder="${t('exercise_ph')}" style="flex:1" list="exerciseNameList">
           <button class="btn btn-g" style="font-size:0.68rem;padding:4px 9px" onclick="addEx(${wc.id})">+ ${t('add')}</button>
         </div>
 
-        <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;">
+        <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:8px">
           <button class="btn btn-d" style="font-size:0.66rem;padding:4px 9px" onclick="delWorkoutCard(${wc.id})">${t('remove')}</button>
-          <button class="btn btn-p" style="font-size:0.68rem;padding:5px 10px" onclick="logWorkoutSession(${wc.id})">${t('log_session')}</button>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-g" style="font-size:0.66rem;padding:4px 9px" onclick="repeatLastWorkout(${wc.id})" title="Pre-fill with last session's values">Repeat Last</button>
+            <button class="btn btn-p" style="font-size:0.68rem;padding:5px 10px" onclick="logWorkoutSession(${wc.id})">${t('log_session')}</button>
+          </div>
         </div>
       </div>` : '';
 
     div.innerHTML = header + body;
     c.appendChild(div);
   });
+
+  _refreshExerciseDatalist();
 }
 
+
+let _trainingLogLimit = 30;
 
 function renderTrainingLog(){
   const c = eid('trainingLog');
   if(!c) return;
   c.innerHTML = '';
 
-  const hist = [...(S.workoutHistory||[])].reverse();
+  const histAll = [...(S.workoutHistory||[])].reverse();
+  const hist    = histAll.slice(0, _trainingLogLimit);
 
   const sec = document.createElement('div');
   sec.className = 'sec';
   sec.style.cssText = 'display:flex;align-items:center;gap:8px';
-  sec.innerHTML = `${t('training_log')} <span class="lbl">${hist.length} ${hist.length!==1?t('sessions_plural_s'):t('sessions_plural')}</span><button class="btn btn-g" style="font-size:0.6rem;padding:2px 8px;margin-left:auto" onclick="openTrainingFull()" data-i18n="view_all">View all →</button>`;
+  sec.innerHTML = `${t('training_log')} <span class="lbl">${histAll.length} ${histAll.length!==1?t('sessions_plural_s'):t('sessions_plural')}</span><button class="btn btn-g" style="font-size:0.6rem;padding:2px 8px;margin-left:auto" onclick="openTrainingFull()" data-i18n="view_all">View all →</button>`;
   c.appendChild(sec);
 
-  if(!hist.length){
+  if(!histAll.length){
     c.innerHTML += `<div style="text-align:center;padding:40px 24px"><div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:10px">◆</div><div style="font-size:0.66rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">${t('no_sessions')}</div></div>`;
     return;
   }
@@ -335,6 +346,15 @@ function renderTrainingLog(){
   }); // years
 
   c.appendChild(wrap);
+
+  if (histAll.length > _trainingLogLimit) {
+    const more = document.createElement('button');
+    more.className = 'btn btn-g';
+    more.style.cssText = 'width:100%;margin-top:10px;font-size:0.68rem';
+    more.textContent = `Load more (${histAll.length - _trainingLogLimit} remaining)`;
+    more.onclick = () => { _trainingLogLimit += 30; renderTrainingLog(); };
+    c.appendChild(more);
+  }
 }
 
 function openSessionDetail(id){
@@ -374,6 +394,33 @@ function deleteWorkoutSession(id){
   }
   scheduleSave();
   renderTrainingLog();
+}
+
+/* Pre-fill all exercise inputs with last-logged values for this card */
+function repeatLastWorkout(wcId) {
+  ensureFitnessState();
+  const wc = S.workoutCards.find(w => w.id === wcId);
+  if (!wc) return;
+  let filled = 0;
+  (wc.exercises || []).forEach(ex => {
+    const last = getLastExerciseLog(ex.name);
+    if (!last) return;
+    const wEl = eid(`logW-${ex.id}`);
+    const rEl = eid(`logR-${ex.id}`);
+    const sEl = eid(`logSets-${ex.id}`);
+    if (wEl) { wEl.value = last.weight; filled++; }
+    if (rEl) rEl.value = last.reps;
+    if (sEl) sEl.value = last.sets || 1;
+  });
+  toast(filled ? `Filled ${filled} exercise${filled !== 1 ? 's' : ''} from last session` : 'No previous data for this card');
+}
+
+/* Keep the exercise autocomplete datalist current */
+function _refreshExerciseDatalist() {
+  const dl = eid('exerciseNameList');
+  if (!dl) return;
+  const names = Object.keys(S.exerciseHistory || {}).filter(n => n && n.trim());
+  dl.innerHTML = names.map(n => `<option value="${escapeAttr(n)}">`).join('');
 }
 
 function addWorkoutCard(){
@@ -493,15 +540,6 @@ function logWorkoutSession(wcId) {
   const wc = S.workoutCards.find(w => w.id === wcId);
   if (!wc) return;
 
-  const summary = exercises
-    .map(ex => {
-      const best = (ex.loggedSets || []).reduce((b, s) => (!b || (parseFloat(s.weight)||0) > (parseFloat(b.weight)||0)) ? s : b, null);
-      return best ? `${ex.name} ${best.weight}kg×${best.reps}` : null;
-    })
-    .filter(Boolean)
-    .slice(0, 5)
-    .join(' · ');
-
   const todayStr = today();
   const exercises = (wc.exercises||[]).map(ex => {
     const todaySets = (S.exerciseHistory[ex.name] || []).filter(e => e.date === todayStr);
@@ -511,6 +549,15 @@ function logWorkoutSession(wcId) {
     }
     return { name: ex.name, loggedSets: todaySets };
   }).filter(Boolean);
+
+  const summary = exercises
+    .map(ex => {
+      const best = (ex.loggedSets || []).reduce((b, s) => (!b || (parseFloat(s.weight)||0) > (parseFloat(b.weight)||0)) ? s : b, null);
+      return best ? `${ex.name} ${best.weight}kg×${best.reps}` : null;
+    })
+    .filter(Boolean)
+    .slice(0, 5)
+    .join(' · ');
 
   S.workoutHistory.push({
     id: Date.now(),

@@ -42,11 +42,54 @@ function renderMd(raw){
     .replace(/\n/g,'<br>');
 }
 
+/* Unique ID (simple UUID v4-compatible) */
+function uid() {
+  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+}
+
+/* Toast — duration scales with message length */
 let toastT;
-function toast(msg,ms=2500){
-  const el=eid('toast');
-  el.textContent=msg;
+let _toastQueue = [];
+let _toastBusy  = false;
+
+function toast(msg, ms) {
+  const duration = ms || Math.min(6000, Math.max(2500, msg.length * 55));
+  _toastQueue.push({ msg, duration });
+  if (!_toastBusy) _processToastQueue();
+}
+
+/* Toast with undo button — callback fires if user taps Undo within 4s */
+function toastUndo(msg, undoFn) {
+  const duration = 4500;
+  _toastQueue.push({ msg, duration, undoFn });
+  if (!_toastBusy) _processToastQueue();
+}
+
+function _processToastQueue() {
+  if (!_toastQueue.length) { _toastBusy = false; return; }
+  _toastBusy = true;
+  const { msg, duration, undoFn } = _toastQueue.shift();
+  const el = eid('toast');
+  if (!el) { _toastBusy = false; return; }
+  el.innerHTML = escapeHtml(msg);
+  if (undoFn) {
+    const btn = document.createElement('button');
+    btn.className = 'toast-undo';
+    btn.textContent = 'Undo';
+    btn.style.cssText = 'margin-left:12px;background:none;border:1px solid rgba(255,255,255,0.4);border-radius:4px;color:var(--cream);font-size:0.7rem;padding:1px 7px;cursor:pointer;font-family:inherit';
+    btn.onclick = () => {
+      clearTimeout(toastT);
+      el.classList.remove('show');
+      undoFn();
+      setTimeout(_processToastQueue, 300);
+    };
+    el.appendChild(btn);
+  }
   el.classList.add('show');
   clearTimeout(toastT);
-  toastT=setTimeout(()=>el.classList.remove('show'),ms);
+  toastT = setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(_processToastQueue, 300);
+  }, duration);
 }
