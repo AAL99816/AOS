@@ -1062,6 +1062,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 
     <!-- DIARY VIEW -->
     <div id="foodPaneDiary">
+      <div id="foodDiaryHeader"></div>
       <div class="card" style="margin-bottom:16px" id="foodMacroBar"></div>
       <div id="foodMeals"></div>
     </div>
@@ -1585,14 +1586,15 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       </div>
       <!-- Search input (hidden in quick mode) -->
       <input id="foodSearchInput" class="add-inp" placeholder="Search food database…" autocomplete="off"
-        style="width:100%;box-sizing:border-box" oninput="onFoodSearchInput()">
+        style="width:100%;box-sizing:border-box" oninput="onFoodSearchInput()"
+        onkeydown="if(event.key==='Enter'&&this.value.trim()){clearTimeout(_foodSearchTimer);_doFoodSearch(this.value.trim())}">
     </div>
 
     <!-- Search results / recent foods -->
     <div id="foodSearchResults" style="max-height:42vh;overflow-y:auto"></div>
 
     <!-- Quick Add form (full macros, no search needed) -->
-    <div id="foodQuickAddForm" style="display:none;padding:14px 16px">
+    <div id="foodQuickAddForm" style="display:none;padding:14px 16px" onkeydown="if(event.key==='Enter'&&event.target.tagName!=='SELECT')saveQuickAdd()">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
         <div class="mf" style="margin:0;grid-column:1/-1"><label style="font-size:0.7rem">Name</label><input id="qaName" class="add-inp" placeholder="e.g. Chicken rice bowl"></div>
         <div class="mf" style="margin:0"><label style="font-size:0.7rem">Calories (kcal)</label><input id="qaKcal" type="number" class="add-inp" placeholder="0" min="0" oninput="_qaEstimateMacros()"></div>

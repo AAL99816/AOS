@@ -20,6 +20,23 @@ function _foodEffectiveDate() {
   return _foodDate || today();
 }
 
+function _dateOffset(days) {
+  const d = new Date(today() + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function _foodStreak() {
+  const log = S.foodLog || {};
+  let streak = 0;
+  const d = new Date(today() + 'T00:00:00');
+  while ((log[d.toISOString().slice(0, 10)] || []).length > 0) {
+    streak++;
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+
 function initFoodTab() {
   if (!S.foodLog)     S.foodLog     = {};
   if (!S.foodTargets) S.foodTargets = { kcal: 2000, protein: 150, carbs: 200, fat: 65 };
@@ -35,8 +52,42 @@ function initFoodTab() {
 function renderFoodTab() {
   if (!S.foodLog)     S.foodLog     = {};
   if (!S.foodTargets) S.foodTargets = { kcal: 2000, protein: 150, carbs: 200, fat: 65 };
+  renderFoodDiaryHeader();
   renderFoodMacroBar();
   renderFoodMeals();
+}
+
+function renderFoodDiaryHeader() {
+  const el = eid('foodDiaryHeader');
+  if (!el) return;
+  const streak    = _foodStreak();
+  const yesterday = _dateOffset(-1);
+  const date      = _foodEffectiveDate();
+  const isToday   = date === today();
+  const hasYest   = (S.foodLog?.[yesterday] || []).length > 0;
+
+  const streakHtml = streak >= 2
+    ? `<span style="font-size:0.66rem;color:var(--gold);font-family:'DM Mono',monospace">${streak} day streak</span>`
+    : '';
+  const copyBtn = isToday && hasYest
+    ? `<button class="btn btn-g" style="font-size:0.64rem;padding:3px 8px" onclick="copyYesterday()">Copy Yesterday</button>`
+    : '';
+
+  if (!streakHtml && !copyBtn) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">${streakHtml}<div>${copyBtn}</div></div>`;
+}
+
+function copyYesterday() {
+  const yesterday = _dateOffset(-1);
+  const src = S.foodLog?.[yesterday] || [];
+  if (!src.length) { toast('No entries yesterday to copy'); return; }
+  const date = today();
+  if (!S.foodLog) S.foodLog = {};
+  if (!S.foodLog[date]) S.foodLog[date] = [];
+  src.forEach(e => S.foodLog[date].push({ ...e, id: Date.now() + Math.random() }));
+  scheduleSave();
+  renderFoodTab();
+  toast(`Copied ${src.length} items from yesterday`);
 }
 
 // ── Macro summary bar ─────────────────────────────────────────
@@ -76,7 +127,16 @@ function renderFoodMacroBar() {
       ${_macroCell('Protein', totals.protein, T.protein, 'g', 'var(--gold)')}
       ${_macroCell('Carbs',   totals.carbs,   T.carbs,   'g', 'var(--petal)')}
       ${_macroCell('Fat',     totals.fat,     T.fat,     'g', 'var(--muted-lt)')}
-    </div>`;
+    </div>
+    ${totals.fiber > 0 ? `
+    <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px">
+      <span style="font-size:0.62rem;color:var(--muted);min-width:28px">Fiber</span>
+      <div style="flex:1;height:3px;background:var(--mid);border-radius:2px;overflow:hidden">
+        <div style="height:100%;width:${Math.min(100,Math.round((totals.fiber/25)*100))}%;background:var(--muted-lt);border-radius:2px"></div>
+      </div>
+      <span style="font-size:0.62rem;color:var(--muted-lt);font-family:'DM Mono',monospace">${Math.round(totals.fiber)}g <span style="color:var(--muted)">/ 25g</span></span>
+    </div>` : ''}
+  `;
 }
 
 function _macroCell(label, val, target, unit, color) {
@@ -108,14 +168,19 @@ function renderFoodMeals() {
   const el = eid('foodMeals');
   if (!el) return;
   const entries = S.foodLog[_foodEffectiveDate()] || [];
+  const T = S.foodTargets || {};
   el.innerHTML = MEAL_TYPES.map(meal => {
-    const items = entries.filter(e => e.meal === meal);
+    const items  = entries.filter(e => e.meal === meal);
     const totals = _sumMacros(items);
+    const mealPct = T.kcal ? Math.min(100, Math.round((totals.kcal / T.kcal) * 100)) : 0;
     return `
       <div style="margin-bottom:16px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <span style="font-size:0.72rem;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase">${MEAL_LABELS[meal]}</span>
-          <span style="font-size:0.66rem;color:var(--muted-lt);font-family:'DM Mono',monospace">${items.length ? Math.round(totals.kcal) + ' kcal' : ''}</span>
+        <div style="margin-bottom:6px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${items.length ? '4px' : '0'}">
+            <span style="font-size:0.72rem;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase">${MEAL_LABELS[meal]}</span>
+            ${items.length ? `<span style="font-size:0.66rem;color:var(--muted-lt);font-family:'DM Mono',monospace">${Math.round(totals.kcal)} kcal</span>` : ''}
+          </div>
+          ${items.length ? `<div style="height:2px;background:var(--mid);border-radius:2px;overflow:hidden"><div style="height:100%;width:${mealPct}%;background:var(--blush);opacity:0.55;border-radius:2px;transition:width 0.3s"></div></div>` : ''}
         </div>
         <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden">
           ${items.length ? items.map(e => _foodEntryRow(e)).join('') : ''}
@@ -598,37 +663,101 @@ function setFoodDateAndDiary(d) {
   setFoodTab('diary');
 }
 
-// ── Meal Plans ────────────────────────────────────────────────
+// ── Meal Plans — workout-card style ──────────────────────────
+
+const _expandedPlans = new Set();
+
+function toggleMealPlan(id) {
+  if (_expandedPlans.has(id)) _expandedPlans.delete(id);
+  else _expandedPlans.add(id);
+  renderMealPlansList();
+}
+
+function renameMealPlan(id, val) {
+  const plan = (S.mealPlans || []).find(p => p.id === id);
+  if (plan) { plan.name = val.trim() || plan.name; scheduleSave(); }
+}
 
 function renderMealPlansList() {
   const el = eid('mealPlansList');
   if (!el) return;
   const plans = S.mealPlans || [];
   if (!plans.length) {
-    el.innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:24px;text-align:center">No saved plans yet.<br>Log a full day of food, then click "Save Today as Plan".</div>`;
+    el.innerHTML = `
+      <div style="text-align:center;padding:48px 24px">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:10px">◆</div>
+        <div style="font-size:0.66rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px">No meal plans yet</div>
+        <div style="font-size:0.72rem;color:var(--muted-lt);max-width:220px;margin:0 auto;line-height:1.6">Log a full day of food, then click "Save Today as Plan"</div>
+      </div>`;
     return;
   }
-  el.innerHTML = plans.map((plan, i) => {
-    const totals = _sumMacros(plan.foods || []);
-    return `
-      <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-          <span style="font-size:0.86rem;color:var(--cream)">${escapeHtml(plan.name)}</span>
-          <div style="display:flex;gap:6px">
-            <button class="btn btn-p" style="font-size:0.66rem;padding:3px 10px" onclick="applyMealPlan(${i})">Apply to Today</button>
-            <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.72rem;padding:0 4px" onclick="deleteMealPlan(${i})">✕</button>
-          </div>
+
+  const grid = document.createElement('div');
+  grid.className = 'progs-grid';
+
+  plans.forEach((plan, i) => {
+    const totals   = _sumMacros(plan.foods || []);
+    const expanded = _expandedPlans.has(plan.id);
+    const foodCount = (plan.foods || []).length;
+
+    // Group foods by meal for expanded view
+    const byMeal = {};
+    (plan.foods || []).forEach(f => {
+      const m = f.meal || 'snacks';
+      if (!byMeal[m]) byMeal[m] = [];
+      byMeal[m].push(f);
+    });
+
+    const expandedBody = expanded ? `
+      <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+        ${MEAL_TYPES.filter(m => byMeal[m]?.length).map(m => `
+          <div style="margin-bottom:10px">
+            <div style="font-size:0.58rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:5px">
+              ${MEAL_LABELS[m]}
+              <span style="color:var(--gold-lt);margin-left:4px">${Math.round(_sumMacros(byMeal[m]).kcal)} kcal</span>
+            </div>
+            ${byMeal[m].map(f => `
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:0.74rem">
+                <span style="color:var(--mist);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(f.name)}</span>
+                <span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:0.64rem;flex-shrink:0;margin-left:8px">${Math.round(f.kcal)} kcal</span>
+              </div>`).join('')}
+          </div>`).join('')}
+        <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+          <button class="btn btn-d" style="font-size:0.66rem;padding:4px 9px" onclick="deleteMealPlan(${i})">Remove</button>
+          <button class="btn btn-p" style="font-size:0.68rem;padding:5px 12px" onclick="applyMealPlan(${i})">Apply to Today</button>
         </div>
-        <div style="font-size:0.68rem;font-family:'DM Mono',monospace;color:var(--muted)">
-          ${Math.round(totals.kcal)} kcal ·
-          P ${Math.round(totals.protein)}g · C ${Math.round(totals.carbs)}g · F ${Math.round(totals.fat)}g ·
-          ${(plan.foods||[]).length} item${(plan.foods||[]).length!==1?'s':''}
-        </div>
-        <div style="margin-top:8px;font-size:0.68rem;color:var(--muted-lt);line-height:1.7">
-          ${(plan.foods||[]).slice(0,5).map(f => escapeHtml(f.name)).join(', ')}${(plan.foods||[]).length > 5 ? ` +${(plan.foods||[]).length - 5} more` : ''}
-        </div>
-      </div>`;
-  }).join('');
+      </div>` : '';
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <!-- Header — always visible, click to expand -->
+      <div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="toggleMealPlan(${plan.id})">
+        <input
+          class="editable wk-title-inp"
+          value="${escapeAttr(plan.name || '')}"
+          onchange="renameMealPlan(${plan.id}, this.value)"
+          onclick="event.stopPropagation()"
+          title="Rename plan"
+          style="flex:1;background:none;border:none;color:var(--mist);font-size:0.88rem"
+        >
+        <span style="font-size:0.55rem;color:var(--muted);font-family:'DM Mono',monospace;flex-shrink:0">${foodCount} item${foodCount!==1?'s':''}</span>
+        <span style="font-size:0.75rem;color:var(--blush);flex-shrink:0">${expanded ? '▾' : '▸'}</span>
+      </div>
+      <!-- Macro summary — always visible -->
+      <div style="display:flex;gap:12px;margin-top:8px;font-size:0.66rem;font-family:'DM Mono',monospace">
+        <span style="color:var(--gold-lt)">${Math.round(totals.kcal)} kcal</span>
+        <span style="color:var(--gold)">P ${Math.round(totals.protein)}g</span>
+        <span style="color:var(--petal)">C ${Math.round(totals.carbs)}g</span>
+        <span style="color:var(--muted-lt)">F ${Math.round(totals.fat)}g</span>
+      </div>
+      ${expandedBody}`;
+
+    grid.appendChild(card);
+  });
+
+  el.innerHTML = '';
+  el.appendChild(grid);
 }
 
 function openSaveMealPlan() {
@@ -661,10 +790,7 @@ function applyMealPlan(i) {
   if (!S.foodLog) S.foodLog = {};
   const _date = _foodEffectiveDate();
   if (!S.foodLog[_date]) S.foodLog[_date] = [];
-  // Append plan foods with new IDs
-  plan.foods.forEach(f => {
-    S.foodLog[_date].push({ ...f, id: Date.now() + Math.random() });
-  });
+  plan.foods.forEach(f => S.foodLog[_date].push({ ...f, id: Date.now() + Math.random() }));
   scheduleSave();
   setFoodTab('diary');
   toast(`"${plan.name}" applied to ${_date === today() ? 'today' : _date}`);
@@ -676,5 +802,5 @@ function deleteMealPlan(i) {
   S.mealPlans.splice(i, 1);
   scheduleSave();
   renderMealPlansList();
-  toast(`"${plan?.name}" deleted`);
+  toast(`"${plan?.name}" removed`);
 }
