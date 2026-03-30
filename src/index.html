@@ -1077,9 +1077,12 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 
     <!-- MEAL PLANS VIEW -->
     <div id="foodPaneMeals" style="display:none">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px">
         <span style="font-size:0.7rem;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase">Saved Plans</span>
-        <button class="btn btn-p" style="font-size:0.7rem" onclick="openSaveMealPlan()">Save Today as Plan</button>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-g" style="font-size:0.68rem" onclick="createBlankMealPlan()">+ New</button>
+          <button class="btn btn-p" style="font-size:0.68rem" onclick="openSaveMealPlan()">Save Today</button>
+        </div>
       </div>
       <div id="mealPlansList"></div>
     </div>
@@ -1088,7 +1091,8 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
     <div id="foodPaneMyfoods" style="display:none">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
         <input id="myFoodsSearch" class="add-inp" placeholder="Filter my foods…" style="flex:1;font-size:0.76rem" oninput="renderMyFoodsTab()">
-        <button class="btn btn-p" style="font-size:0.7rem;white-space:nowrap" onclick="openAddToMyFoods()">+ Add</button>
+        <button class="btn btn-g" style="font-size:0.68rem;white-space:nowrap" onclick="openFoodSearchForMyFoods()">Search</button>
+        <button class="btn btn-p" style="font-size:0.68rem;white-space:nowrap" onclick="openAddToMyFoods()">+ Manual</button>
       </div>
       <div id="myFoodsList"></div>
       <div style="font-size:0.62rem;color:var(--muted);margin-top:12px;padding:10px;background:var(--panel);border-radius:8px;border:1px solid var(--border);line-height:1.5">

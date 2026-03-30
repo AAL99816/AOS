@@ -9,10 +9,84 @@
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snacks'];
 const MEAL_LABELS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snacks: 'Snacks' };
 
-let _foodSearchTimer = null;
-let _foodDate        = null; // null means "use today()" — set on init
-let _foodResults     = [];
-let _foodEditId      = null; // id of entry being edited
+// ── Built-in food database ─────────────────────────────────────
+// All values per 100g. GCC = Gulf/Kuwait-specific foods.
+const BUILTIN_FOODS = [
+  // ─ Chicken & Poultry ─
+  { id:'b-chicken-breast',  name:'Chicken Breast (raw)',    cat:'Protein', per100g:{ kcal:120, protein:22, carbs:0,    fat:2.5,  fiber:0   } },
+  { id:'b-chicken-thigh',   name:'Chicken Thigh (raw)',     cat:'Protein', per100g:{ kcal:177, protein:18, carbs:0,    fat:11,   fiber:0   } },
+  { id:'b-chicken-cooked',  name:'Chicken Breast (grilled)',cat:'Protein', per100g:{ kcal:165, protein:31, carbs:0,    fat:3.6,  fiber:0   } },
+  { id:'b-egg-whole',       name:'Egg (whole)',             cat:'Protein', per100g:{ kcal:155, protein:13, carbs:1.1,  fat:11,   fiber:0   } },
+  { id:'b-egg-white',       name:'Egg White',               cat:'Protein', per100g:{ kcal:52,  protein:11, carbs:0.7,  fat:0.2,  fiber:0   } },
+  // ─ Red Meat ─
+  { id:'b-ground-beef',     name:'Ground Beef (80/20)',     cat:'Protein', per100g:{ kcal:254, protein:17, carbs:0,    fat:20,   fiber:0   } },
+  { id:'b-lamb-lean',       name:'Lamb (lean)',             cat:'Protein', per100g:{ kcal:258, protein:26, carbs:0,    fat:17,   fiber:0   } },
+  { id:'b-beef-steak',      name:'Beef Steak (lean)',       cat:'Protein', per100g:{ kcal:207, protein:26, carbs:0,    fat:11,   fiber:0   } },
+  // ─ Fish & Seafood ─
+  { id:'b-tuna-canned',     name:'Tuna (canned, water)',    cat:'Protein', per100g:{ kcal:108, protein:25, carbs:0,    fat:0.5,  fiber:0   } },
+  { id:'b-salmon',          name:'Salmon',                  cat:'Protein', per100g:{ kcal:208, protein:20, carbs:0,    fat:13,   fiber:0   } },
+  { id:'b-shrimp',          name:'Shrimp',                  cat:'Protein', per100g:{ kcal:99,  protein:24, carbs:0.2,  fat:0.3,  fiber:0   } },
+  { id:'b-hammour',         name:'Hammour (Grouper)',       cat:'Protein', per100g:{ kcal:93,  protein:20, carbs:0,    fat:1,    fiber:0   }, gcc:true },
+  { id:'b-zubaidi',         name:'Zubaidi (Silver Pomfret)',cat:'Protein', per100g:{ kcal:112, protein:20, carbs:0,    fat:3.3,  fiber:0   }, gcc:true },
+  // ─ Vegetables ─
+  { id:'b-tomato',          name:'Tomato',                  cat:'Vegetable',per100g:{ kcal:18,  protein:0.9, carbs:3.9, fat:0.2,  fiber:1.2 } },
+  { id:'b-cucumber',        name:'Cucumber',                cat:'Vegetable',per100g:{ kcal:15,  protein:0.7, carbs:3.6, fat:0.1,  fiber:0.5 } },
+  { id:'b-onion',           name:'Onion',                   cat:'Vegetable',per100g:{ kcal:40,  protein:1.1, carbs:9.3, fat:0.1,  fiber:1.7 } },
+  { id:'b-potato',          name:'Potato (raw)',            cat:'Vegetable',per100g:{ kcal:77,  protein:2,   carbs:17,  fat:0.1,  fiber:2.2 } },
+  { id:'b-carrot',          name:'Carrot',                  cat:'Vegetable',per100g:{ kcal:41,  protein:0.9, carbs:10,  fat:0.2,  fiber:2.8 } },
+  { id:'b-broccoli',        name:'Broccoli',                cat:'Vegetable',per100g:{ kcal:34,  protein:2.8, carbs:7,   fat:0.4,  fiber:2.6 } },
+  { id:'b-spinach',         name:'Spinach',                 cat:'Vegetable',per100g:{ kcal:23,  protein:2.9, carbs:3.6, fat:0.4,  fiber:2.2 } },
+  { id:'b-eggplant',        name:'Eggplant / Aubergine',   cat:'Vegetable',per100g:{ kcal:25,  protein:1,   carbs:5.9, fat:0.2,  fiber:3   } },
+  { id:'b-pepper',          name:'Bell Pepper',             cat:'Vegetable',per100g:{ kcal:31,  protein:1,   carbs:6,   fat:0.3,  fiber:2.1 } },
+  { id:'b-zucchini',        name:'Zucchini / Courgette',   cat:'Vegetable',per100g:{ kcal:17,  protein:1.2, carbs:3.1, fat:0.3,  fiber:1   } },
+  { id:'b-mushroom',        name:'Mushroom',                cat:'Vegetable',per100g:{ kcal:22,  protein:3.1, carbs:3.3, fat:0.3,  fiber:1   } },
+  { id:'b-lettuce',         name:'Lettuce',                 cat:'Vegetable',per100g:{ kcal:15,  protein:1.4, carbs:2.9, fat:0.2,  fiber:1.3 } },
+  { id:'b-garlic',          name:'Garlic',                  cat:'Vegetable',per100g:{ kcal:149, protein:6.4, carbs:33,  fat:0.5,  fiber:2.1 } },
+  // ─ Grains & Carbs ─
+  { id:'b-white-rice',      name:'White Rice (cooked)',     cat:'Grain',   per100g:{ kcal:130, protein:2.7, carbs:28,  fat:0.3,  fiber:0.4 } },
+  { id:'b-basmati-rice',    name:'Basmati Rice (cooked)',   cat:'Grain',   per100g:{ kcal:121, protein:3.5, carbs:25,  fat:0.3,  fiber:0.4 }, gcc:true },
+  { id:'b-brown-rice',      name:'Brown Rice (cooked)',     cat:'Grain',   per100g:{ kcal:111, protein:2.6, carbs:23,  fat:0.9,  fiber:1.8 } },
+  { id:'b-oats',            name:'Oats (raw)',              cat:'Grain',   per100g:{ kcal:389, protein:17,  carbs:66,  fat:7,    fiber:10  } },
+  { id:'b-pita',            name:'Pita / Khobz',           cat:'Grain',   per100g:{ kcal:275, protein:9.1, carbs:55,  fat:1.2,  fiber:2.2 }, gcc:true },
+  { id:'b-white-bread',     name:'White Bread',             cat:'Grain',   per100g:{ kcal:265, protein:9,   carbs:49,  fat:3.2,  fiber:2.7 } },
+  // ─ Dairy ─
+  { id:'b-whole-milk',      name:'Whole Milk',              cat:'Dairy',   per100g:{ kcal:61,  protein:3.2, carbs:4.8, fat:3.3,  fiber:0   } },
+  { id:'b-laban',           name:'Laban (Buttermilk)',      cat:'Dairy',   per100g:{ kcal:40,  protein:3.3, carbs:4.8, fat:0.9,  fiber:0   }, gcc:true },
+  { id:'b-greek-yogurt',    name:'Greek Yogurt (full fat)', cat:'Dairy',   per100g:{ kcal:97,  protein:9,   carbs:3.6, fat:5,    fiber:0   } },
+  { id:'b-halloumi',        name:'Halloumi',                cat:'Dairy',   per100g:{ kcal:321, protein:21,  carbs:2.4, fat:26,   fiber:0   }, gcc:true },
+  { id:'b-labneh',          name:'Labneh',                  cat:'Dairy',   per100g:{ kcal:170, protein:8,   carbs:4,   fat:14,   fiber:0   }, gcc:true },
+  { id:'b-cheddar',         name:'Cheddar Cheese',          cat:'Dairy',   per100g:{ kcal:403, protein:25,  carbs:1.3, fat:33,   fiber:0   } },
+  // ─ Fruits ─
+  { id:'b-banana',          name:'Banana',                  cat:'Fruit',   per100g:{ kcal:89,  protein:1.1, carbs:23,  fat:0.3,  fiber:2.6 } },
+  { id:'b-apple',           name:'Apple',                   cat:'Fruit',   per100g:{ kcal:52,  protein:0.3, carbs:14,  fat:0.2,  fiber:2.4 } },
+  { id:'b-watermelon',      name:'Watermelon',              cat:'Fruit',   per100g:{ kcal:30,  protein:0.6, carbs:7.6, fat:0.2,  fiber:0.4 } },
+  { id:'b-mango',           name:'Mango',                   cat:'Fruit',   per100g:{ kcal:60,  protein:0.8, carbs:15,  fat:0.4,  fiber:1.6 } },
+  { id:'b-dates',           name:'Dates (Medjool)',         cat:'GCC',     per100g:{ kcal:277, protein:1.8, carbs:75,  fat:0.2,  fiber:7   }, gcc:true },
+  // ─ Kuwait / GCC Dishes ─
+  { id:'b-hummus',          name:'Hummus',                  cat:'GCC',     per100g:{ kcal:166, protein:8,   carbs:14,  fat:10,   fiber:6   }, gcc:true },
+  { id:'b-falafel',         name:'Falafel (fried)',         cat:'GCC',     per100g:{ kcal:333, protein:13,  carbs:32,  fat:18,   fiber:5   }, gcc:true },
+  { id:'b-shawarma-chicken',name:'Shawarma (chicken)',      cat:'GCC',     per100g:{ kcal:195, protein:18,  carbs:8,   fat:10,   fiber:0.5 }, gcc:true },
+  { id:'b-shawarma-meat',   name:'Shawarma (meat/lamb)',    cat:'GCC',     per100g:{ kcal:218, protein:16,  carbs:7,   fat:14,   fiber:0.5 }, gcc:true },
+  { id:'b-machboos',        name:'Machboos (chicken)',      cat:'GCC',     per100g:{ kcal:155, protein:9,   carbs:20,  fat:4,    fiber:1   }, gcc:true },
+  { id:'b-kabsa',           name:'Kabsa / Maklouba',        cat:'GCC',     per100g:{ kcal:150, protein:7,   carbs:22,  fat:4.5,  fiber:0.8 }, gcc:true },
+  { id:'b-harees',          name:'Harees',                  cat:'GCC',     per100g:{ kcal:160, protein:8,   carbs:22,  fat:4,    fiber:0.5 }, gcc:true },
+  { id:'b-margoog',         name:'Margoog',                 cat:'GCC',     per100g:{ kcal:130, protein:7,   carbs:17,  fat:3.5,  fiber:1   }, gcc:true },
+  { id:'b-luqaimat',        name:'Luqaimat',                cat:'GCC',     per100g:{ kcal:320, protein:5,   carbs:45,  fat:14,   fiber:1   }, gcc:true },
+  { id:'b-samboosa',        name:'Samboosa (meat)',         cat:'GCC',     per100g:{ kcal:285, protein:10,  carbs:28,  fat:15,   fiber:1.5 }, gcc:true },
+  { id:'b-balaleet',        name:'Balaleet',                cat:'GCC',     per100g:{ kcal:310, protein:7,   carbs:48,  fat:10,   fiber:1   }, gcc:true },
+  // ─ Fats & Oils ─
+  { id:'b-olive-oil',       name:'Olive Oil',               cat:'Fat/Oil', per100g:{ kcal:884, protein:0,   carbs:0,   fat:100,  fiber:0   } },
+  { id:'b-butter',          name:'Butter',                  cat:'Fat/Oil', per100g:{ kcal:717, protein:0.9, carbs:0.1, fat:81,   fiber:0   } },
+  { id:'b-almonds',         name:'Almonds',                 cat:'Nuts',    per100g:{ kcal:579, protein:21,  carbs:22,  fat:50,   fiber:12  } },
+  { id:'b-peanut-butter',   name:'Peanut Butter',           cat:'Nuts',    per100g:{ kcal:588, protein:25,  carbs:20,  fat:50,   fiber:6   } },
+];
+
+let _foodSearchTimer  = null;
+let _foodDate         = null; // null means "use today()" — set on init
+let _foodResults      = [];
+let _foodEditId       = null; // id of entry being edited
+// _foodSearchTarget: null = add to diary  |  { type:'mealplan', planId, meal }  |  { type:'myfoods' }
+let _foodSearchTarget = null;
 
 // ── Init ─────────────────────────────────────────────────────
 
@@ -240,8 +314,39 @@ function openFoodSearch(meal) {
 function closeFoodSearch() {
   const modal = eid('mFoodSearch');
   if (modal) modal.classList.remove('open');
+  _foodResults      = [];
+  _foodEditId       = null;
+  _foodSearchTarget = null;
+}
+
+function openFoodSearchForPlan(planId, meal) {
+  _currentMeal = meal || 'breakfast';
+  _foodSearchTarget = { type: 'mealplan', planId, meal };
   _foodResults = [];
-  _foodEditId  = null;
+  _foodMode = 'search';
+  const modal = eid('mFoodSearch');
+  if (!modal) return;
+  modal.classList.add('open');
+  _applyFoodMode('search');
+  const lbl = eid('foodMealLabel');
+  const plan = (S.mealPlans || []).find(p => p.id === planId);
+  if (lbl) lbl.textContent = `${MEAL_LABELS[meal] || meal} \u00b7 ${escapeHtml(plan?.name || 'Plan')}`;
+  const qaMeal = eid('qaMeal');
+  if (qaMeal) qaMeal.value = meal;
+  setTimeout(() => eid('foodSearchInput')?.focus(), 80);
+}
+
+function openFoodSearchForMyFoods() {
+  _foodSearchTarget = { type: 'myfoods' };
+  _foodResults = [];
+  _foodMode = 'search';
+  const modal = eid('mFoodSearch');
+  if (!modal) return;
+  modal.classList.add('open');
+  _applyFoodMode('search');
+  const lbl = eid('foodMealLabel');
+  if (lbl) lbl.textContent = 'My Foods Library';
+  setTimeout(() => eid('foodSearchInput')?.focus(), 80);
 }
 
 function setFoodMode(mode) {
@@ -316,14 +421,10 @@ function _getRecentFoods(limit = 10) {
 function _showRecentFoods() {
   const el = eid('foodSearchResults');
   if (!el) return;
-  const recents = _getRecentFoods(10);
-  const customFoods = (S.customFoods || []).slice(0, 5);
-  if (!recents.length && !customFoods.length) {
-    el.innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:20px;text-align:center">Search the food database or use Quick Add</div>`;
-    return;
-  }
+  const recents     = _getRecentFoods(8);
+  const customFoods = (S.customFoods || []).slice(0, 6);
 
-  // Show custom foods first if any
+  // ── My Foods section ──
   const customHtml = customFoods.length ? `
     <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--gold-lt);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">My Foods</div>
     ${customFoods.map((cf, i) => `
@@ -332,12 +433,13 @@ function _showRecentFoods() {
         onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
         <div style="flex:1;min-width:0">
           <div style="font-size:0.82rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(cf.name)}</div>
-          <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace">P${cf.protein||0}g · C${cf.carbs||0}g · F${cf.fat||0}g</div>
+          <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace">P${cf.protein||0}g \u00b7 C${cf.carbs||0}g \u00b7 F${cf.fat||0}g</div>
         </div>
         <div style="font-size:0.68rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(cf.kcal||0)} kcal</div>
       </div>`).join('')}` : '';
 
-  el.innerHTML = customHtml + (recents.length ? `
+  // ── Recent section ──
+  const recentHtml = recents.length ? `
     <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">Recent</div>
     ${recents.map((r, i) => `
       <div onclick="selectRecentFood(${i})"
@@ -348,8 +450,40 @@ function _showRecentFoods() {
           ${r.brand ? `<div style="font-size:0.62rem;color:var(--muted)">${escapeHtml(r.brand)}</div>` : ''}
         </div>
         <div style="font-size:0.68rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(r.kcal)} kcal</div>
-      </div>`).join('')}` : '');
-  // store for later reference
+      </div>`).join('')}` : '';
+
+  // ── Basics quick-access (GCC + most-used built-ins) ──
+  const quickBasics = ['b-chicken-breast','b-white-rice','b-egg-whole','b-dates','b-pita','b-shawarma-chicken','b-hummus','b-laban'];
+  const basicsHtml = `
+    <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">Basics</div>
+    ${quickBasics.map(id => {
+      const f = BUILTIN_FOODS.find(b => b.id === id);
+      if (!f) return '';
+      return `<div onclick="selectBuiltinFood('${f.id}')"
+        style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
+        onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.82rem;color:var(--cream)">${escapeHtml(f.name)}</div>
+          <div style="font-size:0.58rem;color:var(--muted-lt);font-family:'DM Mono',monospace">${f.cat}${f.gcc ? ' \u00b7 <span style="color:var(--gold)">GCC</span>' : ''}</div>
+        </div>
+        <div style="font-size:0.68rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${f.per100g.kcal} kcal/100g</div>
+      </div>`;
+    }).join('')}
+    <div onclick="this.parentElement.querySelector('#builtinFull').style.display=''" style="padding:8px 14px;font-size:0.68rem;color:var(--muted);cursor:pointer;text-align:center;border-bottom:1px solid var(--border)" id="builtinShowAll">Show all basics \u2193</div>
+    <div id="builtinFull" style="display:none">
+      ${BUILTIN_FOODS.filter(f => !quickBasics.includes(f.id)).map(f => `
+        <div onclick="selectBuiltinFood('${f.id}')"
+          style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
+          onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:0.82rem;color:var(--cream)">${escapeHtml(f.name)}</div>
+            <div style="font-size:0.58rem;color:var(--muted-lt);font-family:'DM Mono',monospace">${f.cat}${f.gcc ? ' \u00b7 <span style="color:var(--gold)">GCC</span>' : ''}</div>
+          </div>
+          <div style="font-size:0.68rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${f.per100g.kcal} kcal/100g</div>
+        </div>`).join('')}
+    </div>`;
+
+  el.innerHTML = customHtml + recentHtml + basicsHtml;
   el._recentFoods = recents;
   el._customFoods = customFoods;
 }
@@ -395,16 +529,35 @@ function selectRecentFood(i) {
   toast(`${r.name} added`);
 }
 
+function _builtinMatchHtml(matches) {
+  if (!matches.length) return '';
+  return `
+    <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--muted-lt);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">Basics</div>
+    ${matches.map(f => `
+      <div onclick="selectBuiltinFood('${f.id}')"
+        style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
+        onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.82rem;color:var(--cream)">${escapeHtml(f.name)}</div>
+          <div style="font-size:0.58rem;color:var(--muted-lt);font-family:'DM Mono',monospace">${f.cat}${f.gcc ? ' \u00b7 <span style="color:var(--gold)">GCC</span>' : ''}</div>
+        </div>
+        <div style="font-size:0.68rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${f.per100g.kcal} kcal/100g</div>
+      </div>`).join('')}`;
+}
+
 function onFoodSearchInput() {
   clearTimeout(_foodSearchTimer);
   const q = eid('foodSearchInput')?.value.trim();
   if (!q) { _showRecentFoods(); return; }
-  // Show My Foods matches instantly (no network needed)
-  const myMatches = (S.customFoods || []).filter(cf => cf.name.toLowerCase().includes(q.toLowerCase()));
+  const ql = q.toLowerCase();
+  // Show local matches instantly (no network needed)
+  const myMatches      = (S.customFoods || []).filter(cf => cf.name.toLowerCase().includes(ql));
+  const builtinMatches = BUILTIN_FOODS.filter(f => f.name.toLowerCase().includes(ql));
   const resultsEl = eid('foodSearchResults');
   if (resultsEl) {
-    resultsEl.innerHTML = _myFoodsMatchHtml(myMatches) +
-      `<div style="padding:${myMatches.length ? '10px' : '20px'} 14px;font-size:0.72rem;color:var(--muted);text-align:center;${myMatches.length ? 'border-top:1px solid var(--border)' : ''}">Searching database\u2026</div>`;
+    const hasLocal = myMatches.length || builtinMatches.length;
+    resultsEl.innerHTML = _myFoodsMatchHtml(myMatches) + _builtinMatchHtml(builtinMatches) +
+      `<div style="padding:${hasLocal ? '10px' : '20px'} 14px;font-size:0.72rem;color:var(--muted);text-align:center;${hasLocal ? 'border-top:1px solid var(--border)' : ''}">Searching database\u2026</div>`;
   }
   _foodSearchTimer = setTimeout(() => _doFoodSearch(q), 400);
 }
@@ -429,38 +582,45 @@ async function _doFoodSearch(q) {
   const resultsEl = eid('foodSearchResults');
   if (!resultsEl) return;
 
-  const myMatches = (S.customFoods || []).filter(cf => cf.name.toLowerCase().includes(q.toLowerCase()));
+  const ql            = q.toLowerCase();
+  const myMatches      = (S.customFoods || []).filter(cf => cf.name.toLowerCase().includes(ql));
+  const builtinMatches = BUILTIN_FOODS.filter(f => f.name.toLowerCase().includes(ql));
 
   try {
     const ctrl = new AbortController();
     const timeout = setTimeout(() => ctrl.abort(), 8000);
 
-    // Parallel: GCC-region first + global fallback
-    const [gcRes, worldRes] = await Promise.allSettled([
+    // Parallel: community table + GCC OFT + global OFT
+    const [commRes, gcRes, worldRes] = await Promise.allSettled([
+      _fetchCommunityFoods(q),
       _fetchOFT(q, 'en:kuwait,en:saudi-arabia,en:united-arab-emirates', 6, ctrl.signal),
-      _fetchOFT(q, null, 14, ctrl.signal)
+      _fetchOFT(q, null, 12, ctrl.signal)
     ]);
     clearTimeout(timeout);
 
-    const gc    = gcRes.status    === 'fulfilled' ? gcRes.value    : [];
-    const world = worldRes.status === 'fulfilled' ? worldRes.value : [];
+    const community = commRes.status  === 'fulfilled' ? commRes.value  : [];
+    const gc        = gcRes.status    === 'fulfilled' ? gcRes.value    : [];
+    const world     = worldRes.status === 'fulfilled' ? worldRes.value : [];
 
-    // Merge: GCC-tagged first, then global deduped by name
+    // Merge OFT: GCC-tagged first, then global deduped by name
     const gcNames = new Set(gc.map(r => r.name.toLowerCase()));
     _foodResults = [
       ...gc.map(r => ({ ...r, _gcc: true })),
       ...world.filter(r => !gcNames.has(r.name.toLowerCase()))
-    ].slice(0, 16);
+    ].slice(0, 12);
 
-    if (!_foodResults.length && !myMatches.length) {
+    if (!_foodResults.length && !community.length && !myMatches.length && !builtinMatches.length) {
       resultsEl.innerHTML = `
         <div style="padding:20px;text-align:center">
           <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px">No results for "${escapeHtml(q)}"</div>
-          <div style="font-size:0.64rem;color:var(--muted);margin-bottom:12px">For Kuwait/local foods, save them in My Foods for instant access next time</div>
+          <div style="font-size:0.64rem;color:var(--muted);margin-bottom:12px">Save it in My Foods then share it so everyone can find it</div>
           <button class="btn btn-p" style="font-size:0.72rem" onclick="setFoodMode('quick')">Add manually \u2192</button>
         </div>`;
       return;
     }
+
+    _communityResults = community;
+    const communityHtml = _communityMatchHtml(community);
 
     const dbHtml = _foodResults.length ? `
       <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">
@@ -479,16 +639,55 @@ async function _doFoodSearch(q) {
           <div style="font-size:0.7rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(r.per100g.kcal)} kcal/100g</div>
         </div>`).join('')}` : '';
 
-    resultsEl.innerHTML = _myFoodsMatchHtml(myMatches) + dbHtml;
+    resultsEl.innerHTML = _myFoodsMatchHtml(myMatches) + communityHtml + _builtinMatchHtml(builtinMatches) + dbHtml;
 
   } catch(e) {
     const isTimeout = e.name === 'AbortError';
-    resultsEl.innerHTML = _myFoodsMatchHtml(myMatches) + `
+    resultsEl.innerHTML = _myFoodsMatchHtml(myMatches) + _builtinMatchHtml(builtinMatches) + `
       <div style="padding:16px;text-align:center">
         <div style="font-size:0.72rem;color:var(--muted);margin-bottom:10px">${isTimeout ? 'Search timed out' : 'Database unavailable'}</div>
         <button class="btn btn-p" style="font-size:0.72rem" onclick="setFoodMode('quick')">Add manually \u2192</button>
       </div>`;
   }
+}
+
+async function _fetchCommunityFoods(q) {
+  if (typeof sb === 'undefined') return [];
+  const { data, error } = await sb
+    .from('community_foods')
+    .select('id,name,kcal,protein,carbs,fat,fiber,region')
+    .ilike('name', `%${q}%`)
+    .order('votes', { ascending: false })
+    .limit(8);
+  if (error || !data) return [];
+  return data.map(r => ({
+    _communityId: r.id,
+    name:    r.name,
+    region:  r.region || 'global',
+    per100g: {
+      kcal:    r.kcal    || 0,
+      protein: r.protein || 0,
+      carbs:   r.carbs   || 0,
+      fat:     r.fat     || 0,
+      fiber:   r.fiber   || 0
+    }
+  }));
+}
+
+function _communityMatchHtml(matches) {
+  if (!matches.length) return '';
+  return `
+    <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--blush);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">Community</div>
+    ${matches.map((cf, i) => `
+      <div onclick="selectCommunityFood(${i})"
+        style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
+        onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''" data-cidx="${i}">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.82rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(cf.name)}</div>
+          <div style="font-size:0.58rem;color:var(--muted-lt);font-family:'DM Mono',monospace">${cf.region === 'kuwait' || cf.region === 'gcc' ? '<span style="color:var(--gold)">GCC</span> \u00b7 ' : ''}Community</div>
+        </div>
+        <div style="font-size:0.68rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(cf.per100g.kcal)} kcal/100g</div>
+      </div>`).join('')}`;
 }
 
 async function _fetchOFT(q, countries, size, signal) {
@@ -520,9 +719,48 @@ async function _fetchOFT(q, countries, size, signal) {
 function selectFoodResult(i) {
   const r = _foodResults[i];
   if (!r) return;
+  if (_foodSearchTarget?.type === 'myfoods') { _saveToMyFoodsFromResult(r.name, r.per100g); return; }
   eid('foodAddName').value  = r.name;
   eid('foodAddBrand').value = r.brand || '';
   _showFoodAddForm(r.per100g, false);
+}
+
+// Community foods results are stored temporarily for selection
+let _communityResults = [];
+
+function _communityMatchHtmlWithStore(matches) {
+  _communityResults = matches;
+  return _communityMatchHtml(matches);
+}
+
+function selectCommunityFood(i) {
+  const cf = _communityResults[i];
+  if (!cf) return;
+  if (_foodSearchTarget?.type === 'myfoods') { _saveToMyFoodsFromResult(cf.name, cf.per100g); return; }
+  eid('foodAddName').value  = cf.name;
+  eid('foodAddBrand').value = cf.region === 'kuwait' || cf.region === 'gcc' ? 'Community GCC' : 'Community';
+  _showFoodAddForm(cf.per100g, false);
+}
+
+function selectBuiltinFood(id) {
+  const f = BUILTIN_FOODS.find(b => b.id === id);
+  if (!f) return;
+  if (_foodSearchTarget?.type === 'myfoods') { _saveToMyFoodsFromResult(f.name, f.per100g); return; }
+  eid('foodAddName').value  = f.name;
+  eid('foodAddBrand').value = f.cat === 'GCC' ? 'GCC Basic' : 'Basic';
+  _showFoodAddForm(f.per100g, false);
+}
+
+function _saveToMyFoodsFromResult(name, per100g) {
+  if (!Array.isArray(S.customFoods)) S.customFoods = [];
+  if (S.customFoods.some(cf => cf.name.toLowerCase() === name.toLowerCase())) {
+    toast(`"${name}" already in My Foods`); return;
+  }
+  S.customFoods.push({ id: Date.now(), name, kcal: per100g.kcal, protein: per100g.protein, carbs: per100g.carbs, fat: per100g.fat, fiber: per100g.fiber || 0 });
+  scheduleSave();
+  closeFoodSearch();
+  renderMyFoodsTab();
+  toast(`"${name}" saved to My Foods`);
 }
 
 function selectSearchCustomFood(id) {
@@ -594,6 +832,19 @@ function saveQuickAdd() {
     if (!Array.isArray(S.customFoods)) S.customFoods = [];
     const exists = S.customFoods.some(cf => cf.name.toLowerCase() === name.toLowerCase());
     if (!exists) S.customFoods.push({ id: Date.now(), name, kcal, protein, carbs, fat, fiber });
+  }
+
+  // Dispatch to meal plan if target set
+  if (_foodSearchTarget?.type === 'mealplan' && !isEdit) {
+    const plan = (S.mealPlans || []).find(p => p.id === _foodSearchTarget.planId);
+    if (!plan) { toast('Plan not found'); return; }
+    if (!plan.foods) plan.foods = [];
+    plan.foods.push({ id: Date.now(), name, brand: '', meal: _foodSearchTarget.meal, grams: 0, kcal, protein, carbs, fat, fiber, per100g: null });
+    scheduleSave();
+    closeFoodSearch();
+    renderMealPlansList();
+    toast(`${name} added to ${MEAL_LABELS[_foodSearchTarget.meal] || 'plan'}`);
+    return;
   }
 
   if (_foodEditId !== null) {
@@ -686,16 +937,26 @@ function saveFoodEntry() {
     per100g = r;
   }
 
+  const entry = { id: Date.now(), name, brand, meal, grams, kcal, protein, carbs, fat, fiber, per100g };
+
+  // Dispatch to meal plan if target set
+  if (_foodSearchTarget?.type === 'mealplan') {
+    const plan = (S.mealPlans || []).find(p => p.id === _foodSearchTarget.planId);
+    if (!plan) { toast('Plan not found'); return; }
+    if (!plan.foods) plan.foods = [];
+    entry.meal = _foodSearchTarget.meal;
+    plan.foods.push(entry);
+    scheduleSave();
+    closeFoodSearch();
+    renderMealPlansList();
+    toast(`${name} added to ${MEAL_LABELS[_foodSearchTarget.meal] || 'plan'}`);
+    return;
+  }
+
   if (!S.foodLog) S.foodLog = {};
   const _date = _foodEffectiveDate();
   if (!S.foodLog[_date]) S.foodLog[_date] = [];
-
-  S.foodLog[_date].push({
-    id: Date.now(),
-    name, brand, meal, grams,
-    kcal, protein, carbs, fat, fiber, per100g
-  });
-
+  S.foodLog[_date].push(entry);
   scheduleSave();
   closeFoodSearch();
   renderFoodTab();
@@ -889,17 +1150,20 @@ function renderMealPlansList() {
 
     const expandedBody = expanded ? `
       <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
-        ${MEAL_TYPES.filter(m => byMeal[m]?.length).map(m => `
-          <div style="margin-bottom:10px">
-            <div style="font-size:0.58rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:5px">
-              ${MEAL_LABELS[m]}
-              <span style="color:var(--gold-lt);margin-left:4px">${Math.round(_sumMacros(byMeal[m]).kcal)} kcal</span>
+        ${MEAL_TYPES.map(m => `
+          <div style="margin-bottom:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+              <span style="font-size:0.58rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace">
+                ${MEAL_LABELS[m]}${(byMeal[m]||[]).length ? ` <span style="color:var(--gold-lt)">${Math.round(_sumMacros(byMeal[m]).kcal)} kcal</span>` : ''}
+              </span>
+              <button onclick="event.stopPropagation();openFoodSearchForPlan(${plan.id},'${m}')" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted-lt);cursor:pointer;font-size:0.6rem;padding:2px 7px">+ Add</button>
             </div>
-            ${byMeal[m].map(f => `
-              <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:0.74rem">
+            ${(byMeal[m]||[]).length ? byMeal[m].map(f => `
+              <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:0.74rem">
                 <span style="color:var(--mist);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(f.name)}</span>
-                <span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:0.64rem;flex-shrink:0;margin-left:8px">${Math.round(f.kcal)} kcal</span>
-              </div>`).join('')}
+                <span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:0.64rem;flex-shrink:0">${Math.round(f.kcal)} kcal</span>
+                <button onclick="event.stopPropagation();removeMealPlanFood(${plan.id},'${f.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.62rem;padding:0 2px;flex-shrink:0">\u2715</button>
+              </div>`).join('') : `<div style="font-size:0.66rem;color:var(--muted);padding:4px 0;font-style:italic">Empty</div>`}
           </div>`).join('')}
         <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
           <button class="btn btn-d" style="font-size:0.66rem;padding:4px 9px" onclick="deleteMealPlan(${i})">Remove</button>
@@ -984,6 +1248,28 @@ function deleteMealPlan(i) {
   toast(`"${plan?.name}" removed`);
 }
 
+function removeMealPlanFood(planId, foodId) {
+  const plan = (S.mealPlans || []).find(p => p.id === planId);
+  if (!plan) return;
+  const removed = (plan.foods || []).find(f => String(f.id) === String(foodId));
+  plan.foods = (plan.foods || []).filter(f => String(f.id) !== String(foodId));
+  scheduleSave();
+  renderMealPlansList();
+  if (removed) toast(`"${removed.name}" removed`);
+}
+
+function createBlankMealPlan() {
+  const name = prompt('Plan name (e.g. Bulk Day, Cut Day):');
+  if (!name?.trim()) return;
+  if (!S.mealPlans) S.mealPlans = [];
+  const plan = { id: Date.now(), name: name.trim(), foods: [], createdOn: today() };
+  S.mealPlans.push(plan);
+  _expandedPlans.add(plan.id);
+  scheduleSave();
+  renderMealPlansList();
+  toast(`"${plan.name}" created`);
+}
+
 // ── My Foods library management ───────────────────────────────
 
 let _myFoodEditId = null;
@@ -1002,6 +1288,8 @@ function renderMyFoodsTab() {
     return;
   }
 
+  const isLoggedIn = typeof currentUser !== 'undefined' && currentUser;
+
   el.innerHTML = foods.map(cf => `
     <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:11px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
       <div style="flex:1;min-width:0">
@@ -1009,10 +1297,41 @@ function renderMyFoodsTab() {
         <div style="font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">
           ${Math.round(cf.kcal||0)} kcal \u00b7 P${Math.round(cf.protein||0)}g \u00b7 C${Math.round(cf.carbs||0)}g \u00b7 F${Math.round(cf.fat||0)}g${cf.fiber ? ` \u00b7 Fiber ${Math.round(cf.fiber)}g` : ''}
         </div>
+        ${cf._shared ? `<div style="font-size:0.56rem;color:var(--blush);margin-top:2px">\u2713 Shared with community</div>` : ''}
       </div>
+      ${isLoggedIn ? `<button onclick="shareToCommuntiy('${cf.id}')" style="background:none;border:none;color:${cf._shared ? 'var(--blush)' : 'var(--muted)'};cursor:pointer;font-size:0.7rem;padding:4px 6px;flex-shrink:0" title="${cf._shared ? 'Already shared' : 'Share with community'}">\u2191</button>` : ''}
       <button onclick="editCustomFood('${cf.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.72rem;padding:4px 6px;flex-shrink:0" title="Edit">\u270e</button>
       <button onclick="deleteCustomFood('${cf.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.76rem;padding:4px 6px;flex-shrink:0">\u2715</button>
     </div>`).join('');
+}
+
+async function shareToCommuntiy(id) {
+  if (typeof sb === 'undefined' || !currentUser) { toast('Sign in to share foods'); return; }
+  const cf = (S.customFoods || []).find(c => String(c.id) === String(id));
+  if (!cf) return;
+  if (cf._shared) { toast('Already shared'); return; }
+
+  const region = (currentProfile?.country || '').toLowerCase().includes('kw') ||
+                 (currentProfile?.country || '').toLowerCase().includes('kuwait') ? 'kuwait' : 'global';
+
+  const { error } = await sb.from('community_foods').insert({
+    user_id: currentUser.id,
+    name:    cf.name,
+    kcal:    cf.kcal    || 0,
+    protein: cf.protein || 0,
+    carbs:   cf.carbs   || 0,
+    fat:     cf.fat     || 0,
+    fiber:   cf.fiber   || 0,
+    region
+  });
+
+  if (error) { toast('Share failed — ' + (error.message || 'try again')); return; }
+
+  // Mark as shared in local state
+  cf._shared = true;
+  scheduleSave();
+  renderMyFoodsTab();
+  toast(`"${cf.name}" shared with the community`);
 }
 
 function openAddToMyFoods() {
