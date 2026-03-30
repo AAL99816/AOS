@@ -1654,8 +1654,10 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
     <div id="foodAddForm" style="display:none;padding:14px 16px;border-top:1px solid var(--border)">
       <div class="mf" style="margin-bottom:8px"><label style="font-size:0.7rem">Name</label><input id="foodAddName" class="add-inp" placeholder="Food name"></div>
       <div class="mf" style="margin-bottom:8px"><label style="font-size:0.7rem">Brand</label><input id="foodAddBrand" class="add-inp" placeholder="Brand (optional)"></div>
+      <!-- Quantity presets (gram chips or serving chips, populated by JS) -->
+      <div id="foodAddPresets" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px"></div>
       <div style="display:flex;gap:8px;margin-bottom:8px">
-        <div class="mf" style="flex:1;margin:0"><label style="font-size:0.7rem">Grams</label><input id="foodAddGrams" type="number" class="add-inp" value="100" min="1" oninput="_updateFoodMacroPreview()"></div>
+        <div class="mf" style="flex:1;margin:0"><label id="foodAddGramsLabel" style="font-size:0.7rem">Grams</label><input id="foodAddGrams" type="number" class="add-inp" value="100" min="0" step="any" oninput="_updateFoodMacroPreview()"></div>
         <div class="mf" style="flex:1;margin:0"><label style="font-size:0.7rem">Meal</label>
           <select id="foodAddMeal" class="add-inp" style="width:100%">
             <option value="breakfast">Breakfast</option>

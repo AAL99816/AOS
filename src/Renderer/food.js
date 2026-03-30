@@ -493,19 +493,9 @@ function selectCustomFood(i) {
   const customs = el?._customFoods || (S.customFoods || []).slice(0, 5);
   const cf = customs[i];
   if (!cf) return;
-  if (!S.foodLog) S.foodLog = {};
-  const _date = _foodEffectiveDate();
-  if (!S.foodLog[_date]) S.foodLog[_date] = [];
-  S.foodLog[_date].push({
-    id: Date.now(),
-    name: cf.name, brand: '', meal: _currentMeal, grams: 0,
-    kcal: cf.kcal, protein: cf.protein, carbs: cf.carbs, fat: cf.fat, fiber: cf.fiber,
-    per100g: null
-  });
-  scheduleSave();
-  closeFoodSearch();
-  renderFoodTab();
-  toast(`${cf.name} added`);
+  eid('foodAddName').value  = cf.name;
+  eid('foodAddBrand').value = '';
+  _showFoodAddForm({ kcal: cf.kcal, protein: cf.protein, carbs: cf.carbs, fat: cf.fat, fiber: cf.fiber || 0 }, false, true);
 }
 
 function selectRecentFood(i) {
@@ -513,20 +503,17 @@ function selectRecentFood(i) {
   const recents = el?._recentFoods || _getRecentFoods(10);
   const r = recents[i];
   if (!r) return;
-  // Re-add with same macros, no gram scaling needed (stored as consumed values)
-  if (!S.foodLog) S.foodLog = {};
-  const _date = _foodEffectiveDate();
-  if (!S.foodLog[_date]) S.foodLog[_date] = [];
-  S.foodLog[_date].push({
-    id: Date.now(),
-    name: r.name, brand: r.brand || '', meal: _currentMeal,
-    grams: r.grams, kcal: r.kcal, protein: r.protein,
-    carbs: r.carbs, fat: r.fat, fiber: r.fiber, per100g: r.per100g
-  });
-  scheduleSave();
-  closeFoodSearch();
-  renderFoodTab();
-  toast(`${r.name} added`);
+  eid('foodAddName').value  = r.name;
+  eid('foodAddBrand').value = r.brand || '';
+  // If the recent entry has per100g, use grams mode; otherwise use servings mode
+  if (r.per100g && r.per100g.kcal > 0 && r.grams > 0) {
+    _showFoodAddForm(r.per100g, false, false);
+    const gramsInp = eid('foodAddGrams');
+    if (gramsInp) gramsInp.value = r.grams;
+    _updateFoodMacroPreview();
+  } else {
+    _showFoodAddForm({ kcal: r.kcal, protein: r.protein, carbs: r.carbs, fat: r.fat, fiber: r.fiber || 0 }, false, true);
+  }
 }
 
 function _builtinMatchHtml(matches) {
@@ -766,19 +753,10 @@ function _saveToMyFoodsFromResult(name, per100g) {
 function selectSearchCustomFood(id) {
   const cf = (S.customFoods || []).find(c => String(c.id) === String(id));
   if (!cf) return;
-  if (!S.foodLog) S.foodLog = {};
-  const _date = _foodEffectiveDate();
-  if (!S.foodLog[_date]) S.foodLog[_date] = [];
-  S.foodLog[_date].push({
-    id: Date.now(),
-    name: cf.name, brand: '', meal: _currentMeal, grams: 0,
-    kcal: cf.kcal, protein: cf.protein, carbs: cf.carbs, fat: cf.fat, fiber: cf.fiber || 0,
-    per100g: null
-  });
-  scheduleSave();
-  closeFoodSearch();
-  renderFoodTab();
-  toast(`${cf.name} added`);
+  if (_foodSearchTarget?.type === 'myfoods') { _saveToMyFoodsFromResult(cf.name, cf); return; }
+  eid('foodAddName').value  = cf.name;
+  eid('foodAddBrand').value = '';
+  _showFoodAddForm({ kcal: cf.kcal, protein: cf.protein, carbs: cf.carbs, fat: cf.fat, fiber: cf.fiber || 0 }, false, true);
 }
 
 function selectFoodManual() {
@@ -870,7 +848,9 @@ function saveQuickAdd() {
   toast(`${name} added${saveCustom && !isEdit ? ' · saved to My Foods' : ''}`);
 }
 
-function _showFoodAddForm(per100g, manual) {
+// servingsMode=true  → input = servings (×1, ×2…), per100g holds per-1-serving values
+// servingsMode=false → input = grams,    per100g holds per-100g values
+function _showFoodAddForm(per100g, manual, servingsMode = false) {
   const form = eid('foodAddForm');
   if (!form) return;
   form.style.display = '';
@@ -878,32 +858,53 @@ function _showFoodAddForm(per100g, manual) {
   eid('foodSearchInput').style.display   = 'none';
 
   const macroFields = eid('foodManualMacros');
-  if (manual) {
-    macroFields.style.display = '';
-    eid('foodAddGrams').value = '100';
+  macroFields.style.display = manual ? '' : 'none';
+
+  form._per100g      = per100g;
+  form._manual       = manual;
+  form._servingsMode = servingsMode;
+
+  const gramsInp = eid('foodAddGrams');
+  const gramsLbl = eid('foodAddGramsLabel');
+  const presets  = eid('foodAddPresets');
+
+  if (servingsMode) {
+    if (gramsLbl) gramsLbl.textContent = 'Servings';
+    if (gramsInp) { gramsInp.value = '1'; gramsInp.step = 'any'; gramsInp.min = '0'; }
+    if (presets)  presets.innerHTML = [0.5, 1, 1.5, 2, 3].map(n =>
+      `<button type="button" onclick="eid('foodAddGrams').value='${n}';_updateFoodMacroPreview()" style="background:var(--mid);border:1px solid var(--border);border-radius:6px;color:var(--muted-lt);cursor:pointer;font-size:0.62rem;padding:3px 8px">\u00d7${n}</button>`
+    ).join('');
   } else {
-    macroFields.style.display = 'none';
-    eid('foodAddGrams').value = '100';
+    if (gramsLbl) gramsLbl.textContent = 'Grams';
+    if (gramsInp) { gramsInp.value = '100'; gramsInp.step = 'any'; gramsInp.min = '0'; }
+    if (presets)  presets.innerHTML = [50, 100, 150, 200, 300].map(g =>
+      `<button type="button" onclick="eid('foodAddGrams').value='${g}';_updateFoodMacroPreview()" style="background:var(--mid);border:1px solid var(--border);border-radius:6px;color:var(--muted-lt);cursor:pointer;font-size:0.62rem;padding:3px 8px">${g}g</button>`
+    ).join('');
   }
 
-  // Store per100g data on the form element for use when saving
-  form._per100g = per100g;
-  form._manual  = manual;
+  const mealSel = eid('foodAddMeal');
+  if (mealSel) mealSel.value = _currentMeal;
   _updateFoodMacroPreview();
 }
 
 function _updateFoodMacroPreview() {
   const form = eid('foodAddForm');
   if (!form) return;
-  const grams = parseFloat(eid('foodAddGrams')?.value) || 100;
+  const qty   = parseFloat(eid('foodAddGrams')?.value) || (form._servingsMode ? 1 : 100);
   const p100  = form._per100g;
   const preview = eid('foodMacroPreview');
   if (!preview) return;
   if (form._manual || !p100) { preview.innerHTML = ''; return; }
-  const ratio = grams / 100;
+  // servingsMode: ratio = qty (servings × per-serving values)
+  // gramsMode:    ratio = qty/100
+  const ratio = form._servingsMode ? qty : qty / 100;
+  const label = form._servingsMode
+    ? `${qty} serving${qty !== 1 ? 's' : ''}`
+    : `${qty}g`;
   preview.innerHTML = `
-    <div style="display:flex;gap:12px;font-size:0.68rem;font-family:'DM Mono',monospace;color:var(--muted-lt);flex-wrap:wrap;margin-top:6px">
-      <span>${Math.round(p100.kcal * ratio)} kcal</span>
+    <div style="font-size:0.6rem;color:var(--muted);margin-bottom:4px">${label}</div>
+    <div style="display:flex;gap:12px;font-size:0.68rem;font-family:'DM Mono',monospace;color:var(--muted-lt);flex-wrap:wrap">
+      <span style="color:var(--gold-lt)">${Math.round(p100.kcal * ratio)} kcal</span>
       <span>P ${(p100.protein * ratio).toFixed(1)}g</span>
       <span>C ${(p100.carbs * ratio).toFixed(1)}g</span>
       <span>F ${(p100.fat * ratio).toFixed(1)}g</span>
@@ -928,16 +929,19 @@ function saveFoodEntry() {
     per100g = { kcal, protein, carbs, fat, fiber };
   } else {
     const r = form._per100g;
-    const ratio = grams / 100;
+    // servingsMode: grams field holds servings count; ratio = servings
+    // gramsMode:    grams field holds actual grams;   ratio = grams/100
+    const ratio = form._servingsMode ? grams : grams / 100;
     kcal    = r.kcal    * ratio;
     protein = r.protein * ratio;
     carbs   = r.carbs   * ratio;
     fat     = r.fat     * ratio;
     fiber   = r.fiber   * ratio;
-    per100g = r;
+    per100g = form._servingsMode ? null : r; // servings-based entries have no per100g
   }
 
-  const entry = { id: Date.now(), name, brand, meal, grams, kcal, protein, carbs, fat, fiber, per100g };
+  const storedGrams = form._servingsMode ? 0 : grams;
+  const entry = { id: Date.now(), name, brand, meal, grams: storedGrams, kcal, protein, carbs, fat, fiber, per100g };
 
   // Dispatch to meal plan if target set
   if (_foodSearchTarget?.type === 'mealplan') {
