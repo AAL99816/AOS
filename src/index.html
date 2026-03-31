@@ -1652,8 +1652,10 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 
     <!-- Add form (shown after search result selection) -->
     <div id="foodAddForm" style="display:none;padding:14px 16px;border-top:1px solid var(--border)">
-      <div class="mf" style="margin-bottom:8px"><label style="font-size:0.7rem">Name</label><input id="foodAddName" class="add-inp" placeholder="Food name"></div>
-      <div class="mf" style="margin-bottom:8px"><label style="font-size:0.7rem">Brand</label><input id="foodAddBrand" class="add-inp" placeholder="Brand (optional)"></div>
+      <!-- Food name title shown in servings mode; Name/Brand inputs shown in grams mode -->
+      <div id="foodAddTitle" style="display:none;font-size:0.86rem;color:var(--cream);margin-bottom:10px;font-weight:500"></div>
+      <div id="foodAddNameRow" class="mf" style="margin-bottom:8px"><label style="font-size:0.7rem">Name</label><input id="foodAddName" class="add-inp" placeholder="Food name"></div>
+      <div id="foodAddBrandRow" class="mf" style="margin-bottom:8px"><label style="font-size:0.7rem">Brand</label><input id="foodAddBrand" class="add-inp" placeholder="Brand (optional)"></div>
       <!-- Quantity presets (gram chips or serving chips, populated by JS) -->
       <div id="foodAddPresets" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px"></div>
       <div style="display:flex;gap:8px;margin-bottom:8px">

@@ -271,22 +271,42 @@ function renderFoodMeals() {
 }
 
 function _foodEntryRow(e) {
+  // Determine qty display and step for inline adjustment
+  const canAdjust = !!(e.per100g || e.perServing);
+  const isServings = !e.per100g && !!e.perServing;
+  const step = isServings ? 0.5 : 25;
+  const qtyLabel = isServings
+    ? `\u00d7${+(e.servings || 1)}`
+    : e.grams ? `${e.grams}g` : '';
   const macroLine = e.grams
-    ? `${e.grams}g · P ${Math.round(e.protein)}g · C ${Math.round(e.carbs)}g · F ${Math.round(e.fat)}g`
-    : `P ${Math.round(e.protein)}g · C ${Math.round(e.carbs)}g · F ${Math.round(e.fat)}g`;
+    ? `P ${Math.round(e.protein)}g \u00b7 C ${Math.round(e.carbs)}g \u00b7 F ${Math.round(e.fat)}g`
+    : `P ${Math.round(e.protein)}g \u00b7 C ${Math.round(e.carbs)}g \u00b7 F ${Math.round(e.fat)}g`;
+  const btnStyle = 'background:none;border:none;cursor:pointer;flex-shrink:0;padding:0;line-height:1';
+  const qtyVal = isServings ? (e.servings || 1) : (e.grams || 100);
+  const adjHtml = canAdjust ? `
+    <div style="display:flex;align-items:center;gap:3px;flex-shrink:0">
+      <button onclick="adjustFoodEntry('${e.id}',${-step})" style="${btnStyle};color:var(--muted);font-size:1rem;width:22px;height:22px;border-radius:50%;background:var(--mid)" title="Less">\u2212</button>
+      <input type="number" min="0" step="any" value="${qtyVal}"
+        onchange="setFoodEntryQty('${e.id}',this.value)"
+        onblur="setFoodEntryQty('${e.id}',this.value)"
+        onclick="this.select()"
+        style="width:38px;background:var(--mid);border:1px solid var(--border);border-radius:5px;color:var(--cream);font-family:'DM Mono',monospace;font-size:0.62rem;text-align:center;padding:2px 3px;-moz-appearance:textfield">
+      <span style="font-size:0.58rem;color:var(--muted);margin-left:-1px">${isServings ? 'srv' : 'g'}</span>
+      <button onclick="adjustFoodEntry('${e.id}',${step})" style="${btnStyle};color:var(--muted);font-size:0.9rem;width:22px;height:22px;border-radius:50%;background:var(--mid)" title="More">+</button>
+    </div>` : '';
   return `
-    <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)">
+    <div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border)">
       <div style="flex:1;min-width:0">
         <div style="font-size:0.8rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(e.name)}</div>
         ${e.brand ? `<div style="font-size:0.64rem;color:var(--muted)">${escapeHtml(e.brand)}</div>` : ''}
         <div style="font-size:0.64rem;color:var(--muted-lt);font-family:'DM Mono',monospace;margin-top:1px">${macroLine}</div>
       </div>
-      <div style="text-align:right;flex-shrink:0">
+      ${adjHtml}
+      <div style="text-align:right;flex-shrink:0;min-width:36px">
         <div style="font-size:0.86rem;color:var(--gold-lt);font-family:'DM Mono',monospace">${Math.round(e.kcal)}</div>
         <div style="font-size:0.6rem;color:var(--muted)">kcal</div>
       </div>
-      <button onclick="editFoodEntry('${e.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.66rem;padding:0 2px;flex-shrink:0" title="Edit">✎</button>
-      <button onclick="deleteFoodEntry('${e.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.72rem;padding:0 2px;flex-shrink:0">✕</button>
+      <button onclick="deleteFoodEntry('${e.id}')" style="${btnStyle};color:var(--muted);font-size:0.72rem;width:18px;height:18px">&#x2715;</button>
     </div>`;
 }
 
@@ -868,13 +888,30 @@ function _showFoodAddForm(per100g, manual, servingsMode = false) {
   const gramsLbl = eid('foodAddGramsLabel');
   const presets  = eid('foodAddPresets');
 
+  const nameRow  = eid('foodAddNameRow');
+  const brandRow = eid('foodAddBrandRow');
+  const titleEl  = eid('foodAddTitle');
+
   if (servingsMode) {
+    // Hide name/brand fields — food is already identified; show title instead
+    if (nameRow)  nameRow.style.display  = 'none';
+    if (brandRow) brandRow.style.display = 'none';
+    if (titleEl) {
+      const foodName = eid('foodAddName')?.value.trim() || '';
+      titleEl.textContent = foodName;
+      titleEl.style.display = foodName ? '' : 'none';
+    }
     if (gramsLbl) gramsLbl.textContent = 'Servings';
     if (gramsInp) { gramsInp.value = '1'; gramsInp.step = 'any'; gramsInp.min = '0'; }
     if (presets)  presets.innerHTML = [0.5, 1, 1.5, 2, 3].map(n =>
       `<button type="button" onclick="eid('foodAddGrams').value='${n}';_updateFoodMacroPreview()" style="background:var(--mid);border:1px solid var(--border);border-radius:6px;color:var(--muted-lt);cursor:pointer;font-size:0.62rem;padding:3px 8px">\u00d7${n}</button>`
     ).join('');
+    setTimeout(() => gramsInp?.focus(), 50);
   } else {
+    // Show name/brand fields normally, hide title
+    if (nameRow)  nameRow.style.display  = '';
+    if (brandRow) brandRow.style.display = '';
+    if (titleEl)  titleEl.style.display  = 'none';
     if (gramsLbl) gramsLbl.textContent = 'Grams';
     if (gramsInp) { gramsInp.value = '100'; gramsInp.step = 'any'; gramsInp.min = '0'; }
     if (presets)  presets.innerHTML = [50, 100, 150, 200, 300].map(g =>
@@ -942,6 +979,11 @@ function saveFoodEntry() {
 
   const storedGrams = form._servingsMode ? 0 : grams;
   const entry = { id: Date.now(), name, brand, meal, grams: storedGrams, kcal, protein, carbs, fat, fiber, per100g };
+  // Store per-serving data so inline +/- adjustment is possible later
+  if (form._servingsMode && !form._manual && form._per100g) {
+    entry.perServing = { kcal: form._per100g.kcal, protein: form._per100g.protein, carbs: form._per100g.carbs, fat: form._per100g.fat, fiber: form._per100g.fiber || 0 };
+    entry.servings   = grams; // grams field held the servings count
+  }
 
   // Dispatch to meal plan if target set
   if (_foodSearchTarget?.type === 'mealplan') {
@@ -1003,6 +1045,48 @@ function deleteFoodEntry(id) {
     renderFoodTab();
   });
   S.foodLog[_date] = S.foodLog[_date].filter(e => String(e.id) !== String(id));
+  scheduleSave();
+  renderFoodTab();
+}
+
+function setFoodEntryQty(id, rawVal) {
+  const val = parseFloat(rawVal);
+  if (!val || val <= 0) return;
+  const _date = _foodEffectiveDate();
+  const entries = S.foodLog?.[_date];
+  if (!entries) return;
+  const idx = entries.findIndex(e => String(e.id) === String(id));
+  if (idx < 0) return;
+  const e = entries[idx];
+  if (e.per100g) {
+    const r = e.per100g, ratio = val / 100;
+    entries[idx] = { ...e, grams: val, kcal: r.kcal * ratio, protein: r.protein * ratio, carbs: r.carbs * ratio, fat: r.fat * ratio, fiber: (r.fiber || 0) * ratio };
+  } else if (e.perServing) {
+    const ps = e.perServing;
+    entries[idx] = { ...e, servings: val, kcal: ps.kcal * val, protein: ps.protein * val, carbs: ps.carbs * val, fat: ps.fat * val, fiber: (ps.fiber || 0) * val };
+  }
+  scheduleSave();
+  renderFoodTab();
+}
+
+function adjustFoodEntry(id, delta) {
+  const _date = _foodEffectiveDate();
+  const entries = S.foodLog?.[_date];
+  if (!entries) return;
+  const idx = entries.findIndex(e => String(e.id) === String(id));
+  if (idx < 0) return;
+  const e = entries[idx];
+  if (e.per100g) {
+    // Grams mode — delta is ±25
+    const newGrams = Math.max(25, (e.grams || 100) + delta);
+    const r = e.per100g, ratio = newGrams / 100;
+    entries[idx] = { ...e, grams: newGrams, kcal: r.kcal * ratio, protein: r.protein * ratio, carbs: r.carbs * ratio, fat: r.fat * ratio, fiber: (r.fiber || 0) * ratio };
+  } else if (e.perServing) {
+    // Servings mode — delta is ±0.5
+    const newServings = Math.max(0.5, (e.servings || 1) + delta);
+    const ps = e.perServing;
+    entries[idx] = { ...e, servings: newServings, kcal: ps.kcal * newServings, protein: ps.protein * newServings, carbs: ps.carbs * newServings, fat: ps.fat * newServings, fiber: (ps.fiber || 0) * newServings };
+  }
   scheduleSave();
   renderFoodTab();
 }
