@@ -271,9 +271,12 @@ function renderFoodMeals() {
 }
 
 function _foodEntryRow(e) {
-  // Determine qty display and step for inline adjustment
-  const canAdjust = !!(e.per100g || e.perServing);
-  const isServings = !e.per100g && !!e.perServing;
+  // Determine qty display and step for inline adjustment.
+  // Old My Foods entries lack perServing — infer it from stored macros (always logged at 1 serving).
+  const effectivePerServing = e.perServing ||
+    (!e.per100g && !e.grams ? { kcal: e.kcal, protein: e.protein, carbs: e.carbs, fat: e.fat, fiber: e.fiber || 0 } : null);
+  const canAdjust = !!(e.per100g || effectivePerServing);
+  const isServings = !e.per100g && !!effectivePerServing;
   const step = isServings ? 0.5 : 25;
   const qtyLabel = isServings
     ? `\u00d7${+(e.servings || 1)}`
@@ -1049,6 +1052,12 @@ function deleteFoodEntry(id) {
   renderFoodTab();
 }
 
+function _resolvePerServing(e) {
+  // Returns per-serving macros regardless of whether entry was saved with new or old format
+  return e.perServing ||
+    (!e.per100g && !e.grams ? { kcal: e.kcal, protein: e.protein, carbs: e.carbs, fat: e.fat, fiber: e.fiber || 0 } : null);
+}
+
 function setFoodEntryQty(id, rawVal) {
   const val = parseFloat(rawVal);
   if (!val || val <= 0) return;
@@ -1061,8 +1070,9 @@ function setFoodEntryQty(id, rawVal) {
   if (e.per100g) {
     const r = e.per100g, ratio = val / 100;
     entries[idx] = { ...e, grams: val, kcal: r.kcal * ratio, protein: r.protein * ratio, carbs: r.carbs * ratio, fat: r.fat * ratio, fiber: (r.fiber || 0) * ratio };
-  } else if (e.perServing) {
-    const ps = e.perServing;
+  } else {
+    const ps = _resolvePerServing(e);
+    if (!ps) return;
     entries[idx] = { ...e, servings: val, kcal: ps.kcal * val, protein: ps.protein * val, carbs: ps.carbs * val, fat: ps.fat * val, fiber: (ps.fiber || 0) * val };
   }
   scheduleSave();
@@ -1077,14 +1087,13 @@ function adjustFoodEntry(id, delta) {
   if (idx < 0) return;
   const e = entries[idx];
   if (e.per100g) {
-    // Grams mode — delta is ±25
     const newGrams = Math.max(25, (e.grams || 100) + delta);
     const r = e.per100g, ratio = newGrams / 100;
     entries[idx] = { ...e, grams: newGrams, kcal: r.kcal * ratio, protein: r.protein * ratio, carbs: r.carbs * ratio, fat: r.fat * ratio, fiber: (r.fiber || 0) * ratio };
-  } else if (e.perServing) {
-    // Servings mode — delta is ±0.5
+  } else {
+    const ps = _resolvePerServing(e);
+    if (!ps) return;
     const newServings = Math.max(0.5, (e.servings || 1) + delta);
-    const ps = e.perServing;
     entries[idx] = { ...e, servings: newServings, kcal: ps.kcal * newServings, protein: ps.protein * newServings, carbs: ps.carbs * newServings, fat: ps.fat * newServings, fiber: (ps.fiber || 0) * newServings };
   }
   scheduleSave();
