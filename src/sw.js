@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'aos-v43';
+const CACHE = 'aos-v44';
 
 const SHELL = [
   '/manifest.json',

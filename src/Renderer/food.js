@@ -1,7 +1,7 @@
 'use strict';
 // ─────────────────────────────────────────────────────────────
-// food.js — Food tab (MyFitnessPal-style)
-// API: Open Food Facts (free, no key, CORS-enabled)
+// food.js — Food tab
+// Database: BUILTIN_FOODS (local) + community_foods + usda_foods (Supabase)
 // Data: S.foodLog  = { 'YYYY-MM-DD': [{ id, name, brand, meal, grams, kcal, protein, carbs, fat, fiber, per100g }] }
 //       S.foodTargets = { kcal, protein, carbs, fat }
 // ─────────────────────────────────────────────────────────────
@@ -10,81 +10,275 @@ const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snacks'];
 const MEAL_LABELS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snacks: 'Snacks' };
 
 // ── Built-in food database ─────────────────────────────────────
-// All values per 100g. GCC = Gulf/Kuwait-specific foods.
+// per100g = nutrients per 100g. serving/servingG = display serving size.
+// mode: 'ingredient' | 'dish' | 'drink'   gcc:true = Gulf/Kuwait-specific
 const BUILTIN_FOODS = [
-  // ─ Chicken & Poultry ─
-  { id:'b-chicken-breast',  name:'Chicken Breast (raw)',    cat:'Protein', per100g:{ kcal:120, protein:22, carbs:0,    fat:2.5,  fiber:0   } },
-  { id:'b-chicken-thigh',   name:'Chicken Thigh (raw)',     cat:'Protein', per100g:{ kcal:177, protein:18, carbs:0,    fat:11,   fiber:0   } },
-  { id:'b-chicken-cooked',  name:'Chicken Breast (grilled)',cat:'Protein', per100g:{ kcal:165, protein:31, carbs:0,    fat:3.6,  fiber:0   } },
-  { id:'b-egg-whole',       name:'Egg (whole)',             cat:'Protein', per100g:{ kcal:155, protein:13, carbs:1.1,  fat:11,   fiber:0   } },
-  { id:'b-egg-white',       name:'Egg White',               cat:'Protein', per100g:{ kcal:52,  protein:11, carbs:0.7,  fat:0.2,  fiber:0   } },
-  // ─ Red Meat ─
-  { id:'b-ground-beef',     name:'Ground Beef (80/20)',     cat:'Protein', per100g:{ kcal:254, protein:17, carbs:0,    fat:20,   fiber:0   } },
-  { id:'b-lamb-lean',       name:'Lamb (lean)',             cat:'Protein', per100g:{ kcal:258, protein:26, carbs:0,    fat:17,   fiber:0   } },
-  { id:'b-beef-steak',      name:'Beef Steak (lean)',       cat:'Protein', per100g:{ kcal:207, protein:26, carbs:0,    fat:11,   fiber:0   } },
-  // ─ Fish & Seafood ─
-  { id:'b-tuna-canned',     name:'Tuna (canned, water)',    cat:'Protein', per100g:{ kcal:108, protein:25, carbs:0,    fat:0.5,  fiber:0   } },
-  { id:'b-salmon',          name:'Salmon',                  cat:'Protein', per100g:{ kcal:208, protein:20, carbs:0,    fat:13,   fiber:0   } },
-  { id:'b-shrimp',          name:'Shrimp',                  cat:'Protein', per100g:{ kcal:99,  protein:24, carbs:0.2,  fat:0.3,  fiber:0   } },
-  { id:'b-hammour',         name:'Hammour (Grouper)',       cat:'Protein', per100g:{ kcal:93,  protein:20, carbs:0,    fat:1,    fiber:0   }, gcc:true },
-  { id:'b-zubaidi',         name:'Zubaidi (Silver Pomfret)',cat:'Protein', per100g:{ kcal:112, protein:20, carbs:0,    fat:3.3,  fiber:0   }, gcc:true },
-  // ─ Vegetables ─
-  { id:'b-tomato',          name:'Tomato',                  cat:'Vegetable',per100g:{ kcal:18,  protein:0.9, carbs:3.9, fat:0.2,  fiber:1.2 } },
-  { id:'b-cucumber',        name:'Cucumber',                cat:'Vegetable',per100g:{ kcal:15,  protein:0.7, carbs:3.6, fat:0.1,  fiber:0.5 } },
-  { id:'b-onion',           name:'Onion',                   cat:'Vegetable',per100g:{ kcal:40,  protein:1.1, carbs:9.3, fat:0.1,  fiber:1.7 } },
-  { id:'b-potato',          name:'Potato (raw)',            cat:'Vegetable',per100g:{ kcal:77,  protein:2,   carbs:17,  fat:0.1,  fiber:2.2 } },
-  { id:'b-carrot',          name:'Carrot',                  cat:'Vegetable',per100g:{ kcal:41,  protein:0.9, carbs:10,  fat:0.2,  fiber:2.8 } },
-  { id:'b-broccoli',        name:'Broccoli',                cat:'Vegetable',per100g:{ kcal:34,  protein:2.8, carbs:7,   fat:0.4,  fiber:2.6 } },
-  { id:'b-spinach',         name:'Spinach',                 cat:'Vegetable',per100g:{ kcal:23,  protein:2.9, carbs:3.6, fat:0.4,  fiber:2.2 } },
-  { id:'b-eggplant',        name:'Eggplant / Aubergine',   cat:'Vegetable',per100g:{ kcal:25,  protein:1,   carbs:5.9, fat:0.2,  fiber:3   } },
-  { id:'b-pepper',          name:'Bell Pepper',             cat:'Vegetable',per100g:{ kcal:31,  protein:1,   carbs:6,   fat:0.3,  fiber:2.1 } },
-  { id:'b-zucchini',        name:'Zucchini / Courgette',   cat:'Vegetable',per100g:{ kcal:17,  protein:1.2, carbs:3.1, fat:0.3,  fiber:1   } },
-  { id:'b-mushroom',        name:'Mushroom',                cat:'Vegetable',per100g:{ kcal:22,  protein:3.1, carbs:3.3, fat:0.3,  fiber:1   } },
-  { id:'b-lettuce',         name:'Lettuce',                 cat:'Vegetable',per100g:{ kcal:15,  protein:1.4, carbs:2.9, fat:0.2,  fiber:1.3 } },
-  { id:'b-garlic',          name:'Garlic',                  cat:'Vegetable',per100g:{ kcal:149, protein:6.4, carbs:33,  fat:0.5,  fiber:2.1 } },
-  // ─ Grains & Carbs ─
-  { id:'b-white-rice',      name:'White Rice (cooked)',     cat:'Grain',   per100g:{ kcal:130, protein:2.7, carbs:28,  fat:0.3,  fiber:0.4 } },
-  { id:'b-basmati-rice',    name:'Basmati Rice (cooked)',   cat:'Grain',   per100g:{ kcal:121, protein:3.5, carbs:25,  fat:0.3,  fiber:0.4 }, gcc:true },
-  { id:'b-brown-rice',      name:'Brown Rice (cooked)',     cat:'Grain',   per100g:{ kcal:111, protein:2.6, carbs:23,  fat:0.9,  fiber:1.8 } },
-  { id:'b-oats',            name:'Oats (raw)',              cat:'Grain',   per100g:{ kcal:389, protein:17,  carbs:66,  fat:7,    fiber:10  } },
-  { id:'b-pita',            name:'Pita / Khobz',           cat:'Grain',   per100g:{ kcal:275, protein:9.1, carbs:55,  fat:1.2,  fiber:2.2 }, gcc:true },
-  { id:'b-white-bread',     name:'White Bread',             cat:'Grain',   per100g:{ kcal:265, protein:9,   carbs:49,  fat:3.2,  fiber:2.7 } },
-  // ─ Dairy ─
-  { id:'b-whole-milk',      name:'Whole Milk',              cat:'Dairy',   per100g:{ kcal:61,  protein:3.2, carbs:4.8, fat:3.3,  fiber:0   } },
-  { id:'b-laban',           name:'Laban (Buttermilk)',      cat:'Dairy',   per100g:{ kcal:40,  protein:3.3, carbs:4.8, fat:0.9,  fiber:0   }, gcc:true },
-  { id:'b-greek-yogurt',    name:'Greek Yogurt (full fat)', cat:'Dairy',   per100g:{ kcal:97,  protein:9,   carbs:3.6, fat:5,    fiber:0   } },
-  { id:'b-halloumi',        name:'Halloumi',                cat:'Dairy',   per100g:{ kcal:321, protein:21,  carbs:2.4, fat:26,   fiber:0   }, gcc:true },
-  { id:'b-labneh',          name:'Labneh',                  cat:'Dairy',   per100g:{ kcal:170, protein:8,   carbs:4,   fat:14,   fiber:0   }, gcc:true },
-  { id:'b-cheddar',         name:'Cheddar Cheese',          cat:'Dairy',   per100g:{ kcal:403, protein:25,  carbs:1.3, fat:33,   fiber:0   } },
-  // ─ Fruits ─
-  { id:'b-banana',          name:'Banana',                  cat:'Fruit',   per100g:{ kcal:89,  protein:1.1, carbs:23,  fat:0.3,  fiber:2.6 } },
-  { id:'b-apple',           name:'Apple',                   cat:'Fruit',   per100g:{ kcal:52,  protein:0.3, carbs:14,  fat:0.2,  fiber:2.4 } },
-  { id:'b-watermelon',      name:'Watermelon',              cat:'Fruit',   per100g:{ kcal:30,  protein:0.6, carbs:7.6, fat:0.2,  fiber:0.4 } },
-  { id:'b-mango',           name:'Mango',                   cat:'Fruit',   per100g:{ kcal:60,  protein:0.8, carbs:15,  fat:0.4,  fiber:1.6 } },
-  { id:'b-dates',           name:'Dates (Medjool)',         cat:'GCC',     per100g:{ kcal:277, protein:1.8, carbs:75,  fat:0.2,  fiber:7   }, gcc:true },
-  // ─ Kuwait / GCC Dishes ─
-  { id:'b-hummus',          name:'Hummus',                  cat:'GCC',     per100g:{ kcal:166, protein:8,   carbs:14,  fat:10,   fiber:6   }, gcc:true },
-  { id:'b-falafel',         name:'Falafel (fried)',         cat:'GCC',     per100g:{ kcal:333, protein:13,  carbs:32,  fat:18,   fiber:5   }, gcc:true },
-  { id:'b-shawarma-chicken',name:'Shawarma (chicken)',      cat:'GCC',     per100g:{ kcal:195, protein:18,  carbs:8,   fat:10,   fiber:0.5 }, gcc:true },
-  { id:'b-shawarma-meat',   name:'Shawarma (meat/lamb)',    cat:'GCC',     per100g:{ kcal:218, protein:16,  carbs:7,   fat:14,   fiber:0.5 }, gcc:true },
-  { id:'b-machboos',        name:'Machboos (chicken)',      cat:'GCC',     per100g:{ kcal:155, protein:9,   carbs:20,  fat:4,    fiber:1   }, gcc:true },
-  { id:'b-kabsa',           name:'Kabsa / Maklouba',        cat:'GCC',     per100g:{ kcal:150, protein:7,   carbs:22,  fat:4.5,  fiber:0.8 }, gcc:true },
-  { id:'b-harees',          name:'Harees',                  cat:'GCC',     per100g:{ kcal:160, protein:8,   carbs:22,  fat:4,    fiber:0.5 }, gcc:true },
-  { id:'b-margoog',         name:'Margoog',                 cat:'GCC',     per100g:{ kcal:130, protein:7,   carbs:17,  fat:3.5,  fiber:1   }, gcc:true },
-  { id:'b-luqaimat',        name:'Luqaimat',                cat:'GCC',     per100g:{ kcal:320, protein:5,   carbs:45,  fat:14,   fiber:1   }, gcc:true },
-  { id:'b-samboosa',        name:'Samboosa (meat)',         cat:'GCC',     per100g:{ kcal:285, protein:10,  carbs:28,  fat:15,   fiber:1.5 }, gcc:true },
-  { id:'b-balaleet',        name:'Balaleet',                cat:'GCC',     per100g:{ kcal:310, protein:7,   carbs:48,  fat:10,   fiber:1   }, gcc:true },
-  // ─ Fats & Oils ─
-  { id:'b-olive-oil',       name:'Olive Oil',               cat:'Fat/Oil', per100g:{ kcal:884, protein:0,   carbs:0,   fat:100,  fiber:0   } },
-  { id:'b-butter',          name:'Butter',                  cat:'Fat/Oil', per100g:{ kcal:717, protein:0.9, carbs:0.1, fat:81,   fiber:0   } },
-  { id:'b-almonds',         name:'Almonds',                 cat:'Nuts',    per100g:{ kcal:579, protein:21,  carbs:22,  fat:50,   fiber:12  } },
-  { id:'b-peanut-butter',   name:'Peanut Butter',           cat:'Nuts',    per100g:{ kcal:588, protein:25,  carbs:20,  fat:50,   fiber:6   } },
+  // ─── Protein / Meat ───
+  { id:'b-chicken-breast',    name:'Chicken Breast (raw)',       cat:'Protein',  mode:'ingredient', serving:'100g',        servingG:100, per100g:{ kcal:120, protein:22,  carbs:0,    fat:2.5,  fiber:0   } },
+  { id:'b-chicken-thigh',     name:'Chicken Thigh (raw)',        cat:'Protein',  mode:'ingredient', serving:'100g',        servingG:100, per100g:{ kcal:177, protein:18,  carbs:0,    fat:11,   fiber:0   } },
+  { id:'b-chicken-cooked',    name:'Chicken Breast (grilled)',   cat:'Protein',  mode:'ingredient', serving:'100g',        servingG:100, per100g:{ kcal:165, protein:31,  carbs:0,    fat:3.6,  fiber:0   } },
+  { id:'b-egg-whole',         name:'Egg (whole)',                cat:'Protein',  mode:'ingredient', serving:'1 egg',       servingG:50,  per100g:{ kcal:155, protein:13,  carbs:1.1,  fat:11,   fiber:0   } },
+  { id:'b-egg-white',         name:'Egg White',                  cat:'Protein',  mode:'ingredient', serving:'1 white',     servingG:33,  per100g:{ kcal:52,  protein:11,  carbs:0.7,  fat:0.2,  fiber:0   } },
+  { id:'b-ground-beef',       name:'Ground Beef (80/20)',        cat:'Protein',  mode:'ingredient', serving:'100g',        servingG:100, per100g:{ kcal:254, protein:17,  carbs:0,    fat:20,   fiber:0   } },
+  { id:'b-lamb-lean',         name:'Lamb (lean)',                cat:'Protein',  mode:'ingredient', serving:'100g',        servingG:100, per100g:{ kcal:258, protein:26,  carbs:0,    fat:17,   fiber:0   } },
+  { id:'b-beef-steak',        name:'Beef Steak (lean)',          cat:'Protein',  mode:'ingredient', serving:'100g',        servingG:100, per100g:{ kcal:207, protein:26,  carbs:0,    fat:11,   fiber:0   } },
+  { id:'b-tuna-canned',       name:'Tuna (canned, water)',       cat:'Protein',  mode:'ingredient', serving:'1 can',       servingG:165, per100g:{ kcal:108, protein:25,  carbs:0,    fat:0.5,  fiber:0   } },
+  { id:'b-salmon',            name:'Salmon',                     cat:'Protein',  mode:'ingredient', serving:'1 fillet',    servingG:150, per100g:{ kcal:208, protein:20,  carbs:0,    fat:13,   fiber:0   } },
+  { id:'b-shrimp',            name:'Shrimp',                     cat:'Protein',  mode:'ingredient', serving:'100g',        servingG:100, per100g:{ kcal:99,  protein:24,  carbs:0.2,  fat:0.3,  fiber:0   } },
+  { id:'b-hammour',           name:'Hammour (Grouper)',          cat:'Protein',  mode:'ingredient', serving:'1 fillet',    servingG:180, per100g:{ kcal:93,  protein:20,  carbs:0,    fat:1,    fiber:0   }, gcc:true },
+  { id:'b-zubaidi',           name:'Zubaidi (Silver Pomfret)',   cat:'Protein',  mode:'ingredient', serving:'1 fish',      servingG:200, per100g:{ kcal:112, protein:20,  carbs:0,    fat:3.3,  fiber:0   }, gcc:true },
+  { id:'b-americana-chicken', name:'Americana Chicken Fillet',   cat:'Protein',  mode:'ingredient', serving:'1 fillet',    servingG:100, per100g:{ kcal:115, protein:22,  carbs:0,    fat:2.5,  fiber:0   }, gcc:true },
+  { id:'b-sadia-chicken',     name:'Sadia Frozen Chicken Breast',cat:'Protein',  mode:'ingredient', serving:'1 piece',     servingG:120, per100g:{ kcal:113, protein:21,  carbs:0,    fat:2.6,  fiber:0   }, gcc:true },
+  // ─── Vegetables ───
+  { id:'b-tomato',            name:'Tomato',                     cat:'Vegetable',mode:'ingredient', serving:'1 medium',    servingG:120, per100g:{ kcal:18,  protein:0.9, carbs:3.9,  fat:0.2,  fiber:1.2 } },
+  { id:'b-cucumber',          name:'Cucumber',                   cat:'Vegetable',mode:'ingredient', serving:'\u00bd medium',servingG:100, per100g:{ kcal:15,  protein:0.7, carbs:3.6,  fat:0.1,  fiber:0.5 } },
+  { id:'b-onion',             name:'Onion',                      cat:'Vegetable',mode:'ingredient', serving:'1 medium',    servingG:110, per100g:{ kcal:40,  protein:1.1, carbs:9.3,  fat:0.1,  fiber:1.7 } },
+  { id:'b-potato',            name:'Potato (raw)',               cat:'Vegetable',mode:'ingredient', serving:'1 medium',    servingG:150, per100g:{ kcal:77,  protein:2,   carbs:17,   fat:0.1,  fiber:2.2 } },
+  { id:'b-carrot',            name:'Carrot',                     cat:'Vegetable',mode:'ingredient', serving:'1 medium',    servingG:80,  per100g:{ kcal:41,  protein:0.9, carbs:10,   fat:0.2,  fiber:2.8 } },
+  { id:'b-broccoli',          name:'Broccoli',                   cat:'Vegetable',mode:'ingredient', serving:'1 cup',       servingG:90,  per100g:{ kcal:34,  protein:2.8, carbs:7,    fat:0.4,  fiber:2.6 } },
+  { id:'b-spinach',           name:'Spinach',                    cat:'Vegetable',mode:'ingredient', serving:'1 cup',       servingG:30,  per100g:{ kcal:23,  protein:2.9, carbs:3.6,  fat:0.4,  fiber:2.2 } },
+  { id:'b-eggplant',          name:'Eggplant / Aubergine',       cat:'Vegetable',mode:'ingredient', serving:'\u00bd medium',servingG:150, per100g:{ kcal:25,  protein:1,   carbs:5.9,  fat:0.2,  fiber:3   } },
+  { id:'b-pepper',            name:'Bell Pepper',                cat:'Vegetable',mode:'ingredient', serving:'1 medium',    servingG:120, per100g:{ kcal:31,  protein:1,   carbs:6,    fat:0.3,  fiber:2.1 } },
+  { id:'b-zucchini',          name:'Zucchini / Courgette',       cat:'Vegetable',mode:'ingredient', serving:'1 medium',    servingG:200, per100g:{ kcal:17,  protein:1.2, carbs:3.1,  fat:0.3,  fiber:1   } },
+  { id:'b-mushroom',          name:'Mushroom',                   cat:'Vegetable',mode:'ingredient', serving:'1 cup',       servingG:70,  per100g:{ kcal:22,  protein:3.1, carbs:3.3,  fat:0.3,  fiber:1   } },
+  { id:'b-lettuce',           name:'Lettuce',                    cat:'Vegetable',mode:'ingredient', serving:'1 cup',       servingG:40,  per100g:{ kcal:15,  protein:1.4, carbs:2.9,  fat:0.2,  fiber:1.3 } },
+  { id:'b-garlic',            name:'Garlic',                     cat:'Vegetable',mode:'ingredient', serving:'1 clove',     servingG:5,   per100g:{ kcal:149, protein:6.4, carbs:33,   fat:0.5,  fiber:2.1 } },
+  // ─── Grains ───
+  { id:'b-white-rice',        name:'White Rice (cooked)',        cat:'Grain',    mode:'ingredient', serving:'1 cup',       servingG:186, per100g:{ kcal:130, protein:2.7, carbs:28,   fat:0.3,  fiber:0.4 } },
+  { id:'b-basmati-rice',      name:'Basmati Rice (cooked)',      cat:'Grain',    mode:'ingredient', serving:'1 cup',       servingG:186, per100g:{ kcal:121, protein:3.5, carbs:25,   fat:0.3,  fiber:0.4 }, gcc:true },
+  { id:'b-brown-rice',        name:'Brown Rice (cooked)',        cat:'Grain',    mode:'ingredient', serving:'1 cup',       servingG:195, per100g:{ kcal:111, protein:2.6, carbs:23,   fat:0.9,  fiber:1.8 } },
+  { id:'b-oats',              name:'Oats (raw)',                 cat:'Grain',    mode:'ingredient', serving:'\u00bd cup',  servingG:40,  per100g:{ kcal:389, protein:17,  carbs:66,   fat:7,    fiber:10  } },
+  { id:'b-pita',              name:'Pita / Khobz',              cat:'Grain',    mode:'ingredient', serving:'1 pita',      servingG:60,  per100g:{ kcal:275, protein:9.1, carbs:55,   fat:1.2,  fiber:2.2 }, gcc:true },
+  { id:'b-white-bread',       name:'White Bread',                cat:'Grain',    mode:'ingredient', serving:'1 slice',     servingG:30,  per100g:{ kcal:265, protein:9,   carbs:49,   fat:3.2,  fiber:2.7 } },
+  { id:'b-pasta',             name:'Pasta (cooked)',             cat:'Grain',    mode:'ingredient', serving:'1 cup',       servingG:140, per100g:{ kcal:131, protein:5,   carbs:25,   fat:1.1,  fiber:1.8 } },
+  { id:'b-vermicelli',        name:'Vermicelli (sha\'riya)',     cat:'Grain',    mode:'ingredient', serving:'\u00bd cup',  servingG:40,  per100g:{ kcal:371, protein:12,  carbs:75,   fat:1.5,  fiber:2.5 }, gcc:true },
+  // ─── Dairy ───
+  { id:'b-whole-milk',        name:'Whole Milk',                 cat:'Dairy',    mode:'ingredient', serving:'1 cup',       servingG:240, per100g:{ kcal:61,  protein:3.2, carbs:4.8,  fat:3.3,  fiber:0   } },
+  { id:'b-laban',             name:'Laban (Buttermilk)',         cat:'Dairy',    mode:'ingredient', serving:'1 glass',     servingG:250, per100g:{ kcal:40,  protein:3.3, carbs:4.8,  fat:0.9,  fiber:0   }, gcc:true },
+  { id:'b-greek-yogurt',      name:'Greek Yogurt (full fat)',    cat:'Dairy',    mode:'ingredient', serving:'\u00bd cup',  servingG:120, per100g:{ kcal:97,  protein:9,   carbs:3.6,  fat:5,    fiber:0   } },
+  { id:'b-halloumi',          name:'Halloumi',                   cat:'Dairy',    mode:'ingredient', serving:'2 slices',    servingG:50,  per100g:{ kcal:321, protein:21,  carbs:2.4,  fat:26,   fiber:0   }, gcc:true },
+  { id:'b-labneh',            name:'Labneh',                     cat:'Dairy',    mode:'ingredient', serving:'2 tbsp',      servingG:30,  per100g:{ kcal:170, protein:8,   carbs:4,    fat:14,   fiber:0   }, gcc:true },
+  { id:'b-cheddar',           name:'Cheddar Cheese',             cat:'Dairy',    mode:'ingredient', serving:'1 slice',     servingG:28,  per100g:{ kcal:403, protein:25,  carbs:1.3,  fat:33,   fiber:0   } },
+  { id:'b-kiri',              name:'Kiri Cream Cheese',          cat:'Dairy',    mode:'ingredient', serving:'1 triangle',  servingG:17,  per100g:{ kcal:257, protein:9,   carbs:4,    fat:22,   fiber:0   }, gcc:true },
+  { id:'b-almarai-milk',      name:'Almarai Whole Milk',         cat:'Dairy',    mode:'ingredient', serving:'1 cup',       servingG:240, per100g:{ kcal:64,  protein:3.3, carbs:4.8,  fat:3.5,  fiber:0   }, gcc:true },
+  { id:'b-almarai-yogurt',    name:'Almarai Yogurt (plain)',     cat:'Dairy',    mode:'ingredient', serving:'1 cup',       servingG:200, per100g:{ kcal:60,  protein:3.2, carbs:6.2,  fat:2.2,  fiber:0   }, gcc:true },
+  // ─── Fruits ───
+  { id:'b-banana',            name:'Banana',                     cat:'Fruit',    mode:'ingredient', serving:'1 medium',    servingG:120, per100g:{ kcal:89,  protein:1.1, carbs:23,   fat:0.3,  fiber:2.6 } },
+  { id:'b-apple',             name:'Apple',                      cat:'Fruit',    mode:'ingredient', serving:'1 medium',    servingG:180, per100g:{ kcal:52,  protein:0.3, carbs:14,   fat:0.2,  fiber:2.4 } },
+  { id:'b-watermelon',        name:'Watermelon',                 cat:'Fruit',    mode:'ingredient', serving:'1 slice',     servingG:286, per100g:{ kcal:30,  protein:0.6, carbs:7.6,  fat:0.2,  fiber:0.4 } },
+  { id:'b-mango',             name:'Mango',                      cat:'Fruit',    mode:'ingredient', serving:'1 cup',       servingG:165, per100g:{ kcal:60,  protein:0.8, carbs:15,   fat:0.4,  fiber:1.6 } },
+  { id:'b-strawberry',        name:'Strawberry',                 cat:'Fruit',    mode:'ingredient', serving:'1 cup',       servingG:150, per100g:{ kcal:33,  protein:0.7, carbs:7.7,  fat:0.3,  fiber:2   } },
+  { id:'b-orange',            name:'Orange',                     cat:'Fruit',    mode:'ingredient', serving:'1 medium',    servingG:130, per100g:{ kcal:47,  protein:0.9, carbs:12,   fat:0.1,  fiber:2.4 } },
+  { id:'b-dates',             name:'Dates (Medjool)',            cat:'GCC',      mode:'ingredient', serving:'3 dates',     servingG:72,  per100g:{ kcal:277, protein:1.8, carbs:75,   fat:0.2,  fiber:7   }, gcc:true },
+  // ─── Fats, Oils & Nuts ───
+  { id:'b-olive-oil',         name:'Olive Oil',                  cat:'Fat/Oil',  mode:'ingredient', serving:'1 tbsp',      servingG:14,  per100g:{ kcal:884, protein:0,   carbs:0,    fat:100,  fiber:0   } },
+  { id:'b-butter',            name:'Butter',                     cat:'Fat/Oil',  mode:'ingredient', serving:'1 tbsp',      servingG:14,  per100g:{ kcal:717, protein:0.9, carbs:0.1,  fat:81,   fiber:0   } },
+  { id:'b-ghee',              name:'Ghee (Samn)',                cat:'Fat/Oil',  mode:'ingredient', serving:'1 tbsp',      servingG:13,  per100g:{ kcal:900, protein:0,   carbs:0,    fat:100,  fiber:0   }, gcc:true },
+  { id:'b-lurpak',            name:'Lurpak Butter',              cat:'Fat/Oil',  mode:'ingredient', serving:'1 tbsp',      servingG:14,  per100g:{ kcal:720, protein:0.5, carbs:0.4,  fat:80,   fiber:0   }, gcc:true },
+  { id:'b-almonds',           name:'Almonds',                    cat:'Nuts',     mode:'ingredient', serving:'1 handful',   servingG:28,  per100g:{ kcal:579, protein:21,  carbs:22,   fat:50,   fiber:12  } },
+  { id:'b-peanut-butter',     name:'Peanut Butter',              cat:'Nuts',     mode:'ingredient', serving:'2 tbsp',      servingG:32,  per100g:{ kcal:588, protein:25,  carbs:20,   fat:50,   fiber:6   } },
+  { id:'b-cashews',           name:'Cashews',                    cat:'Nuts',     mode:'ingredient', serving:'1 handful',   servingG:28,  per100g:{ kcal:553, protein:18,  carbs:30,   fat:44,   fiber:3.3 } },
+  // ─── GCC / Kuwait Dishes ───
+  { id:'b-hummus',            name:'Hummus',                     cat:'GCC',      mode:'dish',       serving:'3 tbsp',      servingG:75,  per100g:{ kcal:166, protein:8,   carbs:14,   fat:10,   fiber:6   }, gcc:true },
+  { id:'b-falafel',           name:'Falafel (fried)',            cat:'GCC',      mode:'dish',       serving:'3 pieces',    servingG:90,  per100g:{ kcal:333, protein:13,  carbs:32,   fat:18,   fiber:5   }, gcc:true },
+  { id:'b-shawarma-chicken',  name:'Shawarma Sandwich (chicken)',cat:'GCC',      mode:'dish',       serving:'1 sandwich',  servingG:250, per100g:{ kcal:195, protein:18,  carbs:8,    fat:10,   fiber:0.5 }, gcc:true },
+  { id:'b-shawarma-meat',     name:'Shawarma Sandwich (meat)',   cat:'GCC',      mode:'dish',       serving:'1 sandwich',  servingG:250, per100g:{ kcal:218, protein:16,  carbs:7,    fat:14,   fiber:0.5 }, gcc:true },
+  { id:'b-machboos',          name:'Machboos (chicken plate)',   cat:'GCC',      mode:'dish',       serving:'1 plate',     servingG:450, per100g:{ kcal:155, protein:9,   carbs:20,   fat:4,    fiber:1   }, gcc:true },
+  { id:'b-kabsa',             name:'Kabsa / Maklouba',           cat:'GCC',      mode:'dish',       serving:'1 plate',     servingG:450, per100g:{ kcal:150, protein:7,   carbs:22,   fat:4.5,  fiber:0.8 }, gcc:true },
+  { id:'b-harees',            name:'Harees',                     cat:'GCC',      mode:'dish',       serving:'1 bowl',      servingG:300, per100g:{ kcal:160, protein:8,   carbs:22,   fat:4,    fiber:0.5 }, gcc:true },
+  { id:'b-margoog',           name:'Margoog',                    cat:'GCC',      mode:'dish',       serving:'1 bowl',      servingG:350, per100g:{ kcal:130, protein:7,   carbs:17,   fat:3.5,  fiber:1   }, gcc:true },
+  { id:'b-luqaimat',          name:'Luqaimat',                   cat:'GCC',      mode:'dish',       serving:'5 pieces',    servingG:75,  per100g:{ kcal:320, protein:5,   carbs:45,   fat:14,   fiber:1   }, gcc:true },
+  { id:'b-samboosa',          name:'Samboosa (meat)',            cat:'GCC',      mode:'dish',       serving:'1 piece',     servingG:50,  per100g:{ kcal:285, protein:10,  carbs:28,   fat:15,   fiber:1.5 }, gcc:true },
+  { id:'b-balaleet',          name:'Balaleet',                   cat:'GCC',      mode:'dish',       serving:'1 serving',   servingG:200, per100g:{ kcal:310, protein:7,   carbs:48,   fat:10,   fiber:1   }, gcc:true },
+  { id:'b-fattoush',          name:'Fattoush Salad',             cat:'GCC',      mode:'dish',       serving:'1 bowl',      servingG:200, per100g:{ kcal:58,  protein:1.5, carbs:10,   fat:2,    fiber:2   }, gcc:true },
+  { id:'b-tabbouleh',         name:'Tabbouleh',                  cat:'GCC',      mode:'dish',       serving:'1 cup',       servingG:160, per100g:{ kcal:70,  protein:2,   carbs:12,   fat:3,    fiber:2   }, gcc:true },
+  { id:'b-moutabal',          name:'Moutabal (Baba Ghanoush)',   cat:'GCC',      mode:'dish',       serving:'3 tbsp',      servingG:75,  per100g:{ kcal:68,  protein:2,   carbs:8,    fat:3.5,  fiber:2   }, gcc:true },
+  { id:'b-jreesh',            name:'Jreesh',                     cat:'GCC',      mode:'dish',       serving:'1 bowl',      servingG:300, per100g:{ kcal:145, protein:5,   carbs:22,   fat:4,    fiber:1.5 }, gcc:true },
+  // ─── Drinks ───
+  { id:'b-water',             name:'Water',                      cat:'Drink',    mode:'drink',      serving:'1 glass',     servingG:250, per100g:{ kcal:0,   protein:0,   carbs:0,    fat:0,    fiber:0   } },
+  { id:'b-arabic-coffee',     name:'Arabic Coffee (Gahwa)',      cat:'Drink',    mode:'drink',      serving:'1 demitasse', servingG:60,  per100g:{ kcal:3,   protein:0.2, carbs:0,    fat:0,    fiber:0   }, gcc:true },
+  { id:'b-karak',             name:'Karak Chai',                 cat:'Drink',    mode:'drink',      serving:'1 cup',       servingG:200, per100g:{ kcal:45,  protein:1.5, carbs:6,    fat:1.5,  fiber:0   }, gcc:true },
+  { id:'b-black-tea',         name:'Black Tea (no sugar)',       cat:'Drink',    mode:'drink',      serving:'1 mug',       servingG:240, per100g:{ kcal:1,   protein:0,   carbs:0.3,  fat:0,    fiber:0   } },
+  { id:'b-coffee-black',      name:'Coffee (black)',             cat:'Drink',    mode:'drink',      serving:'1 cup',       servingG:240, per100g:{ kcal:2,   protein:0.3, carbs:0,    fat:0,    fiber:0   } },
+  { id:'b-lemon-mint',        name:'Lemon Mint Juice',           cat:'Drink',    mode:'drink',      serving:'1 glass',     servingG:300, per100g:{ kcal:28,  protein:0.3, carbs:7,    fat:0.1,  fiber:0.2 }, gcc:true },
+  { id:'b-kdd-laban',         name:'KDD Laban Drink',            cat:'Drink',    mode:'drink',      serving:'1 carton',    servingG:200, per100g:{ kcal:41,  protein:3.4, carbs:4.9,  fat:0.9,  fiber:0   }, gcc:true },
+  { id:'b-pepsi',             name:'Pepsi / Coke (can)',         cat:'Drink',    mode:'drink',      serving:'1 can',       servingG:330, per100g:{ kcal:42,  protein:0,   carbs:10.6, fat:0,    fiber:0   } },
+  { id:'b-orange-juice',      name:'Orange Juice (fresh)',       cat:'Drink',    mode:'drink',      serving:'1 glass',     servingG:240, per100g:{ kcal:45,  protein:0.7, carbs:10,   fat:0.2,  fiber:0.2 } },
+  { id:'b-vimto',             name:'Vimto (diluted)',            cat:'Drink',    mode:'drink',      serving:'1 glass',     servingG:250, per100g:{ kcal:26,  protein:0,   carbs:6.5,  fat:0,    fiber:0   }, gcc:true },
+  { id:'b-protein-shake',     name:'Whey Protein Shake',         cat:'Drink',    mode:'drink',      serving:'1 scoop',     servingG:35,  per100g:{ kcal:380, protein:74,  carbs:10,   fat:4,    fiber:1   } },
+  { id:'b-red-bull',          name:'Red Bull (can)',             cat:'Drink',    mode:'drink',      serving:'1 can',       servingG:250, per100g:{ kcal:45,  protein:0,   carbs:11,   fat:0,    fiber:0   } },
 ];
 
 let _foodSearchTimer  = null;
 let _foodDate         = null; // null means "use today()" — set on init
 let _foodResults      = [];
 let _foodEditId       = null; // id of entry being edited
+let _foodCatFilter    = 'all'; // category pill filter
+let _builderItems     = [];   // quick-add builder accumulator
+
+// ── Fuzzy search ───────────────────────────────────────────────
+function _fuzzyScore(str, q) {
+  const s = str.toLowerCase(), t = q.toLowerCase();
+  if (s.includes(t)) return 2; // exact substring = best
+  let score = 0, si = 0;
+  for (let i = 0; i < t.length; i++) {
+    const idx = s.indexOf(t[i], si);
+    if (idx < 0) return 0; // all query chars must appear in order
+    score += 1 / (idx - si + 1);
+    si = idx + 1;
+  }
+  return score / t.length;
+}
+function _fuzzyFilter(items, q, key = 'name') {
+  if (!q) return items;
+  return items
+    .map(f => ({ f, sc: _fuzzyScore(f[key] || '', q) }))
+    .filter(x => x.sc > 0)
+    .sort((a, b) => b.sc - a.sc)
+    .map(x => x.f);
+}
+
+// ── Category filter ────────────────────────────────────────────
+function _filterBuiltinByCat(foods) {
+  const c = _foodCatFilter;
+  if (c === 'all' || c === 'myfoods') return foods;
+  if (c === 'protein') return foods.filter(f => f.cat === 'Protein');
+  if (c === 'veg')     return foods.filter(f => f.cat === 'Vegetable');
+  if (c === 'grains')  return foods.filter(f => f.cat === 'Grain');
+  if (c === 'dairy')   return foods.filter(f => f.cat === 'Dairy');
+  if (c === 'fruits')  return foods.filter(f => f.cat === 'Fruit');
+  if (c === 'gcc')     return foods.filter(f => f.gcc);
+  if (c === 'drinks')  return foods.filter(f => f.cat === 'Drink');
+  if (c === 'dishes')  return foods.filter(f => f.mode === 'dish');
+  return foods;
+}
+
+function setCatFilter(cat) {
+  _foodCatFilter = cat;
+  document.querySelectorAll('.food-cat-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.cat === cat);
+  });
+  const q = eid('foodSearchInput')?.value.trim();
+  if (q) onFoodSearchInput(); else _showRecentFoods();
+}
+
+function _renderCatPills() {
+  const el = eid('foodCatPills');
+  if (!el) return;
+  const cats = [
+    { key:'all',     label:'All'      },
+    { key:'myfoods', label:'My Foods' },
+    { key:'protein', label:'Protein'  },
+    { key:'veg',     label:'Veg'      },
+    { key:'grains',  label:'Grains'   },
+    { key:'dairy',   label:'Dairy'    },
+    { key:'fruits',  label:'Fruits'   },
+    { key:'gcc',     label:'GCC'      },
+    { key:'drinks',  label:'Drinks'   },
+    { key:'dishes',  label:'Dishes'   },
+  ];
+  el.innerHTML = `<div style="display:flex;gap:5px;overflow-x:auto;padding:6px 12px;scrollbar-width:none;-ms-overflow-style:none">
+    ${cats.map(c => `<button class="fpill food-cat-pill${_foodCatFilter === c.key ? ' active' : ''}" data-cat="${c.key}"
+      onclick="setCatFilter('${c.key}')" style="white-space:nowrap;font-size:0.61rem;padding:3px 9px;flex-shrink:0">${c.label}</button>`).join('')}
+  </div>`;
+}
+
+// ── Single builtin food row (shared between browse + search) ───
+function _builtinFoodRow(f) {
+  const srvKcal = f.servingG ? Math.round(f.per100g.kcal * f.servingG / 100) : f.per100g.kcal;
+  const srvLabel = f.serving || '100g';
+  return `<div onclick="selectBuiltinFood('${f.id}')"
+    style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
+    onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:0.82rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(f.name)}</div>
+      <div style="font-size:0.58rem;color:var(--muted-lt);font-family:'DM Mono',monospace">${f.cat}${f.gcc ? ' \u00b7 <span style="color:var(--gold)">GCC</span>' : ''}</div>
+    </div>
+    <div style="text-align:right;flex-shrink:0">
+      <div style="font-size:0.68rem;color:var(--gold-lt);font-family:'DM Mono',monospace">${srvKcal} kcal</div>
+      <div style="font-size:0.56rem;color:var(--muted)">${srvLabel}</div>
+    </div>
+  </div>`;
+}
+
+// ── Builder (quick-add by ingredient) ─────────────────────────
+function _addToBuilder(name, per100g, servingG) {
+  const g = servingG || 100, ratio = g / 100;
+  _builderItems.push({
+    name,
+    kcal:    Math.round((per100g.kcal    || 0) * ratio),
+    protein: +((per100g.protein || 0) * ratio).toFixed(1),
+    carbs:   +((per100g.carbs   || 0) * ratio).toFixed(1),
+    fat:     +((per100g.fat     || 0) * ratio).toFixed(1),
+    fiber:   +((per100g.fiber   || 0) * ratio).toFixed(1),
+  });
+  _renderBuilderPanel();
+  toast(`${name} added to builder`);
+}
+
+function _removeBuilderItem(i) {
+  _builderItems.splice(i, 1);
+  _renderBuilderPanel();
+}
+
+function _renderBuilderPanel() {
+  const el = eid('foodBuilderPanel');
+  if (!el) return;
+  if (!_builderItems.length) { el.innerHTML = ''; return; }
+  const tot = _builderItems.reduce((s, i) => ({
+    kcal: s.kcal + i.kcal, protein: s.protein + i.protein,
+    carbs: s.carbs + i.carbs, fat: s.fat + i.fat
+  }), { kcal:0, protein:0, carbs:0, fat:0 });
+  el.innerHTML = `
+    <div style="border-top:1px solid var(--border);padding:10px 14px;background:var(--deep)">
+      <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">
+        Builder \u00b7 ${_builderItems.length} item${_builderItems.length > 1 ? 's' : ''}
+      </div>
+      ${_builderItems.map((it, i) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.72rem;padding:3px 0">
+          <span style="color:var(--cream);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(it.name)}</span>
+          <span style="color:var(--gold-lt);font-family:'DM Mono',monospace;margin:0 8px;flex-shrink:0">${it.kcal} kcal</span>
+          <button onclick="_removeBuilderItem(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.7rem;flex-shrink:0">\u2715</button>
+        </div>`).join('')}
+      <div style="display:flex;gap:10px;font-size:0.65rem;font-family:'DM Mono',monospace;margin:6px 0;padding-top:6px;border-top:1px solid var(--border)">
+        <span style="color:var(--gold-lt);font-weight:500">${tot.kcal} kcal</span>
+        <span>P ${tot.protein.toFixed(0)}g</span>
+        <span>C ${tot.carbs.toFixed(0)}g</span>
+        <span>F ${tot.fat.toFixed(0)}g</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <input id="builderMealName" class="add-inp" placeholder="Meal name\u2026" style="flex:1;font-size:0.72rem">
+        <select id="builderMeal" class="add-inp" style="font-size:0.72rem;flex-shrink:0">
+          <option value="breakfast">Breakfast</option>
+          <option value="lunch">Lunch</option>
+          <option value="dinner">Dinner</option>
+          <option value="snacks">Snacks</option>
+        </select>
+        <button class="btn btn-p" onclick="logBuilderMeal()" style="font-size:0.7rem;flex-shrink:0">Log</button>
+      </div>
+    </div>`;
+  const mealSel = eid('builderMeal');
+  if (mealSel) mealSel.value = _currentMeal;
+}
+
+function logBuilderMeal() {
+  if (!_builderItems.length) { toast('Add some foods first'); return; }
+  const name = eid('builderMealName')?.value.trim() || 'Custom Meal';
+  const meal = eid('builderMeal')?.value || _currentMeal;
+  const tot  = _builderItems.reduce((s, i) => ({
+    kcal: s.kcal + i.kcal, protein: s.protein + i.protein,
+    carbs: s.carbs + i.carbs, fat: s.fat + i.fat, fiber: (s.fiber || 0) + (i.fiber || 0)
+  }), { kcal:0, protein:0, carbs:0, fat:0, fiber:0 });
+  if (!S.foodLog) S.foodLog = {};
+  const _date = _foodEffectiveDate();
+  if (!S.foodLog[_date]) S.foodLog[_date] = [];
+  S.foodLog[_date].push({ id: Date.now(), name, brand: 'Meal', meal, grams: 0, ...tot, per100g: null });
+  _builderItems = [];
+  scheduleSave();
+  closeFoodSearch();
+  renderFoodTab();
+  toast(`"${name}" logged`);
+}
 // _foodSearchTarget: null = add to diary  |  { type:'mealplan', planId, meal }  |  { type:'myfoods' }
 let _foodSearchTarget = null;
 
@@ -291,7 +485,6 @@ function _foodEntryRow(e) {
       <button onclick="adjustFoodEntry('${e.id}',${-step})" style="${btnStyle};color:var(--muted);font-size:1rem;width:22px;height:22px;border-radius:50%;background:var(--mid)" title="Less">\u2212</button>
       <input type="number" min="0" step="any" value="${qtyVal}"
         onchange="setFoodEntryQty('${e.id}',this.value)"
-        onblur="setFoodEntryQty('${e.id}',this.value)"
         onclick="this.select()"
         style="width:38px;background:var(--mid);border:1px solid var(--border);border-radius:5px;color:var(--cream);font-family:'DM Mono',monospace;font-size:0.62rem;text-align:center;padding:2px 3px;-moz-appearance:textfield">
       <span style="font-size:0.58rem;color:var(--muted);margin-left:-1px">${isServings ? 'srv' : 'g'}</span>
@@ -316,17 +509,17 @@ function _foodEntryRow(e) {
 // ── Food search ───────────────────────────────────────────────
 
 let _currentMeal = 'breakfast';
-let _foodMode    = 'search'; // 'search' | 'quick'
+let _foodMode    = 'search'; // 'search' | 'quick' | 'builder'
 
 function openFoodSearch(meal) {
   _currentMeal = meal || 'breakfast';
   _foodResults = [];
+  _foodCatFilter = 'all';
   _foodMode    = 'search';
   const modal = eid('mFoodSearch');
   if (!modal) return;
   modal.classList.add('open');
   _applyFoodMode('search');
-  // Pre-select the correct meal in Quick Add
   const qaMeal = eid('qaMeal');
   if (qaMeal) qaMeal.value = _currentMeal;
   const lbl = eid('foodMealLabel');
@@ -378,21 +571,26 @@ function setFoodMode(mode) {
 }
 
 function _applyFoodMode(mode) {
-  const searchInp     = eid('foodSearchInput');
-  const resultsPane   = eid('foodSearchResults');
-  const quickForm     = eid('foodQuickAddForm');
-  const addForm       = eid('foodAddForm');
-  const modeBtnSearch = eid('foodModeSearch');
-  const modeBtnQuick  = eid('foodModeQuick');
+  const searchInp      = eid('foodSearchInput');
+  const catPills       = eid('foodCatPills');
+  const resultsPane    = eid('foodSearchResults');
+  const builderPanel   = eid('foodBuilderPanel');
+  const quickForm      = eid('foodQuickAddForm');
+  const addForm        = eid('foodAddForm');
+  const modeBtnSearch  = eid('foodModeSearch');
+  const modeBtnQuick   = eid('foodModeQuick');
+  const modeBtnBuilder = eid('foodModeBuilder');
+
+  [modeBtnSearch, modeBtnQuick, modeBtnBuilder].forEach(b => b?.classList.remove('active'));
 
   if (mode === 'quick') {
-    if (searchInp)     searchInp.style.display   = 'none';
-    if (resultsPane)   resultsPane.style.display  = 'none';
-    if (quickForm)     quickForm.style.display    = '';
-    if (addForm)       addForm.style.display      = 'none';
-    if (modeBtnSearch) modeBtnSearch.classList.remove('active');
-    if (modeBtnQuick)  modeBtnQuick.classList.add('active');
-    // Clear + focus name field
+    if (searchInp)   searchInp.style.display  = 'none';
+    if (catPills)    catPills.style.display    = 'none';
+    if (resultsPane) resultsPane.style.display = 'none';
+    if (builderPanel) builderPanel.innerHTML   = '';
+    if (quickForm)   quickForm.style.display   = '';
+    if (addForm)     addForm.style.display     = 'none';
+    modeBtnQuick?.classList.add('active');
     const qaName = eid('qaName');
     if (qaName) { qaName.value = ''; setTimeout(() => qaName.focus(), 80); }
     ['qaKcal','qaProtein','qaCarbs','qaFat','qaFiber'].forEach(id => { const el = eid(id); if (el) el.value = ''; });
@@ -400,14 +598,29 @@ function _applyFoodMode(mode) {
     if (qaMeal) qaMeal.value = _currentMeal;
     const hint = eid('qaCalcHint');
     if (hint) hint.textContent = '';
+  } else if (mode === 'builder') {
+    if (searchInp)   searchInp.style.display  = '';
+    if (catPills)    catPills.style.display    = '';
+    if (resultsPane) resultsPane.style.display = '';
+    if (quickForm)   quickForm.style.display   = 'none';
+    if (addForm)     addForm.style.display     = 'none';
+    modeBtnBuilder?.classList.add('active');
+    if (searchInp)   searchInp.value = '';
+    _renderCatPills();
+    _showRecentFoods();
+    _renderBuilderPanel();
+    setTimeout(() => searchInp?.focus(), 80);
   } else {
-    if (searchInp)     searchInp.style.display   = '';
-    if (resultsPane)   resultsPane.style.display  = '';
-    if (quickForm)     quickForm.style.display    = 'none';
-    if (addForm)       addForm.style.display      = 'none';
-    if (modeBtnSearch) modeBtnSearch.classList.add('active');
-    if (modeBtnQuick)  modeBtnQuick.classList.remove('active');
-    if (searchInp)     searchInp.value = '';
+    // search mode
+    if (searchInp)   searchInp.style.display  = '';
+    if (catPills)    catPills.style.display    = '';
+    if (resultsPane) resultsPane.style.display = '';
+    if (builderPanel) builderPanel.innerHTML   = '';
+    if (quickForm)   quickForm.style.display   = 'none';
+    if (addForm)     addForm.style.display     = 'none';
+    modeBtnSearch?.classList.add('active');
+    if (searchInp)   searchInp.value = '';
+    _renderCatPills();
     _showRecentFoods();
   }
 }
@@ -441,28 +654,45 @@ function _getRecentFoods(limit = 10) {
   return recents;
 }
 
+function _customFoodRow(cf, i) {
+  return `<div onclick="selectCustomFood(${i})"
+    style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
+    onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:0.82rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(cf.name)}</div>
+      <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace">P${Math.round(cf.protein||0)}g \u00b7 C${Math.round(cf.carbs||0)}g \u00b7 F${Math.round(cf.fat||0)}g</div>
+    </div>
+    <div style="font-size:0.68rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(cf.kcal||0)} kcal</div>
+  </div>`;
+}
+
 function _showRecentFoods() {
   const el = eid('foodSearchResults');
   if (!el) return;
+  _renderCatPills();
+
+  // ── My Foods category: show ALL custom foods ──
+  if (_foodCatFilter === 'myfoods') {
+    const all = S.customFoods || [];
+    el.innerHTML = all.length
+      ? `<div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--gold-lt);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">My Foods (${all.length})</div>
+         ${all.map((cf, i) => _customFoodRow(cf, i)).join('')}`
+      : `<div style="padding:28px 16px;text-align:center;font-size:0.76rem;color:var(--muted)">No custom foods yet.<br>Tap + Manual or search and save to My Foods.</div>`;
+    el._customFoods = all;
+    return;
+  }
+
+  // ── Standard view ──
   const recents     = _getRecentFoods(8);
   const customFoods = (S.customFoods || []).slice(0, 6);
+  el._recentFoods = recents;
+  el._customFoods = customFoods;
 
-  // ── My Foods section ──
-  const customHtml = customFoods.length ? `
+  const customHtml = (_foodCatFilter === 'all' && customFoods.length) ? `
     <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--gold-lt);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">My Foods</div>
-    ${customFoods.map((cf, i) => `
-      <div onclick="selectCustomFood(${i})"
-        style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
-        onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:0.82rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(cf.name)}</div>
-          <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace">P${cf.protein||0}g \u00b7 C${cf.carbs||0}g \u00b7 F${cf.fat||0}g</div>
-        </div>
-        <div style="font-size:0.68rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(cf.kcal||0)} kcal</div>
-      </div>`).join('')}` : '';
+    ${customFoods.map((cf, i) => _customFoodRow(cf, i)).join('')}` : '';
 
-  // ── Recent section ──
-  const recentHtml = recents.length ? `
+  const recentHtml = (_foodCatFilter === 'all' && recents.length) ? `
     <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">Recent</div>
     ${recents.map((r, i) => `
       <div onclick="selectRecentFood(${i})"
@@ -475,40 +705,25 @@ function _showRecentFoods() {
         <div style="font-size:0.68rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(r.kcal)} kcal</div>
       </div>`).join('')}` : '';
 
-  // ── Basics quick-access (GCC + most-used built-ins) ──
-  const quickBasics = ['b-chicken-breast','b-white-rice','b-egg-whole','b-dates','b-pita','b-shawarma-chicken','b-hummus','b-laban'];
-  const basicsHtml = `
-    <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">Basics</div>
-    ${quickBasics.map(id => {
-      const f = BUILTIN_FOODS.find(b => b.id === id);
-      if (!f) return '';
-      return `<div onclick="selectBuiltinFood('${f.id}')"
-        style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
-        onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:0.82rem;color:var(--cream)">${escapeHtml(f.name)}</div>
-          <div style="font-size:0.58rem;color:var(--muted-lt);font-family:'DM Mono',monospace">${f.cat}${f.gcc ? ' \u00b7 <span style="color:var(--gold)">GCC</span>' : ''}</div>
-        </div>
-        <div style="font-size:0.68rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${f.per100g.kcal} kcal/100g</div>
-      </div>`;
-    }).join('')}
-    <div onclick="this.parentElement.querySelector('#builtinFull').style.display=''" style="padding:8px 14px;font-size:0.68rem;color:var(--muted);cursor:pointer;text-align:center;border-bottom:1px solid var(--border)" id="builtinShowAll">Show all basics \u2193</div>
-    <div id="builtinFull" style="display:none">
-      ${BUILTIN_FOODS.filter(f => !quickBasics.includes(f.id)).map(f => `
-        <div onclick="selectBuiltinFood('${f.id}')"
-          style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
-          onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:0.82rem;color:var(--cream)">${escapeHtml(f.name)}</div>
-            <div style="font-size:0.58rem;color:var(--muted-lt);font-family:'DM Mono',monospace">${f.cat}${f.gcc ? ' \u00b7 <span style="color:var(--gold)">GCC</span>' : ''}</div>
-          </div>
-          <div style="font-size:0.68rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${f.per100g.kcal} kcal/100g</div>
-        </div>`).join('')}
-    </div>`;
+  // ── Filtered basics ──
+  const filtered = _filterBuiltinByCat(BUILTIN_FOODS);
+  const quickIds = ['b-chicken-breast','b-white-rice','b-egg-whole','b-dates','b-karak','b-shawarma-chicken','b-hummus','b-laban'];
+  const showAll  = _foodCatFilter !== 'all'; // show all when specific category selected
+  const quick    = showAll ? filtered : filtered.filter(f => quickIds.includes(f.id));
+  const rest     = showAll ? [] : filtered.filter(f => !quickIds.includes(f.id));
+  const basicsHtml = filtered.length ? `
+    <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">
+      ${_foodCatFilter === 'all' ? 'Basics' : BUILTIN_FOODS.find(f => _filterBuiltinByCat([f]).length && f.cat) ? filtered[0]?.cat || 'Foods' : 'Foods'}
+    </div>
+    ${quick.map(f => _builtinFoodRow(f)).join('')}
+    ${rest.length ? `
+      <div id="builtinShowAll" onclick="eid('builtinFull').style.display='';this.style.display='none'"
+        style="padding:8px 14px;font-size:0.68rem;color:var(--muted);cursor:pointer;text-align:center;border-bottom:1px solid var(--border)">
+        Show all (${rest.length} more) \u2193
+      </div>
+      <div id="builtinFull" style="display:none">${rest.map(f => _builtinFoodRow(f)).join('')}</div>` : ''}` : '';
 
   el.innerHTML = customHtml + recentHtml + basicsHtml;
-  el._recentFoods = recents;
-  el._customFoods = customFoods;
 }
 
 function selectCustomFood(i) {
@@ -541,35 +756,31 @@ function selectRecentFood(i) {
 
 function _builtinMatchHtml(matches) {
   if (!matches.length) return '';
-  return `
-    <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--muted-lt);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">Basics</div>
-    ${matches.map(f => `
-      <div onclick="selectBuiltinFood('${f.id}')"
-        style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
-        onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:0.82rem;color:var(--cream)">${escapeHtml(f.name)}</div>
-          <div style="font-size:0.58rem;color:var(--muted-lt);font-family:'DM Mono',monospace">${f.cat}${f.gcc ? ' \u00b7 <span style="color:var(--gold)">GCC</span>' : ''}</div>
-        </div>
-        <div style="font-size:0.68rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${f.per100g.kcal} kcal/100g</div>
-      </div>`).join('')}`;
+  return `<div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--muted-lt);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">Basics</div>
+    ${matches.map(f => _builtinFoodRow(f)).join('')}`;
 }
 
 function onFoodSearchInput() {
   clearTimeout(_foodSearchTimer);
   const q = eid('foodSearchInput')?.value.trim();
   if (!q) { _showRecentFoods(); return; }
-  const ql = q.toLowerCase();
-  // Show local matches instantly (no network needed)
-  const myMatches      = (S.customFoods || []).filter(cf => cf.name.toLowerCase().includes(ql));
-  const builtinMatches = BUILTIN_FOODS.filter(f => f.name.toLowerCase().includes(ql));
+
+  const myPool      = (_foodCatFilter === 'all' || _foodCatFilter === 'myfoods') ? (S.customFoods || []) : [];
+  const myMatches   = _fuzzyFilter(myPool, q);
+  const builtinPool = _filterBuiltinByCat(BUILTIN_FOODS);
+  const builtinMatches = _fuzzyFilter(builtinPool, q);
+
   const resultsEl = eid('foodSearchResults');
   if (resultsEl) {
     const hasLocal = myMatches.length || builtinMatches.length;
-    resultsEl.innerHTML = _myFoodsMatchHtml(myMatches) + _builtinMatchHtml(builtinMatches) +
-      `<div style="padding:${hasLocal ? '10px' : '20px'} 14px;font-size:0.72rem;color:var(--muted);text-align:center;${hasLocal ? 'border-top:1px solid var(--border)' : ''}">Searching database\u2026</div>`;
+    const searching = _foodCatFilter !== 'myfoods'
+      ? `<div style="padding:${hasLocal ? '10px' : '20px'} 14px;font-size:0.72rem;color:var(--muted);text-align:center;${hasLocal ? 'border-top:1px solid var(--border)' : ''}">Searching database\u2026</div>`
+      : '';
+    resultsEl.innerHTML = _myFoodsMatchHtml(myMatches) + _builtinMatchHtml(builtinMatches) + searching;
   }
-  _foodSearchTimer = setTimeout(() => _doFoodSearch(q), 400);
+  if (_foodCatFilter !== 'myfoods') {
+    _foodSearchTimer = setTimeout(() => _doFoodSearch(q), 400);
+  }
 }
 
 function _myFoodsMatchHtml(matches) {
@@ -592,59 +803,41 @@ async function _doFoodSearch(q) {
   const resultsEl = eid('foodSearchResults');
   if (!resultsEl) return;
 
-  const ql            = q.toLowerCase();
-  const myMatches      = (S.customFoods || []).filter(cf => cf.name.toLowerCase().includes(ql));
-  const builtinMatches = BUILTIN_FOODS.filter(f => f.name.toLowerCase().includes(ql));
+  const myPool      = (_foodCatFilter === 'all' || _foodCatFilter === 'myfoods') ? (S.customFoods || []) : [];
+  const myMatches   = _fuzzyFilter(myPool, q);
+  const builtinPool = _filterBuiltinByCat(BUILTIN_FOODS);
+  const builtinMatches = _fuzzyFilter(builtinPool, q);
 
   try {
-    const ctrl = new AbortController();
-    const timeout = setTimeout(() => ctrl.abort(), 8000);
-
-    // Parallel: community table + GCC OFT + global OFT
-    const [commRes, gcRes, worldRes] = await Promise.allSettled([
+    const [commRes, usdaRes] = await Promise.allSettled([
       _fetchCommunityFoods(q),
-      _fetchOFT(q, 'en:kuwait,en:saudi-arabia,en:united-arab-emirates', 6, ctrl.signal),
-      _fetchOFT(q, null, 12, ctrl.signal)
+      _fetchUSDA(q)
     ]);
-    clearTimeout(timeout);
 
-    const community = commRes.status  === 'fulfilled' ? commRes.value  : [];
-    const gc        = gcRes.status    === 'fulfilled' ? gcRes.value    : [];
-    const world     = worldRes.status === 'fulfilled' ? worldRes.value : [];
-
-    // Merge OFT: GCC-tagged first, then global deduped by name
-    const gcNames = new Set(gc.map(r => r.name.toLowerCase()));
-    _foodResults = [
-      ...gc.map(r => ({ ...r, _gcc: true })),
-      ...world.filter(r => !gcNames.has(r.name.toLowerCase()))
-    ].slice(0, 12);
+    const community = commRes.status === 'fulfilled' ? commRes.value : [];
+    _foodResults    = usdaRes.status === 'fulfilled' ? usdaRes.value : [];
+    _communityResults = community;
 
     if (!_foodResults.length && !community.length && !myMatches.length && !builtinMatches.length) {
       resultsEl.innerHTML = `
         <div style="padding:20px;text-align:center">
           <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px">No results for "${escapeHtml(q)}"</div>
-          <div style="font-size:0.64rem;color:var(--muted);margin-bottom:12px">Save it in My Foods then share it so everyone can find it</div>
+          <div style="font-size:0.64rem;color:var(--muted);margin-bottom:12px">Add it manually or save to My Foods and share with the community</div>
           <button class="btn btn-p" style="font-size:0.72rem" onclick="setFoodMode('quick')">Add manually \u2192</button>
         </div>`;
       return;
     }
 
-    _communityResults = community;
     const communityHtml = _communityMatchHtml(community);
-
     const dbHtml = _foodResults.length ? `
-      <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">
-        Database${gc.length ? ` \u00b7 <span style="color:var(--gold-lt)">${gc.length} GCC match${gc.length > 1 ? 'es' : ''}</span>` : ''}
-      </div>
+      <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">USDA Database</div>
       ${_foodResults.map((r, i) => `
         <div onclick="selectFoodResult(${i})"
           style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
           onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
           <div style="flex:1;min-width:0">
             <div style="font-size:0.82rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.name)}</div>
-            <div style="font-size:0.62rem;color:var(--muted)">
-              ${r.brand ? escapeHtml(r.brand) : ''}${r._gcc ? `${r.brand ? ' \u00b7 ' : ''}<span style="color:var(--gold);font-size:0.58rem">GCC</span>` : ''}
-            </div>
+            <div style="font-size:0.62rem;color:var(--muted)">${r.brand ? escapeHtml(r.brand) : 'USDA'}</div>
           </div>
           <div style="font-size:0.7rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(r.per100g.kcal)} kcal/100g</div>
         </div>`).join('')}` : '';
@@ -652,10 +845,9 @@ async function _doFoodSearch(q) {
     resultsEl.innerHTML = _myFoodsMatchHtml(myMatches) + communityHtml + _builtinMatchHtml(builtinMatches) + dbHtml;
 
   } catch(e) {
-    const isTimeout = e.name === 'AbortError';
     resultsEl.innerHTML = _myFoodsMatchHtml(myMatches) + _builtinMatchHtml(builtinMatches) + `
       <div style="padding:16px;text-align:center">
-        <div style="font-size:0.72rem;color:var(--muted);margin-bottom:10px">${isTimeout ? 'Search timed out' : 'Database unavailable'}</div>
+        <div style="font-size:0.72rem;color:var(--muted);margin-bottom:10px">Database unavailable</div>
         <button class="btn btn-p" style="font-size:0.72rem" onclick="setFoodMode('quick')">Add manually \u2192</button>
       </div>`;
   }
@@ -700,36 +892,28 @@ function _communityMatchHtml(matches) {
       </div>`).join('')}`;
 }
 
-async function _fetchOFT(q, countries, size, signal) {
-  let url = `https://world.openfoodfacts.org/api/v2/search?search_terms=${encodeURIComponent(q)}&page_size=${size}&fields=product_name,brands,nutriments`;
-  if (countries) url += `&countries_tags=${encodeURIComponent(countries)}`;
-  const r = await fetch(url, { signal });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const d = await r.json();
-  return (d.products || [])
-    .filter(p => p.product_name && p.nutriments)
-    .map(p => {
-      const n = p.nutriments;
-      const kcal = parseFloat(n['energy-kcal_100g'] ?? n['energy-kcal_serving'] ?? (n['energy_100g'] ? n['energy_100g'] / 4.184 : 0));
-      return {
-        name:    p.product_name.trim(),
-        brand:   ((p.brands || '').split(',')[0]).trim(),
-        per100g: {
-          kcal:    kcal    || 0,
-          protein: parseFloat(n['proteins_100g']        || 0),
-          carbs:   parseFloat(n['carbohydrates_100g']   || 0),
-          fat:     parseFloat(n['fat_100g']             || 0),
-          fiber:   parseFloat(n['fiber_100g']           || 0)
-        }
-      };
-    })
-    .filter(p => p.per100g.kcal > 0 && p.name);
+async function _fetchUSDA(q) {
+  if (typeof sb === 'undefined') return [];
+  const { data, error } = await sb
+    .from('usda_foods')
+    .select('fdc_id,name,category,kcal,protein,carbs,fat,fiber')
+    .ilike('name', `%${q}%`)
+    .limit(15);
+  if (error || !data) return [];
+  return data
+    .filter(r => r.kcal > 0)
+    .map(r => ({
+      name:    r.name,
+      brand:   r.category || '',
+      per100g: { kcal: r.kcal, protein: r.protein || 0, carbs: r.carbs || 0, fat: r.fat || 0, fiber: r.fiber || 0 }
+    }));
 }
 
 function selectFoodResult(i) {
   const r = _foodResults[i];
   if (!r) return;
   if (_foodSearchTarget?.type === 'myfoods') { _saveToMyFoodsFromResult(r.name, r.per100g); return; }
+  if (_foodMode === 'builder') { _addToBuilder(r.name, r.per100g, 100); return; }
   eid('foodAddName').value  = r.name;
   eid('foodAddBrand').value = r.brand || '';
   _showFoodAddForm(r.per100g, false);
@@ -747,6 +931,7 @@ function selectCommunityFood(i) {
   const cf = _communityResults[i];
   if (!cf) return;
   if (_foodSearchTarget?.type === 'myfoods') { _saveToMyFoodsFromResult(cf.name, cf.per100g); return; }
+  if (_foodMode === 'builder') { _addToBuilder(cf.name, cf.per100g, 100); return; }
   eid('foodAddName').value  = cf.name;
   eid('foodAddBrand').value = cf.region === 'kuwait' || cf.region === 'gcc' ? 'Community GCC' : 'Community';
   _showFoodAddForm(cf.per100g, false);
@@ -756,9 +941,15 @@ function selectBuiltinFood(id) {
   const f = BUILTIN_FOODS.find(b => b.id === id);
   if (!f) return;
   if (_foodSearchTarget?.type === 'myfoods') { _saveToMyFoodsFromResult(f.name, f.per100g); return; }
+  if (_foodMode === 'builder') { _addToBuilder(f.name, f.per100g, f.servingG); return; }
   eid('foodAddName').value  = f.name;
-  eid('foodAddBrand').value = f.cat === 'GCC' ? 'GCC Basic' : 'Basic';
+  eid('foodAddBrand').value = f.mode === 'dish' ? 'GCC Dish' : f.gcc ? 'GCC Basic' : 'Basic';
   _showFoodAddForm(f.per100g, false);
+  // Default to the food's natural serving size instead of 100g
+  if (f.servingG && f.servingG !== 100) {
+    const gramsInp = eid('foodAddGrams');
+    if (gramsInp) { gramsInp.value = f.servingG; _updateFoodMacroPreview(); }
+  }
 }
 
 function _saveToMyFoodsFromResult(name, per100g) {
@@ -777,9 +968,11 @@ function selectSearchCustomFood(id) {
   const cf = (S.customFoods || []).find(c => String(c.id) === String(id));
   if (!cf) return;
   if (_foodSearchTarget?.type === 'myfoods') { _saveToMyFoodsFromResult(cf.name, cf); return; }
+  const per = { kcal: cf.kcal, protein: cf.protein, carbs: cf.carbs, fat: cf.fat, fiber: cf.fiber || 0 };
+  if (_foodMode === 'builder') { _addToBuilder(cf.name, per, 100); return; }
   eid('foodAddName').value  = cf.name;
   eid('foodAddBrand').value = '';
-  _showFoodAddForm({ kcal: cf.kcal, protein: cf.protein, carbs: cf.carbs, fat: cf.fat, fiber: cf.fiber || 0 }, false, true);
+  _showFoodAddForm(per, false, true);
 }
 
 function selectFoodManual() {
