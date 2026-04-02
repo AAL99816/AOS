@@ -77,7 +77,7 @@ function deepMerge(base,over){
 
 function makeCardioSession(s={}) {
   return {
-    id: s.id ?? Date.now() + Math.random(),
+    id: s.id ?? uid(),
     date: s.date ?? today(),
     activity: s.activity ?? '',
     duration: s.duration ?? '',
@@ -97,7 +97,7 @@ function makeWorkoutDay(w={}){
 
 function makeProject(p={}){
   return {
-    id: p.id ?? Date.now() + Math.random(),
+    id: p.id ?? uid(),
     title:   p.title   ?? p.school   ?? '',
     type:    p.type    ?? p.name     ?? '',
     context: p.context ?? p.location ?? '',
@@ -107,7 +107,7 @@ function makeProject(p={}){
     richNotes: p.richNotes ?? '',
     notesLog: Array.isArray(p.notesLog) ? p.notesLog : [],
     tasks: Array.isArray(p.tasks) ? p.tasks.map(tk => ({
-      id: tk.id ?? Date.now() + Math.random(),
+      id: tk.id ?? uid(),
       text: tk.text ?? '',
       done: !!tk.done,
       dueDate: tk.dueDate ?? '',
@@ -118,7 +118,7 @@ function makeProject(p={}){
 
 function makeMedia(m={}){
   return {
-    id: m.id ?? Date.now() + Math.random(),
+    id: m.id ?? uid(),
     mediaType: m.mediaType ?? 'book',
     title: m.title ?? '',
     author: m.author ?? '',       // used as Artist for albums
@@ -144,7 +144,7 @@ function makeMedia(m={}){
     hoursPlayed: Number.isFinite(+m.hoursPlayed) ? +m.hoursPlayed : 0,
     // Albums
     tracks: Array.isArray(m.tracks) ? m.tracks.map(tr => ({
-      id:     tr.id     ?? Date.now() + Math.random(),
+      id:     tr.id     ?? uid(),
       title:  tr.title  ?? '',
       duration: tr.duration ?? '',
       rating: Number.isFinite(+tr.rating) ? +tr.rating : 0,
@@ -155,7 +155,7 @@ function makeMedia(m={}){
 
 function makeHabit(h={}){
   return {
-    id: h.id ?? Date.now() + Math.random(),
+    id: h.id ?? uid(),
     name: h.name ?? '',
     days: h.days && typeof h.days === 'object' ? h.days : {}
   };
@@ -163,7 +163,7 @@ function makeHabit(h={}){
 
 function makeGoal(g={}){
   return {
-    id: g.id ?? Date.now() + Math.random(),
+    id: g.id ?? uid(),
     text: g.text ?? '',
     category: g.category ?? 'Personal',
     type: g.type ?? '',
@@ -202,7 +202,7 @@ function normalizeAppState(raw={}){
   out.appPrefs = deepMerge(DS.appPrefs, out.appPrefs || {});
   out.onboarded = typeof src.onboarded === 'boolean' ? src.onboarded : false;
   out.customStreaks = (Array.isArray(src.customStreaks) ? src.customStreaks : []).map(cs => ({
-    id: cs.id ?? Date.now() + Math.random(),
+    id: cs.id ?? uid(),
     name: cs.name ?? 'Custom',
     emoji: cs.emoji ?? '🔥',
     log: (cs.log && typeof cs.log === 'object') ? cs.log : {}
@@ -232,7 +232,7 @@ delete out.programs;
   
 function makeWorkoutSession(s={}){
   return {
-    id: s.id ?? Date.now() + Math.random(),
+    id: s.id ?? uid(),
     date: s.date ?? today(),
     title: s.title ?? 'Workout',
     cardId: s.cardId ?? null,

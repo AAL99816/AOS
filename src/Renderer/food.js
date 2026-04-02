@@ -354,7 +354,7 @@ function copyYesterday() {
   const existing = (S.foodLog[date] || []).length;
   if (existing > 0 && !confirm(`Today already has ${existing} entr${existing === 1 ? 'y' : 'ies'}. Add yesterday's ${src.length} items anyway?`)) return;
   if (!S.foodLog[date]) S.foodLog[date] = [];
-  src.forEach(e => S.foodLog[date].push({ ...e, id: Date.now() + Math.random() }));
+  src.forEach(e => S.foodLog[date].push({ ...e, id: uid() }));
   scheduleSave();
   renderFoodTab();
   toast(`Copied ${src.length} items from yesterday`);
@@ -892,6 +892,20 @@ function _communityMatchHtml(matches) {
       </div>`).join('')}`;
 }
 
+function _cleanUsdaName(raw) {
+  // USDA names look like: "Chicken, broilers or fryers, drumstick, meat only, cooked, braised"
+  // Take first segment only, then append the most useful qualifier in parens if present
+  const parts = raw.split(',').map(s => s.trim());
+  const base = parts[0];
+  const qualifier = parts[1] || '';
+  // Skip generic qualifiers that add no useful info
+  const skip = new Set(['raw','NFS','','NS as to type']);
+  const label = (!skip.has(qualifier) && qualifier.length < 30)
+    ? `${base} (${qualifier})`
+    : base;
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 async function _fetchUSDA(q) {
   if (typeof sb === 'undefined') return [];
   const { data, error } = await sb
@@ -903,7 +917,7 @@ async function _fetchUSDA(q) {
   return data
     .filter(r => r.kcal > 0)
     .map(r => ({
-      name:    r.name,
+      name:    _cleanUsdaName(r.name),
       brand:   r.category || '',
       per100g: { kcal: r.kcal, protein: r.protein || 0, carbs: r.carbs || 0, fat: r.fat || 0, fiber: r.fiber || 0 }
     }));
@@ -1523,7 +1537,7 @@ function applyMealPlan(i) {
   if (!S.foodLog) S.foodLog = {};
   const _date = _foodEffectiveDate();
   if (!S.foodLog[_date]) S.foodLog[_date] = [];
-  plan.foods.forEach(f => S.foodLog[_date].push({ ...f, id: Date.now() + Math.random() }));
+  plan.foods.forEach(f => S.foodLog[_date].push({ ...f, id: uid() }));
   scheduleSave();
   setFoodTab('diary');
   toast(`"${plan.name}" applied to ${_date === today() ? 'today' : _date}`);

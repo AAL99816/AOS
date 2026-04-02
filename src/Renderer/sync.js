@@ -756,6 +756,7 @@ function setSyncStatus(status) {
 let saveTimer;
 let lastSaveTime = 0;
 let syncChannel = null;
+let _isSaving = false;
 
 function subscribeToSync() {
   if (!currentUser) return;
@@ -767,7 +768,8 @@ function subscribeToSync() {
       table: 'app_data',
       filter: `user_id=eq.${currentUser.id}`
     }, payload => {
-      if (Date.now() - lastSaveTime < 3000) return;
+      // Ignore remote updates while we're mid-save or within 3s of a save
+      if (_isSaving || Date.now() - lastSaveTime < 3000) return;
       if (!payload.new?.data) return;
       S = normalizeAppState(payload.new.data);
       setSyncStatus('synced');
@@ -785,6 +787,7 @@ function scheduleSave() {
 async function saveToSupabase() {
   if (!currentUser) return;
 
+  _isSaving = true;
   setSyncStatus('syncing');
   const json = JSON.stringify(S);
   lastSaveTime = Date.now();
@@ -808,22 +811,23 @@ async function saveToSupabase() {
     saveBodyWeight().catch(e => console.error('[sync] saveBodyWeight failed:', e))
   ]);
 
+  _isSaving = false;
+
   if (error) {
     setSyncStatus('offline');
     eid('saveInd').textContent = 'Saved locally (offline)';
-    setTimeout(() => {
-      eid('saveInd').textContent = '';
-    }, 2500);
+    setTimeout(() => { eid('saveInd').textContent = ''; }, 2500);
   } else {
     setSyncStatus('synced');
     eid('saveInd').textContent = 'Synced';
-    setTimeout(() => {
-      eid('saveInd').textContent = '';
-    }, 2000);
+    setTimeout(() => { eid('saveInd').textContent = ''; }, 2000);
   }
   // Run fitness save after main save — it has many sequential DB calls
   // and must not compete with other saves in the Promise.all
-  saveFitness().catch(e => console.error('[sync] saveFitness failed:', e));
+  saveFitness().catch(e => {
+    console.error('[sync] saveFitness failed:', e);
+    if (typeof toast === 'function') toast('Workout data failed to sync — pull down to retry');
+  });
 }
 
 async function loadFromSupabase() {

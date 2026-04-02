@@ -18,11 +18,12 @@ let authMode = 'login';
 
 async function loadProfile() {
   if (!currentUser) return;
-  const { data } = await sb
+  const { data, error } = await sb
     .from('profiles')
     .select('username, avatar_url, country, display_name, font, theme')
     .eq('id', currentUser.id)
     .single();
+  if (error && error.code !== 'PGRST116') console.warn('[auth] loadProfile failed:', error.message);
   currentProfile = data || {};
   if (typeof restoreAppearance === 'function') restoreAppearance();
   if (currentProfile.theme) { localStorage.setItem('aos_theme', currentProfile.theme); if (typeof applyTheme === 'function') applyTheme(currentProfile.theme); }

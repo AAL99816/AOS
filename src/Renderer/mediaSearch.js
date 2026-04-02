@@ -264,7 +264,7 @@ async function selectMediaResult(i) {
       const tracks  = (trkData.results || []).filter(t => t.wrapperType === 'track');
       if (tracks.length) {
         _autofillData.tracks = tracks.map(tr => ({
-          id:       Date.now() + Math.random(),
+          id:       uid(),
           title:    tr.trackName    || '',
           duration: fmtMs(tr.trackTimeMillis),
           rating:   0,

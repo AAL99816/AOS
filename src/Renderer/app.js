@@ -160,8 +160,8 @@ function finishOnboarding(){
 
   S.appTitle = displayName ? displayName+"'s OS" : 'My OS';
   S.appSub   = '';
-  S.habits   = [..._selectedHabits].map((name,i)=>makeHabit({id:Date.now()+i,name}));
-  S.goals    = goalText ? [makeGoal({id:Date.now(),text:goalText,category:goalCat,progress:0})] : [];
+  S.habits   = [..._selectedHabits].map((name)=>makeHabit({name}));
+  S.goals    = goalText ? [makeGoal({text:goalText,category:goalCat,progress:0})] : [];
   S.projects = [];
   S.onboarded= true;
 
@@ -293,10 +293,15 @@ function renderAll(){
 }
 
 /* ══ INLINE TITLE EDITING ══ */
+let _titleSaveTimer = null;
 function setupInlineEdits(){
   if(inlineEditsBound) return;
   inlineEditsBound = true;
-  eid('appTitle').addEventListener('input',e=>{S.appTitle=e.target.textContent;scheduleSave();});
+  eid('appTitle').addEventListener('input',e=>{
+    S.appTitle=e.target.textContent;
+    clearTimeout(_titleSaveTimer);
+    _titleSaveTimer = setTimeout(()=>scheduleSave(), 800);
+  });
 }
 
 /* ══ INIT ══ */
@@ -389,7 +394,10 @@ document.addEventListener('keydown', e => {
   }
 });
 
+let _mobileUXBound = false;
 function setupMobileUX() {
+  if (_mobileUXBound) return;
+  _mobileUXBound = true;
   /* ── Swipe between tabs ── */
   let _tx = 0, _ty = 0, _tt = 0;
   document.addEventListener('touchstart', e => {

@@ -171,19 +171,21 @@ async function uploadAvatarFromSettings(input) {
   if (!f || !currentUser) return;
   const status = eid('stAvatarStatus');
   status.textContent = 'Uploading…';
+  input.disabled = true;
   try {
     const url = await uploadAsset('avatar', f);
     const { error } = await sb.from('profiles').upsert({ id: currentUser.id, email: currentUser.email, avatar_url: url }, { onConflict: 'id' });
     if (error) throw error;
     if (!currentProfile) currentProfile = {};
     currentProfile.avatar_url = url;
-    // Update preview
     const av = eid('stAvatarPreview');
     av.innerHTML = `<img src="${escapeAttr(url)}" alt="" style="width:100%;height:100%;object-fit:cover">`;
     status.textContent = 'Saved';
     renderHeroProfile();
   } catch (e) {
-    status.textContent = 'Upload failed: ' + (e.message || e);
+    status.textContent = 'Upload failed: ' + (e.message || String(e));
+  } finally {
+    input.disabled = false;
   }
 }
 
@@ -283,8 +285,8 @@ async function clearAllData() {
     'This will permanently delete ALL your AOS data — habits, food logs, workouts, projects, media, notes and more.\n\nThis cannot be undone. Are you absolutely sure?'
   );
   if (!confirmed) return;
-  const confirmed2 = confirm('Last chance. Delete everything?');
-  if (!confirmed2) return;
+  const typed = prompt('Type DELETE (all caps) to confirm permanent data wipe:');
+  if (typed !== 'DELETE') { toast('Cancelled — nothing was deleted'); return; }
   // Auto-backup before wiping
   try { await window.api.exportData(JSON.stringify(S, null, 2)); } catch(_) {}
   S = normalizeAppState({});
