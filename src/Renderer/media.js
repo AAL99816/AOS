@@ -867,7 +867,7 @@ function renderMediaQueue() {
   const typeIcons = { book:'◆', film:'▶', show:'▶', anime:'▶', album:'♪', game:'◈' };
   el.innerHTML = queue.map(m => `
     <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer"
-         onclick="openBookDetails(${m.id})"
+         onclick="openBookDetails('${m.id}')"
          onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
       <span style="font-size:0.8rem;color:var(--muted)">${typeIcons[m.mediaType]||'◆'}</span>
       <div style="flex:1;min-width:0">

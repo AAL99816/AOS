@@ -335,7 +335,7 @@ async function loadHabits() {
   if (error || !data || !data.length) return;
 
   S.habits = data.map(row => ({
-    id:   Number(row.app_id),
+    id:   row.app_id,
     name: row.name || '',
     days: Object.fromEntries(
       (row.habit_logs || []).map(l => [l.logged_date, true])
@@ -575,13 +575,13 @@ async function loadFitness() {
 
   if (!tmplRes.error && tmplRes.data?.length) {
     S.workoutCards = tmplRes.data.map(row => ({
-      id:       Number(row.app_id),
+      id:       row.app_id,
       title:    row.title    || '',
       subtitle: row.subtitle || '',
       exercises: (row.workout_template_exercises || [])
         .filter(e => e.app_id)
         .sort((a, b) => a.order_index - b.order_index)
-        .map(e => ({ id: Number(e.app_id), name: e.name || '' }))
+        .map(e => ({ id: e.app_id, name: e.name || '' }))
     }));
   }
 
@@ -610,7 +610,7 @@ async function loadFitness() {
 
   if (!cardioRes.error && cardioRes.data?.length) {
     S.cardioHistory = cardioRes.data.map(row => ({
-      id:       Number(row.app_id),
+      id:       row.app_id,
       date:     row.session_date     || '',
       activity: row.activity         || '',
       duration: row.duration_minutes != null ? String(row.duration_minutes) : '',
@@ -622,7 +622,7 @@ async function loadFitness() {
 
   if (!calRes.error && calRes.data?.length) {
     S.calorieHistory = calRes.data.map(row => ({
-      id:          Number(row.app_id),
+      id:          row.app_id,
       date:        row.entry_date   || '',
       description: row.description  || '',
       calories:    row.calories     || 0

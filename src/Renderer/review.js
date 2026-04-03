@@ -145,7 +145,7 @@ function renderWeeklyReview() {
             ${prevGymDays > 0 ? `<span style="color:${gymDays>=prevGymDays?'var(--gold-lt)':'var(--petal)'};margin-left:6px">${gymDays>=prevGymDays?'↑':'↓'}${Math.abs(gymDays-prevGymDays)} vs prev</span>` : ''}
           </div>
           ${gymSessions.length
-            ? gymSessions.map(s=>`<div style="font-size:0.76rem;color:var(--mist);padding:3px 0;border-bottom:1px solid var(--blush-dim);cursor:pointer" onclick="openSessionDetail(${s.id})">${escapeHtml(s.date.slice(5))} · ${escapeHtml(s.title)}</div>`).join('')
+            ? gymSessions.map(s=>`<div style="font-size:0.76rem;color:var(--mist);padding:3px 0;border-bottom:1px solid var(--blush-dim);cursor:pointer" onclick="openSessionDetail('${s.id}')">${escapeHtml(s.date.slice(5))} · ${escapeHtml(s.title)}</div>`).join('')
             : `<div style="font-size:0.7rem;color:var(--muted)">${t('no_sessions_logged')}</div>`}
         </div>
         <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">${t('cardio')}</div>
