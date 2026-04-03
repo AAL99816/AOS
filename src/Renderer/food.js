@@ -272,7 +272,7 @@ function logBuilderMeal() {
   if (!S.foodLog) S.foodLog = {};
   const _date = _foodEffectiveDate();
   if (!S.foodLog[_date]) S.foodLog[_date] = [];
-  S.foodLog[_date].push({ id: Date.now(), name, brand: 'Meal', meal, grams: 0, ...tot, per100g: null });
+  S.foodLog[_date].push({ id: uid(), name, brand: 'Meal', meal, grams: 0, ...tot, per100g: null });
   _builderItems = [];
   scheduleSave();
   closeFoodSearch();
@@ -547,7 +547,7 @@ function openFoodSearchForPlan(planId, meal) {
   modal.classList.add('open');
   _applyFoodMode('search');
   const lbl = eid('foodMealLabel');
-  const plan = (S.mealPlans || []).find(p => p.id === planId);
+  const plan = (S.mealPlans || []).find(p => String(p.id) === String(planId));
   if (lbl) lbl.textContent = `${MEAL_LABELS[meal] || meal} \u00b7 ${escapeHtml(plan?.name || 'Plan')}`;
   const qaMeal = eid('qaMeal');
   if (qaMeal) qaMeal.value = meal;
@@ -645,8 +645,9 @@ function _getRecentFoods(limit = 10) {
   const allDays = Object.keys(S.foodLog || {}).sort().reverse();
   for (const d of allDays) {
     for (const e of [...(S.foodLog[d] || [])].reverse()) {
+      if (!e.name) continue;
       const key = e.name.toLowerCase();
-      if (!seen.has(key) && e.name) {
+      if (!seen.has(key)) {
         seen.add(key);
         recents.push(e);
         if (recents.length >= limit) return recents;
@@ -1319,7 +1320,7 @@ function openFoodTargets() {
   eid('ftFat').value     = T.fat     || 65;
   const ftFiber = eid('ftFiber');
   if (ftFiber) ftFiber.value = T.fiber || 25;
-  eid('mFoodTargets').classList.add('open');
+  openModal('mFoodTargets');
 }
 
 function saveFoodTargets() {
@@ -1330,7 +1331,7 @@ function saveFoodTargets() {
   S.foodTargets.fat     = parseFloat(eid('ftFat')?.value)     || 65;
   S.foodTargets.fiber   = parseFloat(eid('ftFiber')?.value)   || 25;
   scheduleSave();
-  eid('mFoodTargets').classList.remove('open');
+  closeModal('mFoodTargets');
   renderFoodMacroBar();
   toast('Targets saved');
 }
@@ -1356,16 +1357,18 @@ function setFoodTab(tab) {
 
 // ── Food History (diary log of past days) ────────────────────
 
+let _foodHistLimit = 30;
+
 function renderFoodHistory() {
   const el = eid('foodHistoryList');
   if (!el) return;
   const log = S.foodLog || {};
   // All days that have at least one entry, newest first
-  const days = Object.keys(log)
+  const allDays = Object.keys(log)
     .filter(d => log[d] && log[d].length > 0)
     .sort()
-    .reverse()
-    .slice(0, 30);
+    .reverse();
+  const days = allDays.slice(0, _foodHistLimit);
 
   if (!days.length) {
     el.innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:24px;text-align:center">No food logged yet — start in the Diary tab</div>`;
@@ -1377,7 +1380,10 @@ function renderFoodHistory() {
     const totals  = _sumMacros(entries);
     const T       = S.foodTargets || {};
     const pct     = T.kcal ? Math.min(100, Math.round((totals.kcal / T.kcal) * 100)) : 0;
-    const over     = T.kcal && totals.kcal > T.kcal;
+    const over    = T.kcal && totals.kcal >= T.kcal;
+    const near    = T.kcal && !over && pct >= 80;
+    const calColor = over ? 'var(--petal)' : near ? 'var(--gold)' : 'var(--gold-lt)';
+    const barColor = over ? 'var(--petal)' : near ? 'var(--gold)' : 'var(--blush)';
     const dateLabel = new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
     const isToday  = d === today();
 
@@ -1387,10 +1393,10 @@ function renderFoodHistory() {
            onmouseenter="this.style.borderColor='var(--blush)'" onmouseleave="this.style.borderColor='var(--border)'">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <span style="font-size:0.82rem;color:var(--cream)">${dateLabel}${isToday ? ' <span style="font-size:0.6rem;color:var(--blush);margin-left:4px">Today</span>' : ''}</span>
-          <span style="font-size:0.86rem;color:${over?'var(--petal)':'var(--gold-lt)'};font-family:'DM Mono',monospace">${Math.round(totals.kcal)} kcal</span>
+          <span style="font-size:0.86rem;color:${calColor};font-family:'DM Mono',monospace">${Math.round(totals.kcal)} kcal</span>
         </div>
         <div style="height:4px;background:var(--mid);border-radius:3px;overflow:hidden;margin-bottom:8px">
-          <div style="height:100%;width:${pct}%;background:${over?'var(--petal)':'var(--blush)'};border-radius:3px"></div>
+          <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px"></div>
         </div>
         <div style="display:flex;gap:14px;font-size:0.66rem;font-family:'DM Mono',monospace;color:var(--muted)">
           <span>P <span style="color:var(--gold)">${Math.round(totals.protein)}g</span></span>
@@ -1400,6 +1406,10 @@ function renderFoodHistory() {
         </div>
       </div>`;
   }).join('');
+
+  if (allDays.length > _foodHistLimit) {
+    el.innerHTML += `<button class="btn btn-g" style="width:100%;margin-top:4px;font-size:0.68rem" onclick="_foodHistLimit+=30;renderFoodHistory()">Load more (${allDays.length - _foodHistLimit} remaining)</button>`;
+  }
 }
 
 function setFoodDateAndDiary(d) {
@@ -1414,14 +1424,15 @@ function setFoodDateAndDiary(d) {
 const _expandedPlans = new Set();
 
 function toggleMealPlan(id) {
-  if (_expandedPlans.has(id)) _expandedPlans.delete(id);
-  else _expandedPlans.add(id);
+  const key = String(id);
+  if (_expandedPlans.has(key)) _expandedPlans.delete(key);
+  else _expandedPlans.add(key);
   renderMealPlansList();
 }
 
 function renameMealPlan(id, val) {
-  const plan = (S.mealPlans || []).find(p => p.id === id);
-  if (plan) { plan.name = val.trim() || plan.name; scheduleSave(); }
+  const plan = (S.mealPlans || []).find(p => String(p.id) === String(id));
+  if (plan) { plan.name = val.trim() || plan.name; scheduleSave(); renderMealPlansList(); }
 }
 
 function renderMealPlansList() {
@@ -1443,7 +1454,7 @@ function renderMealPlansList() {
 
   plans.forEach((plan, i) => {
     const totals   = _sumMacros(plan.foods || []);
-    const expanded = _expandedPlans.has(plan.id);
+    const expanded = _expandedPlans.has(String(plan.id));
     const foodCount = (plan.foods || []).length;
 
     // Group foods by meal for expanded view
@@ -1462,13 +1473,13 @@ function renderMealPlansList() {
               <span style="font-size:0.58rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace">
                 ${MEAL_LABELS[m]}${(byMeal[m]||[]).length ? ` <span style="color:var(--gold-lt)">${Math.round(_sumMacros(byMeal[m]).kcal)} kcal</span>` : ''}
               </span>
-              <button onclick="event.stopPropagation();openFoodSearchForPlan(${plan.id},'${m}')" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted-lt);cursor:pointer;font-size:0.6rem;padding:2px 7px">+ Add</button>
+              <button onclick="event.stopPropagation();openFoodSearchForPlan('${plan.id}','${m}')" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted-lt);cursor:pointer;font-size:0.6rem;padding:2px 7px">+ Add</button>
             </div>
             ${(byMeal[m]||[]).length ? byMeal[m].map(f => `
               <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:0.74rem">
                 <span style="color:var(--mist);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(f.name)}</span>
                 <span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:0.64rem;flex-shrink:0">${Math.round(f.kcal)} kcal</span>
-                <button onclick="event.stopPropagation();removeMealPlanFood(${plan.id},'${f.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.62rem;padding:0 2px;flex-shrink:0">\u2715</button>
+                <button onclick="event.stopPropagation();removeMealPlanFood('${plan.id}','${f.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.62rem;padding:0 2px;flex-shrink:0">\u2715</button>
               </div>`).join('') : `<div style="font-size:0.66rem;color:var(--muted);padding:4px 0;font-style:italic">Empty</div>`}
           </div>`).join('')}
         <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
@@ -1481,11 +1492,11 @@ function renderMealPlansList() {
     card.className = 'card';
     card.innerHTML = `
       <!-- Header — always visible, click to expand -->
-      <div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="toggleMealPlan(${plan.id})">
+      <div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="toggleMealPlan('${plan.id}')">
         <input
           class="editable wk-title-inp"
           value="${escapeAttr(plan.name || '')}"
-          onchange="renameMealPlan(${plan.id}, this.value)"
+          onchange="renameMealPlan('${plan.id}', this.value)"
           onclick="event.stopPropagation()"
           title="Rename plan"
           style="flex:1;background:none;border:none;color:var(--mist);font-size:0.88rem"
@@ -1555,7 +1566,7 @@ function deleteMealPlan(i) {
 }
 
 function removeMealPlanFood(planId, foodId) {
-  const plan = (S.mealPlans || []).find(p => p.id === planId);
+  const plan = (S.mealPlans || []).find(p => String(p.id) === String(planId));
   if (!plan) return;
   const removed = (plan.foods || []).find(f => String(f.id) === String(foodId));
   plan.foods = (plan.foods || []).filter(f => String(f.id) !== String(foodId));

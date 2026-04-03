@@ -60,23 +60,23 @@ function toast(msg, ms) {
 }
 
 /* Toast with undo button — callback fires if user taps Undo within 4s */
-function toastUndo(msg, undoFn) {
+function toastUndo(msg, undoFn, label) {
   const duration = 4500;
-  _toastQueue.push({ msg, duration, undoFn });
+  _toastQueue.push({ msg, duration, undoFn, actionLabel: label || 'Undo' });
   if (!_toastBusy) _processToastQueue();
 }
 
 function _processToastQueue() {
   if (!_toastQueue.length) { _toastBusy = false; return; }
   _toastBusy = true;
-  const { msg, duration, undoFn } = _toastQueue.shift();
+  const { msg, duration, undoFn, actionLabel } = _toastQueue.shift();
   const el = eid('toast');
   if (!el) { _toastBusy = false; return; }
   el.innerHTML = escapeHtml(msg);
   if (undoFn) {
     const btn = document.createElement('button');
     btn.className = 'toast-undo';
-    btn.textContent = 'Undo';
+    btn.textContent = actionLabel || 'Undo';
     btn.style.cssText = 'margin-left:12px;background:none;border:1px solid rgba(255,255,255,0.4);border-radius:4px;color:var(--cream);font-size:0.7rem;padding:1px 7px;cursor:pointer;font-family:inherit';
     btn.onclick = () => {
       clearTimeout(toastT);

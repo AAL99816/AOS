@@ -51,10 +51,10 @@ function renderProjects() {
     div.innerHTML = `
       <div class="prog-top" style="margin-bottom:8px">
         <div style="flex:1;min-width:0">
-          <input class="editable prog-school-inp" value="${escapeAttr(p.title||'')}" onchange="updateProjectField(${p.id},'title',this.value)" placeholder="${t('project_title_ph')}">
-          <input class="editable prog-name-inp" value="${escapeAttr(p.type||'')}" onchange="updateProjectField(${p.id},'type',this.value)" placeholder="${t('type_ph')}">
+          <input class="editable prog-school-inp" value="${escapeAttr(p.title||'')}" onchange="updateProjectField('${p.id}','title',this.value)" placeholder="${t('project_title_ph')}">
+          <input class="editable prog-name-inp" value="${escapeAttr(p.type||'')}" onchange="updateProjectField('${p.id}','type',this.value)" placeholder="${t('type_ph')}">
         </div>
-        <span class="spill s-${status.toLowerCase()}" onclick="cycleProjectStatus(${p.id})" title="Click to change status" style="cursor:pointer">${escapeHtml(status)}</span>
+        <span class="spill s-${status.toLowerCase()}" onclick="cycleProjectStatus('${p.id}')" title="Click to change status" style="cursor:pointer">${escapeHtml(status)}</span>
       </div>
 
       ${dlWarn ? `<div style="font-size:0.62rem;color:var(--petal);font-family:'DM Mono',monospace;margin-bottom:8px;padding:4px 8px;background:rgba(232,160,176,0.08);border-radius:6px;border:1px solid rgba(232,160,176,0.2)">
@@ -85,25 +85,25 @@ function renderProjects() {
           <div style="display:flex;align-items:flex-start;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)">
             <div style="flex:1;min-width:0">
               <div style="font-size:0.52rem;color:var(--muted-lt);font-family:'DM Mono',monospace;margin-bottom:2px">${escapeHtml(n.date||'')}</div>
-              ${ni === 0 ? `<input class="editable" style="font-size:0.76rem;color:var(--mist);line-height:1.4;background:none;border:none;width:100%" value="${escapeAttr(n.text||'')}" onchange="editProjectNote(${p.id},${n.id},this.value)" title="Edit note">` : `<div style="font-size:0.76rem;color:var(--mist);line-height:1.4">${escapeHtml(n.text||'')}</div>`}
+              ${ni === 0 ? `<input class="editable" style="font-size:0.76rem;color:var(--mist);line-height:1.4;background:none;border:none;width:100%" value="${escapeAttr(n.text||'')}" onchange="editProjectNote('${p.id}','${n.id}',this.value)" title="Edit note">` : `<div style="font-size:0.76rem;color:var(--mist);line-height:1.4">${escapeHtml(n.text||'')}</div>`}
             </div>
-            <button class="habit-del" style="opacity:0.4;flex-shrink:0" onclick="deleteProjectNote(${p.id},${n.id})">✕</button>
+            <button class="habit-del" style="opacity:0.4;flex-shrink:0" onclick="deleteProjectNote('${p.id}','${n.id}')">✕</button>
           </div>`).join('')
           : `<div style="font-size:0.68rem;color:var(--muted);padding:4px 0">No notes yet.</div>`}
         <div style="display:flex;gap:6px;margin-top:8px">
-          <input class="add-inp" id="pNote-${p.id}" placeholder="Add a note for today…" style="flex:1;font-size:0.72rem" onkeydown="if(event.key==='Enter')addProjectNote(${p.id})">
-          <button class="btn btn-g" style="font-size:0.62rem;padding:3px 8px;flex-shrink:0" onclick="addProjectNote(${p.id})">+ Note</button>
+          <input class="add-inp" id="pNote-${p.id}" placeholder="Add a note for today…" style="flex:1;font-size:0.72rem" onkeydown="if(event.key==='Enter')addProjectNote('${p.id}')">
+          <button class="btn btn-g" style="font-size:0.62rem;padding:3px 8px;flex-shrink:0" onclick="addProjectNote('${p.id}')">+ Note</button>
         </div>
       </div>
 
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
         <div style="display:flex;align-items:center;gap:8px">
-          <button class="btn btn-d" style="font-size:0.66rem;padding:3px 9px" onclick="deleteProject(${p.id})">${t('remove')}</button>
+          <button class="btn btn-d" style="font-size:0.66rem;padding:3px 9px" onclick="deleteProject('${p.id}')">${t('remove')}</button>
           ${p.updatedOn ? `<span style="font-size:0.52rem;color:var(--muted);font-family:'DM Mono',monospace" title="Last updated">↻ ${p.updatedOn}</span>` : ''}
         </div>
         <div style="display:flex;gap:6px">
-          ${typeof feat === 'function' && feat('pomodoro') ? `<button class="btn btn-g" style="font-size:0.66rem;padding:3px 9px" onclick="focusOnProject(${p.id})">Focus</button>` : ''}
-          <button class="btn btn-p" style="font-size:0.68rem;padding:3px 12px" onclick="openProjectDetail(${p.id})">${t('open_detail')}</button>
+          ${typeof feat === 'function' && feat('pomodoro') ? `<button class="btn btn-g" style="font-size:0.66rem;padding:3px 9px" onclick="focusOnProject('${p.id}')">Focus</button>` : ''}
+          <button class="btn btn-p" style="font-size:0.68rem;padding:3px 12px" onclick="openProjectDetail('${p.id}')">${t('open_detail')}</button>
         </div>
       </div>
     `;
@@ -113,7 +113,7 @@ function renderProjects() {
 }
 
 function addProjectNote(id) {
-  const p = ensureProjects().find(x => x.id === id);
+  const p = ensureProjects().find(x => String(x.id) === String(id));
   if (!p) return;
   const inp = eid(`pNote-${id}`);
   const text = (inp && inp.value || '').trim();
@@ -128,23 +128,23 @@ function addProjectNote(id) {
 }
 
 function editProjectNote(id, noteId, val) {
-  const p = ensureProjects().find(x => x.id === id);
+  const p = ensureProjects().find(x => String(x.id) === String(id));
   if (!p) return;
-  const n = (p.notesLog || []).find(n => n.id === noteId);
+  const n = (p.notesLog || []).find(n => String(n.id) === String(noteId));
   if (n) { n.text = val.trim() || n.text; p.updatedOn = today(); scheduleSave(); }
 }
 
 function deleteProjectNote(id, noteId) {
-  const p = ensureProjects().find(x => x.id === id);
+  const p = ensureProjects().find(x => String(x.id) === String(id));
   if (!p) return;
-  p.notesLog = (p.notesLog || []).filter(n => n.id !== noteId);
+  p.notesLog = (p.notesLog || []).filter(n => String(n.id) !== String(noteId));
   scheduleSave();
   renderProjects();
 }
 
 /* ══ PROJECT DETAIL MODAL (Tasks | Notes) ══ */
 function openProjectDetail(id) {
-  const p = ensureProjects().find(x => x.id === id);
+  const p = ensureProjects().find(x => String(x.id) === String(id));
   if (!p) return;
   _activeProjectId = id;
   _pdTab = 'tasks';
@@ -157,7 +157,7 @@ function openProjectDetail(id) {
 }
 
 function renderPdTabs() {
-  const p = _activeProjectId ? ensureProjects().find(x => x.id === _activeProjectId) : null;
+  const p = _activeProjectId ? ensureProjects().find(x => String(x.id) === String(_activeProjectId)) : null;
   if (!p) return;
 
   // Tab buttons
@@ -192,19 +192,19 @@ function renderPdTasks(p) {
       return `
       <div style="padding:8px 0;border-bottom:1px solid var(--border)">
         <div style="display:flex;align-items:center;gap:8px">
-          <input type="checkbox" ${tk.done ? 'checked' : ''} onchange="toggleProjectTask(${p.id},${tk.id})">
+          <input type="checkbox" ${tk.done ? 'checked' : ''} onchange="toggleProjectTask('${p.id}','${tk.id}')">
           <input class="editable" style="flex:1;font-size:0.8rem;color:var(--mist);background:none;border:none;${tk.done?'text-decoration:line-through;opacity:0.45':''}"
-            value="${escapeAttr(tk.text||'')}" onchange="updateProjectTask(${p.id},${tk.id},'text',this.value)">
+            value="${escapeAttr(tk.text||'')}" onchange="updateProjectTask('${p.id}','${tk.id}','text',this.value)">
           ${tk.dueDate ? `<span style="font-size:0.55rem;font-family:'DM Mono',monospace;flex-shrink:0;color:${overdue?'var(--petal)':'var(--muted-lt)'}${overdue?';font-weight:600':''}" title="${overdue?'Overdue':''}">${escapeHtml(tk.dueDate)}${overdue?' !':''}</span>` : ''}
           <div style="display:flex;flex-direction:column;gap:1px;flex-shrink:0">
-            ${ti > 0 ? `<button onclick="reorderTask(${p.id},${ti},-1)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.6rem;padding:0;line-height:1" title="Move up">▲</button>` : '<div style="width:14px"></div>'}
-            ${ti < tasks.length-1 ? `<button onclick="reorderTask(${p.id},${ti},1)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.6rem;padding:0;line-height:1" title="Move down">▼</button>` : '<div style="width:14px"></div>'}
+            ${ti > 0 ? `<button onclick="reorderTask('${p.id}',${ti},-1)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.6rem;padding:0;line-height:1" title="Move up">▲</button>` : '<div style="width:14px"></div>'}
+            ${ti < tasks.length-1 ? `<button onclick="reorderTask('${p.id}',${ti},1)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.6rem;padding:0;line-height:1" title="Move down">▼</button>` : '<div style="width:14px"></div>'}
           </div>
-          <button class="habit-del" style="opacity:0.4" onclick="deleteProjectTask(${p.id},${tk.id})">✕</button>
+          <button class="habit-del" style="opacity:0.4" onclick="deleteProjectTask('${p.id}','${tk.id}')">✕</button>
         </div>
         ${tk.done && tk.completedOn ? `<div style="font-size:0.52rem;color:var(--muted);font-family:'DM Mono',monospace;padding-left:22px;margin-top:2px">Completed ${tk.completedOn}</div>` : ''}
         <input class="editable" style="width:100%;font-size:0.68rem;color:var(--muted);background:none;border:none;padding-left:22px;font-style:italic;margin-top:3px"
-          placeholder="Task notes…" value="${escapeAttr(tk.taskNotes||'')}" onchange="updateProjectTask(${p.id},${tk.id},'taskNotes',this.value)">
+          placeholder="Task notes…" value="${escapeAttr(tk.taskNotes||'')}" onchange="updateProjectTask('${p.id}','${tk.id}','taskNotes',this.value)">
       </div>`;
     }).join('')
     : `<div style="font-size:0.72rem;color:var(--muted);padding:8px 0">${t('no_tasks')}</div>`}
@@ -227,7 +227,7 @@ function addProjectTask() {
   if (!text || !_activeProjectId) return;
   const dueDate   = eid('pdNewTaskDate').value || '';
   const taskNotes = (eid('pdNewTaskNotes').value || '').trim();
-  const p = ensureProjects().find(x => x.id === _activeProjectId);
+  const p = ensureProjects().find(x => String(x.id) === String(_activeProjectId));
   if (!p) return;
   if (!Array.isArray(p.tasks)) p.tasks = [];
   p.tasks.push({ id: uid(), text, done: false, dueDate, taskNotes });
@@ -239,18 +239,18 @@ function addProjectTask() {
 }
 
 function updateProjectTask(id, taskId, field, value) {
-  const p = ensureProjects().find(x => x.id === id);
+  const p = ensureProjects().find(x => String(x.id) === String(id));
   if (!p) return;
-  const tk = (p.tasks || []).find(t => t.id === taskId);
+  const tk = (p.tasks || []).find(t => String(t.id) === String(taskId));
   if (!tk) return;
   tk[field] = value;
   scheduleSave();
 }
 
 function toggleProjectTask(id, taskId) {
-  const p = ensureProjects().find(x => x.id === id);
+  const p = ensureProjects().find(x => String(x.id) === String(id));
   if (!p) return;
-  const tk = (p.tasks || []).find(t => t.id === taskId);
+  const tk = (p.tasks || []).find(t => String(t.id) === String(taskId));
   if (!tk) return;
   tk.done = !tk.done;
   tk.completedOn = tk.done ? today() : null;
@@ -261,7 +261,7 @@ function toggleProjectTask(id, taskId) {
 }
 
 function reorderTask(projectId, fromIdx, dir) {
-  const p = ensureProjects().find(x => x.id === projectId);
+  const p = ensureProjects().find(x => String(x.id) === String(projectId));
   if (!p || !Array.isArray(p.tasks)) return;
   const toIdx = fromIdx + dir;
   if (toIdx < 0 || toIdx >= p.tasks.length) return;
@@ -272,22 +272,22 @@ function reorderTask(projectId, fromIdx, dir) {
 }
 
 function deleteProjectTask(id, taskId) {
-  const p = ensureProjects().find(x => x.id === id);
+  const p = ensureProjects().find(x => String(x.id) === String(id));
   if (!p) return;
-  const removed = (p.tasks || []).find(t => t.id === taskId);
-  p.tasks = (p.tasks || []).filter(t => t.id !== taskId);
+  const removed = (p.tasks || []).find(t => String(t.id) === String(taskId));
+  p.tasks = (p.tasks || []).filter(t => String(t.id) !== String(taskId));
   scheduleSave();
   renderPdTasks(p);
   renderProjects();
   if (removed) toastUndo(`"${removed.text || 'Task'}" removed`, () => {
-    const pp = ensureProjects().find(x => x.id === id);
+    const pp = ensureProjects().find(x => String(x.id) === String(id));
     if (pp) { if (!Array.isArray(pp.tasks)) pp.tasks = []; pp.tasks.push(removed); scheduleSave(); renderPdTasks(pp); renderProjects(); }
   });
 }
 
 /* ══ PROJECT CRUD ══ */
 function updateProjectField(id, field, value) {
-  const p = ensureProjects().find(x => x.id === id);
+  const p = ensureProjects().find(x => String(x.id) === String(id));
   if (!p) return;
   p[field] = value;
   p.updatedOn = today();
@@ -302,7 +302,7 @@ function setProjectF(f, btn) {
 }
 
 function cycleProjectStatus(id) {
-  const p = ensureProjects().find(x => x.id === id);
+  const p = ensureProjects().find(x => String(x.id) === String(id));
   if (!p) return;
   const i = PROJECT_STATUSES.indexOf(p.status);
   p.status = PROJECT_STATUSES[(i + 1) % PROJECT_STATUSES.length];
@@ -314,7 +314,7 @@ function cycleProjectStatus(id) {
 
 function deleteProject(id) {
   if (!confirm(t('remove_project'))) return;
-  S.projects = ensureProjects().filter(x => x.id !== id);
+  S.projects = ensureProjects().filter(x => String(x.id) !== String(id));
   scheduleSave();
   renderProjects();
 }

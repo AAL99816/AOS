@@ -65,7 +65,7 @@ async function loadProjects() {
   if (error || !data || !data.length) return;
 
   S.projects = data.map(row => ({
-    id:       Number(row.app_id),
+    id:       row.app_id,
     title:    row.title   || '',
     type:     row.type    || '',
     context:  row.context || '',
@@ -76,12 +76,12 @@ async function loadProjects() {
     notesLog: (row.project_notes || [])
       .filter(n => n.app_id)
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-      .map(n => ({ id: Number(n.app_id), date: n.note_date || '', text: n.text || '' })),
+      .map(n => ({ id: n.app_id, date: n.note_date || '', text: n.text || '' })),
     tasks: (row.project_tasks || [])
       .filter(tk => tk.app_id)
       .sort((a, b) => a.order_index - b.order_index)
       .map(tk => ({
-        id:        Number(tk.app_id),
+        id:        tk.app_id,
         text:      tk.text       || '',
         done:      !!tk.done,
         dueDate:   tk.due_date   || '',
@@ -191,7 +191,7 @@ async function loadMedia() {
   if (error || !data || !data.length) return;
 
   S.media = data.map(row => ({
-    id:             Number(row.app_id),
+    id:             row.app_id,
     mediaType:      row.media_type      || 'book',
     title:          row.title           || '',
     author:         row.creator         || '',
@@ -213,12 +213,12 @@ async function loadMedia() {
     chapterNotes: (row.media_notes || [])
       .filter(n => n.app_id)
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-      .map(n => ({ id: Number(n.app_id), label: n.label || '', note: n.note || '' })),
+      .map(n => ({ id: n.app_id, label: n.label || '', note: n.note || '' })),
     tracks: (row.media_tracks || [])
       .filter(tr => tr.app_id)
       .sort((a, b) => a.track_number - b.track_number)
       .map(tr => ({
-        id:       Number(tr.app_id),
+        id:       tr.app_id,
         title:    tr.title    || '',
         duration: tr.duration || '',
         rating:   tr.rating   || 0,

@@ -229,7 +229,7 @@ function _tickPomodoro() {
       _playChime();
       if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
       stopPomodoro();
-      toast('Break over — ready for the next session?');
+      toastUndo('Break over — start the next session?', () => startPomodoro(), 'Start');
       return;
     }
   }
@@ -445,6 +445,8 @@ function exportCSV(type) {
 // START — remove from here to END to disable exercise PBs
 // UI: card in Fitness tab  |  Data: computed from S.exerciseHistory (read-only)
 
+let _pbExpanded = false;
+
 function renderExercisePbs() {
   if (!feat('exercisePbs')) { _applyVis('exercisePbsSection', false); return; }
   _applyVis('exercisePbsSection', true);
@@ -469,11 +471,12 @@ function renderExercisePbs() {
     return { name, best };
   }).filter(e => e.best);
   pbs.sort((a, b) => a.name.localeCompare(b.name));
-  el.innerHTML = pbs.map(e => {
-    const w    = e.best.weight ? `${e.best.weight}kg` : '';
-    const r    = e.best.reps   ? `${e.best.reps} reps` : '';
-    const sep  = w && r ? ' × ' : '';
-    const orm  = e.best.weight && e.best.reps > 1
+
+  const pbRow = e => {
+    const w   = e.best.weight ? `${e.best.weight}kg` : '';
+    const r   = e.best.reps   ? `${e.best.reps} reps` : '';
+    const sep = w && r ? ' × ' : '';
+    const orm = e.best.weight && e.best.reps > 1
       ? Math.round(parseFloat(e.best.weight) * (1 + parseInt(e.best.reps) / 30))
       : null;
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:0.78rem">
@@ -483,7 +486,20 @@ function renderExercisePbs() {
         ${orm ? `<div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace">~${orm}kg 1RM</div>` : ''}
       </div>
     </div>`;
-  }).join('');
+  };
+
+  const header = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+    <span style="font-size:0.65rem;color:var(--muted);font-family:'DM Mono',monospace">${pbs.length} exercise${pbs.length!==1?'s':''} tracked</span>
+    <button onclick="_pbExpanded=!_pbExpanded;renderExercisePbs()" style="background:none;border:none;color:var(--blush);cursor:pointer;font-size:0.72rem;padding:0">${_pbExpanded ? 'Collapse ▴' : 'View all ▾'}</button>
+  </div>`;
+
+  if (_pbExpanded) {
+    el.innerHTML = header + pbs.map(pbRow).join('');
+  } else {
+    // Collapsed: top 3 by weight
+    const top3 = [...pbs].sort((a, b) => (parseFloat(b.best.weight)||0) - (parseFloat(a.best.weight)||0)).slice(0, 3);
+    el.innerHTML = header + top3.map(pbRow).join('');
+  }
 }
 // END — Exercise PBs
 
@@ -579,7 +595,7 @@ function saveFocusItem() {
   const project = projId ? (S.projects||[]).find(p => p.id == projId) : null;
   if (!S.focusItems) S.focusItems = [];
   S.focusItems.push({
-    id: Date.now(),
+    id: uid(),
     label: label || project?.title || 'Focus',
     projectId: projId,
     pomodorosTarget: target,

@@ -283,9 +283,16 @@ function renderDayDetail(dateStr) {
   /* Cardio */
   const cardioSessions = (S.cardioHistory || []).filter(s => s.date === dateStr);
 
-  /* Calories */
-  const calEntries = (S.calorieHistory || []).filter(s => s.date === dateStr);
-  const calTotal   = calEntries.reduce((sum, e) => sum + (e.calories || 0), 0);
+  /* Calories — prefer foodLog diary, fall back to calorieHistory tracker */
+  const foodDiaryEntries = (S.foodLog || {})[dateStr] || [];
+  const calEntries       = (S.calorieHistory || []).filter(s => s.date === dateStr);
+  const foodDiaryTotal   = foodDiaryEntries.reduce((s, e) => s + (e.kcal || 0), 0);
+  const calTotal         = foodDiaryTotal || calEntries.reduce((sum, e) => sum + (e.calories || 0), 0);
+  const foodDiaryMacros  = foodDiaryEntries.length ? {
+    protein: foodDiaryEntries.reduce((s, e) => s + (e.protein || 0), 0),
+    carbs:   foodDiaryEntries.reduce((s, e) => s + (e.carbs   || 0), 0),
+    fat:     foodDiaryEntries.reduce((s, e) => s + (e.fat     || 0), 0),
+  } : null;
 
   /* Daily reflection/notes */
   const dailyNote = (S.notes || {})[dateStr] || '';
@@ -334,7 +341,7 @@ function renderDayDetail(dateStr) {
 
       ${row(t('gym'), gymDone
         ? gymSessions.length
-          ? gymSessions.map(s => `<div style="font-size:0.78rem;color:var(--mist);cursor:pointer" onclick="openSessionDetail(${s.id})">${escapeHtml(s.title)} <span style="color:var(--muted);font-size:0.65rem">${escapeHtml(s.summary||'')}</span></div>`).join('')
+          ? gymSessions.map(s => `<div style="font-size:0.78rem;color:var(--mist);cursor:pointer" onclick="openSessionDetail('${s.id}')">${escapeHtml(s.title)} <span style="color:var(--muted);font-size:0.65rem">${escapeHtml(s.summary||'')}</span></div>`).join('')
           : `<span style="font-size:0.72rem;color:var(--mist)">✓ Logged</span>`
         : empty)}
 
@@ -342,9 +349,10 @@ function renderDayDetail(dateStr) {
         ? cardioSessions.map(s => `<div style="font-size:0.78rem;color:var(--mist)">${escapeHtml(s.activity||'Cardio')}${s.duration?` · <span style="color:var(--muted)">${escapeHtml(s.duration)}</span>`:''}</div>`).join('')
         : empty)}
 
-      ${row(t('calories'), calEntries.length
-        ? `<div style="font-size:0.78rem;color:var(--gold-lt);font-family:'DM Mono',monospace">${calTotal} kcal total</div>
-           ${calEntries.map(e => `<div style="font-size:0.68rem;color:var(--muted);padding-top:2px">${escapeHtml(e.description||'')} · ${e.calories} kcal</div>`).join('')}`
+      ${row(t('calories'), (foodDiaryEntries.length || calEntries.length)
+        ? `<div style="font-size:0.78rem;color:var(--gold-lt);font-family:'DM Mono',monospace">${Math.round(calTotal)} kcal</div>
+           ${foodDiaryMacros ? `<div style="display:flex;gap:10px;font-size:0.66rem;font-family:'DM Mono',monospace;color:var(--muted);margin-top:3px"><span>P <span style="color:var(--gold)">${Math.round(foodDiaryMacros.protein)}g</span></span><span>C <span style="color:var(--petal)">${Math.round(foodDiaryMacros.carbs)}g</span></span><span>F <span style="color:var(--muted-lt)">${Math.round(foodDiaryMacros.fat)}g</span></span><span style="margin-left:auto">${foodDiaryEntries.length} item${foodDiaryEntries.length!==1?'s':''}</span></div>` : ''}
+           ${!foodDiaryEntries.length ? calEntries.map(e => `<div style="font-size:0.68rem;color:var(--muted);padding-top:2px">${escapeHtml(e.description||'')} · ${e.calories} kcal</div>`).join('') : ''}`
         : empty)}
 
       ${tasksCompleted.length ? row('Project Notes', tasksCompleted.map(n =>

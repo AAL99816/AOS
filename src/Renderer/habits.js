@@ -110,18 +110,18 @@ function renderHabits() {
     const row = document.createElement('div');
     row.style.cssText = 'display:grid;grid-template-columns:1fr repeat(7,26px) 28px 24px;gap:4px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)';
     row.innerHTML = `
-      <input class="editable habit-name-inp" value="${escapeHtml(h.name)}" onchange="updateHabitName(${h.id},this.value)" title="Click to rename" style="font-size:0.76rem;background:none;border:none;color:var(--mist);padding:0;min-width:0;width:100%">
+      <input class="editable habit-name-inp" value="${escapeHtml(h.name)}" onchange="updateHabitName('${h.id}',this.value)" title="Click to rename" style="font-size:0.76rem;background:none;border:none;color:var(--mist);padding:0;min-width:0;width:100%">
       ${week.map(d => {
         const on      = !!(h.days && h.days[d]);
         const isToday = d === todayStr;
         const future  = d > todayStr;
         return `<div class="day-dot ${on ? (isToday ? 'today-on' : 'on') : ''}" title="${future ? '' : d}"
-          onclick="${future ? '' : `toggleH(${h.id},'${d}')`}"
+          onclick="${future ? '' : `toggleH('${h.id}','${d}')`}"
           style="${future ? 'visibility:hidden' : ''}${isToday && !on ? ';outline:1px solid var(--blush);outline-offset:1px' : ''}">
         </div>`;
       }).join('')}
-      <button class="btn btn-g" style="padding:2px 5px;font-size:0.55rem" onclick="openHabitHistory(${h.id})" title="History">📅</button>
-      <button class="habit-del" onclick="delHabit(${h.id})">✕</button>
+      <button class="btn btn-g" style="padding:2px 5px;font-size:0.55rem" onclick="openHabitHistory('${h.id}')" title="History">📅</button>
+      <button class="habit-del" onclick="delHabit('${h.id}')">✕</button>
     `;
     c.appendChild(row);
   });
@@ -132,7 +132,7 @@ function renderHabits() {
 
 /* ══ HABIT HISTORY MODAL ══ */
 function openHabitHistory(id) {
-  const h = (S.habits || []).find(h => h.id === id);
+  const h = (S.habits || []).find(h => String(h.id) === String(id));
   if (!h) return;
   eid('habitHistTitle').textContent = h.name;
   _renderHabitHistGrid(h);
@@ -178,7 +178,7 @@ function _renderHabitHistGrid(h) {
         const future  = d > todayStr;
         const isToday = d === todayStr;
         return `<div
-          onclick="${future ? '' : `_habitHistToggle(${h.id},'${d}')`}"
+          onclick="${future ? '' : `_habitHistToggle('${h.id}','${d}')`}"
           title="${d}"
           style="aspect-ratio:1;border-radius:3px;cursor:${future?'default':'pointer'};
             background:${on ? 'var(--blush)' : future ? 'transparent' : 'var(--mid)'};
@@ -191,7 +191,7 @@ function _renderHabitHistGrid(h) {
 }
 
 function _habitHistToggle(id, date) {
-  const h = (S.habits || []).find(h => h.id === id);
+  const h = (S.habits || []).find(h => String(h.id) === String(id));
   if (!h) return;
   if (!h.days) h.days = {};
   h.days[date] = !h.days[date];
@@ -203,13 +203,13 @@ function _habitHistToggle(id, date) {
 
 /* ══ HABIT CRUD ══ */
 function updateHabitName(id, val) {
-  const h = (S.habits || []).find(h => h.id === id);
-  if (h) { h.name = val; scheduleSave(); }
+  const h = (S.habits || []).find(h => String(h.id) === String(id));
+  if (h) { h.name = val.trim().slice(0, 80) || h.name; scheduleSave(); }
 }
 
 function toggleH(id, date) {
   haptic(10);
-  const h = (S.habits || []).find(h => h.id === id);
+  const h = (S.habits || []).find(h => String(h.id) === String(id));
   if (!h) return;
   if (!h.days) h.days = {};
   h.days[date] = !h.days[date];
@@ -227,10 +227,10 @@ function toggleH(id, date) {
 }
 
 function delHabit(id) {
-  const h = (S.habits || []).find(h => h.id === id);
+  const h = (S.habits || []).find(h => String(h.id) === String(id));
   if (!h) return;
   const backup = JSON.parse(JSON.stringify(h));
-  S.habits = (S.habits || []).filter(h => h.id !== id);
+  S.habits = (S.habits || []).filter(h => String(h.id) !== String(id));
   scheduleSave();
   renderHabits();
   toastUndo(`"${h.name}" removed`, () => {
