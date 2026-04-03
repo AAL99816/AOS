@@ -418,11 +418,19 @@ function openSessionDetail(id){
       return `
         <div style="padding:8px 0;border-bottom:1px solid var(--border)">
           <div style="font-size:0.82rem;color:var(--mist);margin-bottom:5px">${escapeHtml(e.name||'')}</div>
-          ${setsArr.map((set, i) => `
-            <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--muted-lt);padding:2px 0;font-family:'DM Mono',monospace">
-              <span style="color:var(--muted)">Set ${i + 1}</span>
-              <span>${set.weight != null ? set.weight + 'kg' : ''}${set.weight != null && set.reps != null ? ' × ' : ''}${set.reps != null ? set.reps + ' reps' : ''}</span>
-            </div>`).join('')}
+          ${(() => {
+            // Expand loggedSets entries: each entry may represent multiple sets (entry.sets > 1)
+            const rows = [];
+            setsArr.forEach(set => {
+              const count = (parseInt(set.sets) || 1);
+              for (let i = 0; i < count; i++) rows.push(set);
+            });
+            return rows.map((set, i) => `
+              <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--muted-lt);padding:2px 0;font-family:'DM Mono',monospace">
+                <span style="color:var(--muted)">Set ${i + 1}</span>
+                <span>${set.weight != null ? set.weight + 'kg' : ''}${set.weight != null && set.reps != null ? ' \u00d7 ' : ''}${set.reps != null ? set.reps + ' reps' : ''}</span>
+              </div>`).join('');
+          })()}
         </div>`;
     }).join('');
   } else {
@@ -614,7 +622,8 @@ function logWorkoutSession(wcId) {
 
   const todayStr = today();
   const exercises = (wc.exercises||[]).map(ex => {
-    const todaySets = (S.exerciseHistory[ex.name] || []).filter(e => e.date === todayStr);
+    const key = normExerciseKey(ex.name);
+    const todaySets = (S.exerciseHistory[key] || []).filter(e => e.date === todayStr);
     if (!todaySets.length) {
       const last = getLastExerciseLog(ex.name);
       return last ? { name: ex.name, loggedSets: [{ weight: last.weight, reps: last.reps, sets: last.sets }] } : null;
