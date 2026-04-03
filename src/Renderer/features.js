@@ -74,14 +74,30 @@ function renderBodyWeightSection() {
 // START — remove from here to END to disable annual goals
 // UI: card in Summary tab  |  Data: S.annualGoals = { year, booksTarget, workoutsTarget }
 
+let _annualGoalYear = new Date().getFullYear();
+
+function changeAnnualGoalYear(delta) {
+  const currentYear = new Date().getFullYear();
+  _annualGoalYear = Math.min(currentYear, _annualGoalYear + delta);
+  renderAnnualGoals();
+}
+
 function renderAnnualGoals() {
   if (!feat('annualGoals')) { _applyVis('annualGoalsSection', false); return; }
   _applyVis('annualGoalsSection', true);
-  const yr = new Date().getFullYear();
-  if (!S.annualGoals || S.annualGoals.year !== yr) {
-    S.annualGoals = { year: yr, booksTarget: 12, workoutsTarget: 100 };
+  const currentYear = new Date().getFullYear();
+  const yr = _annualGoalYear;
+
+  // Ensure annualGoals is a map keyed by year
+  if (!S.annualGoals || typeof S.annualGoals !== 'object') S.annualGoals = {};
+  // Migrate old single-year format { year, booksTarget, workoutsTarget }
+  if (S.annualGoals.year && !S.annualGoals[S.annualGoals.year]) {
+    const old = S.annualGoals;
+    S.annualGoals = { [old.year]: { booksTarget: old.booksTarget || 12, workoutsTarget: old.workoutsTarget || 100 } };
   }
-  const ag = S.annualGoals;
+  if (!S.annualGoals[yr]) S.annualGoals[yr] = { booksTarget: 12, workoutsTarget: 100 };
+  const ag = S.annualGoals[yr];
+
   const booksRead = (S.media || []).filter(m =>
     m.mediaType === 'book' && m.status === 'done' &&
     m.finishedOn && m.finishedOn.startsWith(String(yr))
@@ -89,6 +105,12 @@ function renderAnnualGoals() {
   const workoutsDone = (S.workoutHistory || []).filter(s =>
     s.date && s.date.startsWith(String(yr))
   ).length;
+
+  const agYearEl = eid('agYear');
+  if (agYearEl) agYearEl.textContent = yr;
+  const nextBtn = eid('agYearNext');
+  if (nextBtn) nextBtn.disabled = yr >= currentYear;
+
   const booksEl = eid('agBooksProgress');
   const workoutsEl = eid('agWorkoutsProgress');
   const bPct = Math.min(100, ag.booksTarget ? Math.round((booksRead / ag.booksTarget) * 100) : 0);
@@ -104,7 +126,7 @@ function _goalBar(label, done, target, pct, onchange, color) {
         <span style="color:var(--cream)">${label}</span>
         <span style="color:var(--muted)">${done} / <input type="number" value="${target}" min="1" max="9999"
           onchange="${onchange}"
-          style="width:48px;background:rgba(255,255,255,0.06);border:1px solid var(--border-lt);border-radius:4px;color:var(--gold-lt);text-align:center;font-size:0.74rem;outline:none;padding:1px 4px"> this year</span>
+          style="width:48px;background:rgba(255,255,255,0.06);border:1px solid var(--border-lt);border-radius:4px;color:var(--gold-lt);text-align:center;font-size:0.74rem;outline:none;padding:1px 4px"> in ${_annualGoalYear}</span>
       </div>
       <div style="height:6px;background:var(--mid);border-radius:4px;overflow:hidden">
         <div style="height:100%;width:${pct}%;background:${color};border-radius:4px;transition:width 0.4s"></div>
@@ -114,8 +136,9 @@ function _goalBar(label, done, target, pct, onchange, color) {
 }
 
 function setAnnualTarget(key, val) {
-  if (!S.annualGoals) S.annualGoals = { year: new Date().getFullYear() };
-  if (val > 0) S.annualGoals[key] = val;
+  if (!S.annualGoals || typeof S.annualGoals !== 'object') S.annualGoals = {};
+  if (!S.annualGoals[_annualGoalYear]) S.annualGoals[_annualGoalYear] = { booksTarget: 12, workoutsTarget: 100 };
+  if (val > 0) S.annualGoals[_annualGoalYear][key] = val;
   scheduleSave();
   renderAnnualGoals();
 }
@@ -220,7 +243,7 @@ function _tickPomodoro() {
       _showSessionNotePrompt(_pomodoroCount);
       if (_pomodoroCount % POMO_CYCLE === 0) {
         _pomodoroPhase    = 'long-break';
-        _pomodoroSecsLeft = POMO_LONG_BREAK;
+        _pomodoroSecsLeft = (parseInt(eid('focusLongBreakMins')?.value) || 20) * 60;
       } else {
         _pomodoroPhase    = 'break';
         _pomodoroSecsLeft = POMO_BREAK;

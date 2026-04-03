@@ -956,7 +956,11 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
     <div id="annualGoalsSection" class="card" style="margin-bottom:18px;display:none">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <span style="font-size:0.7rem;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase">Annual Goals</span>
-        <span style="font-size:0.62rem;color:var(--muted);font-style:italic">Click the numbers to set targets</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button onclick="changeAnnualGoalYear(-1)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.8rem;padding:0 4px">←</button>
+          <span id="agYear" style="font-size:0.68rem;color:var(--blush);font-family:'DM Mono',monospace;min-width:36px;text-align:center"></span>
+          <button onclick="changeAnnualGoalYear(1)" id="agYearNext" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.8rem;padding:0 4px">→</button>
+        </div>
       </div>
       <div id="agBooksProgress"></div>
       <div id="agWorkoutsProgress"></div>
@@ -1178,6 +1182,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <div style="margin-top:14px;display:flex;justify-content:center;gap:18px;font-size:0.68rem;color:var(--muted)">
         <label style="cursor:pointer">Work <input type="number" id="focusWorkMins" value="25" min="1" max="120" style="width:36px;background:none;border:none;border-bottom:1px solid var(--border-lt);color:var(--gold-lt);text-align:center;font-size:0.68rem;outline:none"> min</label>
         <label style="cursor:pointer">Break <input type="number" id="focusBreakMins" value="5" min="1" max="60" style="width:28px;background:none;border:none;border-bottom:1px solid var(--border-lt);color:var(--gold-lt);text-align:center;font-size:0.68rem;outline:none"> min</label>
+        <label style="cursor:pointer">Long <input type="number" id="focusLongBreakMins" value="20" min="1" max="60" style="width:28px;background:none;border:none;border-bottom:1px solid var(--border-lt);color:var(--gold-lt);text-align:center;font-size:0.68rem;outline:none"> min</label>
       </div>
     </div>
 

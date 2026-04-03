@@ -197,7 +197,14 @@ function normalizeAppState(raw={}){
   out.weeklyReflections = out.weeklyReflections && typeof out.weeklyReflections === 'object' ? out.weeklyReflections : {};
   out.weightLog = Array.isArray(out.weightLog) ? out.weightLog : [];
   out.moodLog = out.moodLog && typeof out.moodLog === 'object' ? out.moodLog : {};
-  out.annualGoals = (out.annualGoals && typeof out.annualGoals === 'object') ? out.annualGoals : null;
+  // annualGoals migrated to year-keyed map: { 2025: { booksTarget, workoutsTarget }, ... }
+  // Old format was: { year, booksTarget, workoutsTarget }
+  if (out.annualGoals && typeof out.annualGoals === 'object' && out.annualGoals.year && !out.annualGoals[out.annualGoals.year]) {
+    const old = out.annualGoals;
+    out.annualGoals = { [old.year]: { booksTarget: old.booksTarget || 12, workoutsTarget: old.workoutsTarget || 100 } };
+  } else if (!out.annualGoals || typeof out.annualGoals !== 'object') {
+    out.annualGoals = {};
+  }
   out.features = deepMerge(DS.features, (src.features && typeof src.features === 'object') ? src.features : {});
   out.appPrefs = deepMerge(DS.appPrefs, out.appPrefs || {});
   out.onboarded = typeof src.onboarded === 'boolean' ? src.onboarded : false;

@@ -217,17 +217,28 @@ function renderGymWeek() {
     div.addEventListener('click', () => {
       if (isRest) return;
 
-      S.gymLog[d] = !S.gymLog[d];
+      const wasDone = !!S.gymLog[d];
+      S.gymLog[d] = !wasDone;
 
+      const gh = hfind('gym','lift','workout','training','weights');
       if (S.gymLog[d]) {
-        const gh = hfind('gym','lift','workout','training','weights');
         if (gh) gh.days[d] = true;
+      } else {
+        if (gh) delete gh.days[d];
       }
 
       scheduleSave();
       renderGymWeek();
       if (typeof renderHabits === 'function') renderHabits();
       if (typeof renderTodaySummary === 'function') renderTodaySummary();
+
+      toastUndo(S.gymLog[d] ? `${d} marked trained` : `${d} unmarked`, () => {
+        S.gymLog[d] = wasDone;
+        if (gh) { if (wasDone) gh.days[d] = true; else delete gh.days[d]; }
+        scheduleSave();
+        renderGymWeek();
+        if (typeof renderHabits === 'function') renderHabits();
+      });
     });
 
     c.appendChild(div);
@@ -824,19 +835,39 @@ function renderCalorieHistory() {
     c.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted);font-size:0.7rem;font-family:'DM Mono',monospace">${t('no_calorie_sessions') || 'No entries logged yet.'}</div>`;
     return;
   }
+  function _calRowHtml(s) {
+    return `
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--blush-dim)">
+        <div style="display:flex;gap:10px;align-items:baseline;flex:1">
+          <span style="font-size:0.6rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${escapeHtml(s.date||'')}</span>
+          <span style="font-size:0.8rem;color:var(--mist)">${escapeHtml(s.description||'Meal')}</span>
+          ${s.calories ? `<span style="font-size:0.68rem;color:var(--gold-lt);font-family:'DM Mono',monospace">${escapeHtml(String(s.calories))} kcal</span>` : ''}
+        </div>
+        <button class="habit-del" style="opacity:0.4" onclick="deleteCalorieSession('${s.id}')">✕</button>
+      </div>`;
+  }
+
   const shown = hist.slice(0, _calorieHistLimit);
-  c.innerHTML = shown.map(s => `
-    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--blush-dim)">
-      <div style="display:flex;gap:10px;align-items:baseline;flex:1">
-        <span style="font-size:0.6rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${escapeHtml(s.date||'')}</span>
-        <span style="font-size:0.8rem;color:var(--mist)">${escapeHtml(s.description||'Meal')}</span>
-        ${s.calories ? `<span style="font-size:0.68rem;color:var(--gold-lt);font-family:'DM Mono',monospace">${escapeHtml(String(s.calories))} kcal</span>` : ''}
-      </div>
-      <button class="habit-del" style="opacity:0.4" onclick="deleteCalorieSession('${s.id}')">✕</button>
-    </div>
-  `).join('');
+  c.innerHTML = shown.map(_calRowHtml).join('');
+
   if (hist.length > _calorieHistLimit) {
-    c.innerHTML += `<button class="btn btn-g" style="width:100%;margin-top:8px;font-size:0.68rem" onclick="_calorieHistLimit+=20;renderCalorieHistory()">Load more (${hist.length - _calorieHistLimit} remaining)</button>`;
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-g';
+    btn.style.cssText = 'width:100%;margin-top:8px;font-size:0.68rem';
+    btn.textContent = `Load more (${hist.length - _calorieHistLimit} remaining)`;
+    btn.onclick = () => {
+      const next = hist.slice(_calorieHistLimit, _calorieHistLimit + 20);
+      _calorieHistLimit += 20;
+      btn.remove();
+      next.forEach(s => c.insertAdjacentHTML('beforeend', _calRowHtml(s)));
+      if (hist.length > _calorieHistLimit) {
+        const newBtn = btn.cloneNode(false);
+        newBtn.textContent = `Load more (${hist.length - _calorieHistLimit} remaining)`;
+        newBtn.onclick = btn.onclick;
+        c.appendChild(newBtn);
+      }
+    };
+    c.appendChild(btn);
   }
 }
 

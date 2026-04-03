@@ -131,15 +131,22 @@ function editProjectNote(id, noteId, val) {
   const p = ensureProjects().find(x => String(x.id) === String(id));
   if (!p) return;
   const n = (p.notesLog || []).find(n => String(n.id) === String(noteId));
-  if (n) { n.text = val.trim() || n.text; p.updatedOn = today(); scheduleSave(); }
+  if (n) { n.text = val.trim() || n.text; p.updatedOn = today(); scheduleSave(); renderProjects(); }
 }
 
 function deleteProjectNote(id, noteId) {
   const p = ensureProjects().find(x => String(x.id) === String(id));
   if (!p) return;
+  const removed = (p.notesLog || []).find(n => String(n.id) === String(noteId));
   p.notesLog = (p.notesLog || []).filter(n => String(n.id) !== String(noteId));
   scheduleSave();
   renderProjects();
+  if (removed) {
+    toastUndo('Note removed', () => {
+      const pp = ensureProjects().find(x => String(x.id) === String(id));
+      if (pp) { pp.notesLog = pp.notesLog || []; pp.notesLog.push(removed); scheduleSave(); renderProjects(); }
+    });
+  }
 }
 
 /* ══ PROJECT DETAIL MODAL (Tasks | Notes) ══ */

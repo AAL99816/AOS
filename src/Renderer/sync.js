@@ -809,7 +809,8 @@ async function saveToSupabase() {
     saveHabits().catch(e => console.error('[sync] saveHabits failed:', e)),
     savePrayer().catch(e => console.error('[sync] savePrayer failed:', e)),
     saveNotes().catch(e => console.error('[sync] saveNotes failed:', e)),
-    saveBodyWeight().catch(e => console.error('[sync] saveBodyWeight failed:', e))
+    saveBodyWeight().catch(e => console.error('[sync] saveBodyWeight failed:', e)),
+    saveFocusItems().catch(e => console.error('[sync] saveFocusItems failed:', e))
   ]);
 
   _isSaving = false;
@@ -829,6 +830,45 @@ async function saveToSupabase() {
     console.error('[sync] saveFitness failed:', e);
     if (typeof toast === 'function') toast('Workout data failed to sync — pull down to retry');
   });
+}
+
+async function saveFocusItems() {
+  if (!currentUser) return;
+  const items = S.focusItems || [];
+  if (!items.length) {
+    await sb.from('focus_items').delete().eq('user_id', currentUser.id);
+    return;
+  }
+  const { data: existing } = await sb.from('focus_items').select('id, app_id').eq('user_id', currentUser.id);
+  const existingIds = new Set((existing || []).map(r => r.app_id));
+  const currentIds = new Set(items.map(f => String(f.id)));
+  for (const r of (existing || [])) {
+    if (!currentIds.has(r.app_id)) await sb.from('focus_items').delete().eq('id', r.id);
+  }
+  const rows = items.map((f, i) => ({
+    app_id: String(f.id),
+    user_id: currentUser.id,
+    label: f.label || '',
+    project_id: null, // UUID FK — skip for now; projectId is an app-level UUID not a DB UUID
+    pomodoros_done: f.pomodorosDone || 0,
+    pomodoros_target: f.pomodorosTarget || 0,
+    order_index: i
+  }));
+  await sb.from('focus_items').upsert(rows, { onConflict: 'app_id' });
+}
+
+async function loadFocusItems() {
+  if (!currentUser) return;
+  const { data, error } = await sb.from('focus_items').select('*').eq('user_id', currentUser.id).order('order_index');
+  if (error || !data?.length) return;
+  S.focusItems = data.map(r => ({
+    id: r.app_id || r.id,
+    label: r.label || '',
+    projectId: null,
+    pomodorosDone: r.pomodoros_done || 0,
+    pomodorosTarget: r.pomodoros_target || 0,
+    completed: false
+  }));
 }
 
 async function loadFromSupabase() {
@@ -854,7 +894,7 @@ async function loadFromSupabase() {
   }
 
   S = normalizeAppState(data.data);
-  await Promise.all([loadUserSettings(), loadProjects(), loadMedia(), loadHabits(), loadPrayer(), loadNotes(), loadBodyWeight(), loadWorkoutSchedule(), loadFitness()]);
+  await Promise.all([loadUserSettings(), loadProjects(), loadMedia(), loadHabits(), loadPrayer(), loadNotes(), loadBodyWeight(), loadWorkoutSchedule(), loadFitness(), loadFocusItems()]);
   setSyncStatus('synced');
   return true;
 }

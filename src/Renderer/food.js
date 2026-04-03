@@ -1395,7 +1395,7 @@ function renderFoodHistory() {
     return;
   }
 
-  el.innerHTML = days.map(d => {
+  function _foodHistDayHtml(d) {
     const entries = log[d];
     const totals  = _sumMacros(entries);
     const T       = S.foodTargets || {};
@@ -1406,7 +1406,6 @@ function renderFoodHistory() {
     const barColor = over ? 'var(--petal)' : near ? 'var(--gold)' : 'var(--blush)';
     const dateLabel = new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
     const isToday  = d === today();
-
     return `
       <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;cursor:pointer"
            onclick="setFoodDateAndDiary('${d}')"
@@ -1425,10 +1424,30 @@ function renderFoodHistory() {
           <span style="margin-left:auto">${entries.length} item${entries.length!==1?'s':''}</span>
         </div>
       </div>`;
-  }).join('');
+  }
+
+  el.innerHTML = days.map(_foodHistDayHtml).join('');
 
   if (allDays.length > _foodHistLimit) {
-    el.innerHTML += `<button class="btn btn-g" style="width:100%;margin-top:4px;font-size:0.68rem" onclick="_foodHistLimit+=30;renderFoodHistory()">Load more (${allDays.length - _foodHistLimit} remaining)</button>`;
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-g';
+    btn.style.cssText = 'width:100%;margin-top:4px;font-size:0.68rem';
+    btn.textContent = `Load more (${allDays.length - _foodHistLimit} remaining)`;
+    btn.onclick = () => {
+      const nextDays = allDays.slice(_foodHistLimit, _foodHistLimit + 30);
+      _foodHistLimit += 30;
+      btn.remove();
+      nextDays.forEach(d => {
+        el.insertAdjacentHTML('beforeend', _foodHistDayHtml(d));
+      });
+      if (allDays.length > _foodHistLimit) {
+        const newBtn = btn.cloneNode(false);
+        newBtn.textContent = `Load more (${allDays.length - _foodHistLimit} remaining)`;
+        newBtn.onclick = btn.onclick;
+        el.appendChild(newBtn);
+      }
+    };
+    el.appendChild(btn);
   }
 }
 
@@ -1503,8 +1522,8 @@ function renderMealPlansList() {
               </div>`).join('') : `<div style="font-size:0.66rem;color:var(--muted);padding:4px 0;font-style:italic">Empty</div>`}
           </div>`).join('')}
         <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
-          <button class="btn btn-d" style="font-size:0.66rem;padding:4px 9px" onclick="deleteMealPlan(${i})">Remove</button>
-          <button class="btn btn-p" style="font-size:0.68rem;padding:5px 12px" onclick="applyMealPlan(${i})">Apply to Today</button>
+          <button class="btn btn-d" style="font-size:0.66rem;padding:4px 9px" onclick="deleteMealPlan('${plan.id}')">Remove</button>
+          <button class="btn btn-p" style="font-size:0.68rem;padding:5px 12px" onclick="applyMealPlan('${plan.id}')">Apply to Today</button>
         </div>
       </div>` : '';
 
@@ -1564,8 +1583,8 @@ function saveMealPlan() {
   toast(`"${name}" saved`);
 }
 
-function applyMealPlan(i) {
-  const plan = (S.mealPlans || [])[i];
+function applyMealPlan(id) {
+  const plan = (S.mealPlans || []).find(p => String(p.id) === String(id));
   if (!plan || !Array.isArray(plan.foods) || !plan.foods.length) return;
   if (!S.foodLog) S.foodLog = {};
   const _date = _foodEffectiveDate();
@@ -1573,16 +1592,26 @@ function applyMealPlan(i) {
   plan.foods.forEach(f => S.foodLog[_date].push({ ...f, id: uid() }));
   scheduleSave();
   setFoodTab('diary');
+  renderFoodTab();
   toast(`"${plan.name}" applied to ${_date === today() ? 'today' : _date}`);
 }
 
-function deleteMealPlan(i) {
+function deleteMealPlan(id) {
   if (!S.mealPlans) return;
-  const plan = S.mealPlans[i];
-  S.mealPlans.splice(i, 1);
+  const idx = S.mealPlans.findIndex(p => String(p.id) === String(id));
+  if (idx < 0) return;
+  const plan = S.mealPlans[idx];
+  if (!confirm(`Remove meal plan "${plan.name}"?`)) return;
+  const backup = JSON.parse(JSON.stringify(plan));
+  S.mealPlans.splice(idx, 1);
   scheduleSave();
   renderMealPlansList();
-  toast(`"${plan?.name}" removed`);
+  toastUndo(`"${plan.name}" removed`, () => {
+    if (!S.mealPlans) S.mealPlans = [];
+    S.mealPlans.splice(idx, 0, backup);
+    scheduleSave();
+    renderMealPlansList();
+  });
 }
 
 function removeMealPlanFood(planId, foodId) {
@@ -1636,13 +1665,13 @@ function renderMyFoodsTab() {
         </div>
         ${cf._shared ? `<div style="font-size:0.56rem;color:var(--blush);margin-top:2px">\u2713 Shared with community</div>` : ''}
       </div>
-      ${isLoggedIn ? `<button onclick="shareToCommuntiy('${cf.id}')" style="background:none;border:none;color:${cf._shared ? 'var(--blush)' : 'var(--muted)'};cursor:pointer;font-size:0.7rem;padding:4px 6px;flex-shrink:0" title="${cf._shared ? 'Already shared' : 'Share with community'}">\u2191</button>` : ''}
+      ${isLoggedIn ? `<button onclick="shareToCommunity('${cf.id}')" style="background:none;border:none;color:${cf._shared ? 'var(--blush)' : 'var(--muted)'};cursor:pointer;font-size:0.7rem;padding:4px 6px;flex-shrink:0" title="${cf._shared ? 'Already shared' : 'Share with community'}">\u2191</button>` : ''}
       <button onclick="editCustomFood('${cf.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.72rem;padding:4px 6px;flex-shrink:0" title="Edit">\u270e</button>
       <button onclick="deleteCustomFood('${cf.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.76rem;padding:4px 6px;flex-shrink:0">\u2715</button>
     </div>`).join('');
 }
 
-async function shareToCommuntiy(id) {
+async function shareToCommunity(id) {
   if (typeof sb === 'undefined' || !currentUser) { toast('Sign in to share foods'); return; }
   const cf = (S.customFoods || []).find(c => String(c.id) === String(id));
   if (!cf) return;
