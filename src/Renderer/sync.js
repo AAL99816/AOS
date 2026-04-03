@@ -587,11 +587,12 @@ async function loadFitness() {
 
   if (!sessRes.error && sessRes.data?.length) {
     S.workoutHistory = sessRes.data.map(row => ({
-      id:      Number(row.app_id),
+      id:      row.app_id,
       date:    row.session_date || '',
       title:   row.title        || 'Workout',
       cardId:  row.template_id  ? (S.workoutCards || []).find(c => c._uuid === row.template_id)?.id ?? null : null,
       summary: row.summary      || '',
+      notes:   row.notes        || '',
       exercises: (row.workout_exercises || [])
         .filter(e => e.app_id)
         .sort((a, b) => a.order_index - b.order_index)
@@ -675,7 +676,7 @@ async function saveFitness() {
   for (const s of sessions) {
     const { data: sessRow } = await sb.from('workout_sessions').upsert({
       user_id: currentUser.id, app_id: String(s.id),
-      session_date: s.date || null, title: s.title || 'Workout', summary: s.summary || ''
+      session_date: s.date || null, title: s.title || 'Workout', summary: s.summary || '', notes: s.notes || ''
     }, { onConflict: 'user_id,app_id' }).select('id').single();
     const sessUuid = sessRow?.id;
     if (!sessUuid) continue;
