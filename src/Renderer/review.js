@@ -217,6 +217,34 @@ function renderWeeklyReview() {
       </div>
     </div>` : ''}
 
+    ${(() => {
+      const todayStr = today();
+      const cutoff = new Date(todayStr + 'T00:00:00');
+      cutoff.setDate(cutoff.getDate() + 14);
+      const cutoffStr = cutoff.toISOString().slice(0, 10);
+      const upcoming = (S.projects || [])
+        .filter(p => p.deadline && p.status !== 'Done' && p.deadline <= cutoffStr)
+        .sort((a, b) => a.deadline.localeCompare(b.deadline));
+      if (!upcoming.length) return '';
+      function daysUntil(dl) {
+        const diff = new Date(dl + 'T00:00:00') - new Date(todayStr + 'T00:00:00');
+        return Math.round(diff / 86400000);
+      }
+      return `<div class="review-block">
+        <div class="review-kicker">Upcoming Deadlines · next 14 days</div>
+        ${upcoming.map(p => {
+          const du = daysUntil(p.deadline);
+          const col = du < 0 ? 'var(--petal)' : du <= 3 ? 'var(--gold)' : 'var(--muted-lt)';
+          const label = du < 0 ? `${Math.abs(du)}d overdue` : du === 0 ? 'today' : `${du}d`;
+          return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-lt)">
+            <span style="font-size:0.62rem;font-family:'DM Mono',monospace;color:${col};flex-shrink:0;min-width:60px">${label}</span>
+            <span style="font-size:0.75rem;color:var(--mist);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(p.title)}</span>
+            <span style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;flex-shrink:0">${p.deadline}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+    })()}
+
     <div class="review-block">
       <div class="review-kicker">${t('reflection')}</div>
       <textarea class="editable-area" rows="5"

@@ -493,18 +493,28 @@ function _foodEntryRow(e) {
       <button onclick="adjustFoodEntry('${e.id}',${step})" style="${btnStyle};color:var(--muted);font-size:0.9rem;width:22px;height:22px;border-radius:50%;background:var(--mid)" title="More">+</button>
     </div>` : '';
   return `
-    <div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border)">
-      <div style="flex:1;min-width:0">
-        <div style="font-size:0.8rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(e.name)}</div>
-        ${e.brand ? `<div style="font-size:0.64rem;color:var(--muted)">${escapeHtml(e.brand)}</div>` : ''}
-        <div style="font-size:0.64rem;color:var(--muted-lt);font-family:'DM Mono',monospace;margin-top:1px">${macroLine}</div>
+    <div style="border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:8px;padding:9px 14px 6px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.8rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(e.name)}</div>
+          ${e.brand ? `<div style="font-size:0.64rem;color:var(--muted)">${escapeHtml(e.brand)}</div>` : ''}
+          <div style="font-size:0.64rem;color:var(--muted-lt);font-family:'DM Mono',monospace;margin-top:1px">${macroLine}</div>
+        </div>
+        ${adjHtml}
+        <div style="text-align:right;flex-shrink:0;min-width:36px">
+          <div style="font-size:0.86rem;color:var(--gold-lt);font-family:'DM Mono',monospace">${Math.round(e.kcal)}</div>
+          <div style="font-size:0.6rem;color:var(--muted)">kcal</div>
+        </div>
+        <button onclick="deleteFoodEntry('${e.id}')" style="${btnStyle};color:var(--muted);font-size:0.72rem;width:18px;height:18px">&#x2715;</button>
       </div>
-      ${adjHtml}
-      <div style="text-align:right;flex-shrink:0;min-width:36px">
-        <div style="font-size:0.86rem;color:var(--gold-lt);font-family:'DM Mono',monospace">${Math.round(e.kcal)}</div>
-        <div style="font-size:0.6rem;color:var(--muted)">kcal</div>
-      </div>
-      <button onclick="deleteFoodEntry('${e.id}')" style="${btnStyle};color:var(--muted);font-size:0.72rem;width:18px;height:18px">&#x2715;</button>
+      <textarea
+        onchange="setFoodEntryNote('${e.id}',this.value)"
+        placeholder="Recipe / notes…"
+        style="display:block;width:100%;box-sizing:border-box;background:transparent;border:none;border-top:${e.notes ? '1px solid var(--border)' : 'none'};color:var(--muted);font-size:0.66rem;font-family:'DM Mono',monospace;resize:none;outline:none;padding:${e.notes ? '5px 14px 7px' : '0 14px'};line-height:1.4;transition:all 0.15s"
+        rows="${e.notes ? Math.max(1, (e.notes.match(/\n/g)||[]).length + 1) : 1}"
+        onfocus="if(!this.value){this.style.borderTop='1px solid var(--border)';this.style.padding='5px 14px 7px'}"
+        onblur="if(!this.value){this.style.borderTop='none';this.style.padding='0 14px'}"
+      >${escapeHtml(e.notes || '')}</textarea>
     </div>`;
 }
 
@@ -1262,6 +1272,16 @@ function deleteFoodEntry(id) {
   renderFoodTab();
 }
 
+function setFoodEntryNote(id, value) {
+  const _date = _foodEffectiveDate();
+  const entries = S.foodLog?.[_date];
+  if (!entries) return;
+  const e = entries.find(e => String(e.id) === String(id));
+  if (!e) return;
+  e.notes = value.trim();
+  scheduleSave();
+}
+
 function _resolvePerServing(e) {
   // Returns per-serving macros regardless of whether entry was saved with new or old format
   return e.perServing ||
@@ -1697,7 +1717,7 @@ function saveMyFoodEdit() {
   } else {
     const exists = S.customFoods.some(cf => cf.name.toLowerCase() === name.toLowerCase());
     if (exists) { toast('A food with that name already exists'); return; }
-    S.customFoods.push({ id: Date.now(), name, kcal, protein, carbs, fat, fiber });
+    S.customFoods.push({ id: uid(), name, kcal, protein, carbs, fat, fiber });
   }
 
   _myFoodEditId = null;

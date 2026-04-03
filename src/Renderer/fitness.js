@@ -82,6 +82,36 @@ function _weightWeeklyTrend(entries) {
   return ((latest.weight - ref.weight) / ref.weight) * 100;
 }
 
+function _weightSparklineSVG(ascEntries) {
+  if (ascEntries.length < 2) return '';
+  const W = 300, H = 56, PAD = 4;
+  const weights = ascEntries.map(e => +e.weight).filter(Number.isFinite);
+  if (weights.length < 2) return '';
+  const mn = Math.min(...weights), mx = Math.max(...weights);
+  const range = mx - mn || 1;
+  const pts = ascEntries.map((e, i) => {
+    const x = PAD + (i / (ascEntries.length - 1)) * (W - PAD * 2);
+    const y = H - PAD - ((+e.weight - mn) / range) * (H - PAD * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const lastX = (PAD + (W - PAD * 2)).toFixed(1);
+  const firstX = PAD.toFixed(1);
+  const fillD = `M ${pts[0]} L ${pts.join(' L ')} L ${lastX},${H} L ${firstX},${H} Z`;
+  const minLbl = mn.toFixed(1), maxLbl = mx.toFixed(1);
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="display:block;width:100%;height:56px;margin-bottom:8px">
+    <defs>
+      <linearGradient id="wSparkGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#c9a96e" stop-opacity="0.25"/>
+        <stop offset="100%" stop-color="#c9a96e" stop-opacity="0.02"/>
+      </linearGradient>
+    </defs>
+    <path d="${fillD}" fill="url(#wSparkGrad)"/>
+    <polyline points="${pts.join(' ')}" fill="none" stroke="#c9a96e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    <text x="${PAD}" y="${H - 1}" font-size="8" fill="#7a7a7a" font-family="monospace">${minLbl}</text>
+    <text x="${PAD}" y="10" font-size="8" fill="#7a7a7a" font-family="monospace">${maxLbl}</text>
+  </svg>`;
+}
+
 function renderWeightLog() {
   ensureFitnessState();
   const c = eid('weightHistory');
@@ -101,6 +131,9 @@ function renderWeightLog() {
       <button onclick="deleteWeightEntry('${e.date}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.8rem;padding:0 4px">×</button>
     </div>`;
 
+  const chartEntries = allEntries.slice(0, 30).reverse(); // ascending for chart
+  const sparkline = _weightSparklineSVG(chartEntries);
+
   if (_weightLogExpanded) {
     const shown = allEntries.slice(0, 30);
     c.innerHTML =
@@ -108,6 +141,7 @@ function renderWeightLog() {
         <span style="font-size:0.65rem;color:var(--muted);font-family:'DM Mono',monospace">${allEntries.length} entries${trendStr}</span>
         <button onclick="_weightLogExpanded=false;renderWeightLog()" style="background:none;border:none;color:var(--blush);cursor:pointer;font-size:0.72rem;padding:0">Collapse ▴</button>
       </div>
+      ${sparkline}
       ${shown.map(entryRow).join('')}
       ${allEntries.length > 30 ? `<div style="font-size:0.62rem;color:var(--muted);text-align:center;padding:6px 0">Showing 30 of ${allEntries.length}</div>` : ''}`;
   } else {
@@ -117,6 +151,7 @@ function renderWeightLog() {
         <span style="font-size:0.65rem;color:var(--muted);font-family:'DM Mono',monospace">${allEntries.length} entries${trendStr}</span>
         <button onclick="_weightLogExpanded=true;renderWeightLog()" style="background:none;border:none;color:var(--blush);cursor:pointer;font-size:0.72rem;padding:0">View all ▾</button>
       </div>
+      ${sparkline}
       ${preview.map(entryRow).join('')}`;
   }
 }
@@ -303,7 +338,9 @@ function renderWorkoutCards() {
           <button class="btn btn-g" style="font-size:0.68rem;padding:4px 9px" onclick="addEx('${wc.id}')">+ ${t('add')}</button>
         </div>
 
-        <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <textarea id="sessionNote-${wc.id}" placeholder="Session notes…" style="display:block;width:100%;box-sizing:border-box;margin-top:10px;background:var(--mid);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:0.7rem;font-family:'DM Mono',monospace;resize:none;padding:7px 10px;min-height:44px;outline:none;line-height:1.5"></textarea>
+
+        <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:8px">
           <button class="btn btn-d" style="font-size:0.66rem;padding:4px 9px" onclick="delWorkoutCard('${wc.id}')">${t('remove')}</button>
           <div style="display:flex;gap:6px">
             <button class="btn btn-g" style="font-size:0.66rem;padding:4px 9px" onclick="repeatLastWorkout('${wc.id}')" title="Pre-fill with last session's values">Repeat Last</button>
@@ -435,6 +472,16 @@ function openSessionDetail(id){
     }).join('');
   } else {
     ex.innerHTML = `<div style="font-size:0.75rem;color:var(--muted);text-align:center;padding:20px">${escapeHtml(s.summary||t('no_exercise_data'))}</div>`;
+  }
+  // Session notes
+  const sdNotes = eid('sdNotes');
+  if (sdNotes) {
+    if (s.notes) {
+      sdNotes.textContent = s.notes;
+      sdNotes.style.display = '';
+    } else {
+      sdNotes.style.display = 'none';
+    }
   }
   openModal('mSessionDetail');
 }
@@ -640,12 +687,16 @@ function logWorkoutSession(wcId) {
     .slice(0, 5)
     .join(' · ');
 
+  const noteEl = eid(`sessionNote-${wc.id}`);
+  const sessionNote = noteEl ? noteEl.value.trim() : '';
+
   S.workoutHistory.push({
     id: uid(),
     cardId: wc.id,
     title: wc.title || 'Workout',
     date: today(),
     summary: summary || 'Session completed',
+    notes: sessionNote,
     exercises
   });
 

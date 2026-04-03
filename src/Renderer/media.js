@@ -141,19 +141,19 @@ function buildBookCard(b, idx) {
         : `<div class="book-cover-ph"><div class="ph-icon">◆</div><div>${escapeHtml(b.title)}</div></div>`}
       <div class="book-cover-overlay" onclick="event.stopPropagation()">
         <span>${t('add_cover')}</span>
-        <input type="file" accept="image/*" onchange="event.stopPropagation();uploadCover(${b.id},this)">
+        <input type="file" accept="image/*" onchange="event.stopPropagation();uploadCover('${b.id}',this)">
       </div>
     </div>
     <div class="book-info">
-      <input class="editable book-title-inp" value="${escapeAttr(b.title)}" onchange="event.stopPropagation();updateBF(${b.id},'title',this.value)">
-      <input class="editable book-author-inp" value="${escapeAttr(b.author)}" onchange="event.stopPropagation();updateBF(${b.id},'author',this.value)">
+      <input class="editable book-title-inp" value="${escapeAttr(b.title)}" onchange="event.stopPropagation();updateBF('${b.id}','title',this.value)">
+      <input class="editable book-author-inp" value="${escapeAttr(b.author)}" onchange="event.stopPropagation();updateBF('${b.id}','author',this.value)">
       ${progressText}
       <div class="book-row" style="margin-top:6px">
-        <span class="bstatus bs-${b.status}" onclick="event.stopPropagation();cycleBook(${b.id})" title="Click to change">${slbl}</span>
+        <span class="bstatus bs-${b.status}" onclick="event.stopPropagation();cycleBook('${b.id}')" title="Click to change">${slbl}</span>
         ${stars ? `<span class="b-stars" title="${b.rating}/10">${stars} <span style="font-size:0.54rem;color:var(--muted);font-family:'DM Mono',monospace">${b.rating}</span></span>` : ''}
       </div>
     </div>
-    <button class="book-del" onclick="event.stopPropagation();delBook(${b.id})">✕</button>
+    <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')">✕</button>
   `;
   return div;
 }
@@ -175,20 +175,21 @@ function buildFilmCard(b, idx) {
         : `<div class="book-cover-ph"><div class="ph-icon">▶</div><div>${escapeHtml(b.title)}</div></div>`}
       <div class="book-cover-overlay" onclick="event.stopPropagation()">
         <span>${t('add_cover')}</span>
-        <input type="file" accept="image/*" onchange="event.stopPropagation();uploadCover(${b.id},this)">
+        <input type="file" accept="image/*" onchange="event.stopPropagation();uploadCover('${b.id}',this)">
       </div>
     </div>
     <div class="book-info">
       <input class="editable book-title-inp" value="${escapeAttr(b.title)}" onchange="event.stopPropagation();updateBF(${b.id},'title',this.value)">
       <input class="editable book-author-inp" value="${escapeAttr(b.author)}" onchange="event.stopPropagation();updateBF(${b.id},'author',this.value)" placeholder="${t('director')}">
       ${b.runtime ? `<div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">${escapeHtml(b.runtime)}</div>` : ''}
+      <div style="height:2px;background:var(--border);border-radius:1px;margin-top:5px"><div style="height:2px;width:${watched?'100':'0'}%;background:var(--blush);border-radius:1px;transition:width 0.3s"></div></div>
       <div class="book-row" style="margin-top:6px">
-        <span class="bstatus bs-${b.status}" onclick="event.stopPropagation();cycleBook(${b.id})">${watched ? t('watched') : t('queued')}</span>
+        <span class="bstatus bs-${b.status}" onclick="event.stopPropagation();cycleBook('${b.id}')">${watched ? t('watched') : t('queued')}</span>
         ${stars ? `<span class="b-stars">${stars}</span>` : ''}
       </div>
       ${b.watchCount > 1 ? `<div style="font-size:0.55rem;color:var(--muted);margin-top:3px;font-family:'DM Mono',monospace">${b.watchCount}× ${t('watched').toLowerCase()}</div>` : ''}
     </div>
-    <button class="book-del" onclick="event.stopPropagation();delBook(${b.id})">✕</button>
+    <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')">✕</button>
   `;
   return div;
 }
@@ -215,7 +216,7 @@ function buildShowCard(b, idx) {
         : `<div class="book-cover-ph"><div class="ph-icon">▶</div><div>${escapeHtml(b.title)}</div></div>`}
       <div class="book-cover-overlay" onclick="event.stopPropagation()">
         <span>${t('add_cover')}</span>
-        <input type="file" accept="image/*" onchange="event.stopPropagation();uploadCover(${b.id},this)">
+        <input type="file" accept="image/*" onchange="event.stopPropagation();uploadCover('${b.id}',this)">
       </div>
       <div style="position:absolute;top:7px;left:7px;background:var(--ink-glass);border-radius:5px;padding:2px 7px;font-size:0.58rem;font-family:'DM Mono',monospace;color:var(--petal)">${seBadge}</div>
     </div>
@@ -224,12 +225,12 @@ function buildShowCard(b, idx) {
       <input class="editable book-author-inp" value="${escapeAttr(b.author)}" onchange="event.stopPropagation();updateBF(${b.id},'author',this.value)" placeholder="${t('creator')}">
       ${progressBar}
       <div class="book-row" style="margin-top:6px">
-        <span class="bstatus bs-${b.status}" onclick="event.stopPropagation();cycleBook(${b.id})">${slbl}</span>
-        <button class="btn btn-g" style="font-size:0.55rem;padding:2px 7px" onclick="event.stopPropagation();incrementEpisode(${b.id})">+1 EP</button>
+        <span class="bstatus bs-${b.status}" onclick="event.stopPropagation();cycleBook('${b.id}')">${slbl}</span>
+        <button class="btn btn-g" style="font-size:0.55rem;padding:2px 7px" onclick="event.stopPropagation();incrementEpisode('${b.id}')">+1 EP</button>
       </div>
       ${stars ? `<div class="b-stars" style="margin-top:3px">${stars}</div>` : ''}
     </div>
-    <button class="book-del" onclick="event.stopPropagation();delBook(${b.id})">✕</button>
+    <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')">✕</button>
   `;
   return div;
 }
@@ -252,19 +253,20 @@ function buildAlbumCard(b, idx) {
         : `<div class="book-cover-ph"><div class="ph-icon">♪</div><div>${escapeHtml(b.title)}</div></div>`}
       <div class="book-cover-overlay" onclick="event.stopPropagation()">
         <span>${t('add_cover')}</span>
-        <input type="file" accept="image/*" onchange="event.stopPropagation();uploadCover(${b.id},this)">
+        <input type="file" accept="image/*" onchange="event.stopPropagation();uploadCover('${b.id}',this)">
       </div>
     </div>
     <div class="book-info">
       <input class="editable book-title-inp" value="${escapeAttr(b.title)}" onchange="event.stopPropagation();updateBF(${b.id},'title',this.value)">
       <input class="editable book-author-inp" value="${escapeAttr(b.author)}" onchange="event.stopPropagation();updateBF(${b.id},'author',this.value)" placeholder="${t('artist')}">
       ${trackCount > 0 ? `<div style="font-size:0.56rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">${trackCount} ${t('tracks')}</div>` : ''}
+      ${(() => { const rated = (b.tracks||[]).filter(tr => tr.rating > 0).length; const pct = trackCount ? Math.round(rated/trackCount*100) : (b.status==='done'?100:0); return `<div style="height:2px;background:var(--border);border-radius:1px;margin-top:5px"><div style="height:2px;width:${pct}%;background:var(--blush);border-radius:1px;transition:width 0.3s"></div></div>`; })()}
       <div class="book-row" style="margin-top:6px">
-        <span class="bstatus bs-${b.status}" onclick="event.stopPropagation();cycleBook(${b.id})">${mediaStatusLabel(b.status,'album')}</span>
+        <span class="bstatus bs-${b.status}" onclick="event.stopPropagation();cycleBook('${b.id}')">${mediaStatusLabel(b.status,'album')}</span>
         ${stars ? `<span class="b-stars">${stars}</span>` : ''}
       </div>
     </div>
-    <button class="book-del" onclick="event.stopPropagation();delBook(${b.id})">✕</button>
+    <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')">✕</button>
   `;
   return div;
 }
@@ -286,7 +288,7 @@ function buildGameCard(b, idx) {
         : `<div class="book-cover-ph"><div class="ph-icon">◈</div><div>${escapeHtml(b.title)}</div></div>`}
       <div class="book-cover-overlay" onclick="event.stopPropagation()">
         <span>${t('add_cover')}</span>
-        <input type="file" accept="image/*" onchange="event.stopPropagation();uploadCover(${b.id},this)">
+        <input type="file" accept="image/*" onchange="event.stopPropagation();uploadCover('${b.id}',this)">
       </div>
       ${b.platform ? `<div style="position:absolute;top:7px;left:7px;background:var(--ink-glass);border-radius:5px;padding:2px 7px;font-size:0.56rem;font-family:'DM Mono',monospace;color:var(--petal)">${escapeHtml(b.platform)}</div>` : ''}
     </div>
@@ -294,12 +296,13 @@ function buildGameCard(b, idx) {
       <input class="editable book-title-inp" value="${escapeAttr(b.title)}" onchange="event.stopPropagation();updateBF(${b.id},'title',this.value)">
       <input class="editable book-author-inp" value="${escapeAttr(b.author)}" onchange="event.stopPropagation();updateBF(${b.id},'author',this.value)" placeholder="${t('developer')}">
       ${b.hoursPlayed > 0 ? `<div style="font-size:0.58rem;color:var(--gold-lt);margin-top:4px;font-family:'DM Mono',monospace">${b.hoursPlayed}h ${t('hours_played').toLowerCase()}</div>` : ''}
+      ${(() => { const pct = b.status==='done' ? 100 : b.hoursPlayed > 0 ? Math.min(100, Math.round(b.hoursPlayed/50*100)) : 0; return `<div style="height:2px;background:var(--border);border-radius:1px;margin-top:5px"><div style="height:2px;width:${pct}%;background:var(--blush);border-radius:1px;transition:width 0.3s"></div></div>`; })()}
       <div class="book-row" style="margin-top:6px">
-        <span class="bstatus bs-${b.status}" onclick="event.stopPropagation();cycleBook(${b.id})">${slbl}</span>
+        <span class="bstatus bs-${b.status}" onclick="event.stopPropagation();cycleBook('${b.id}')">${slbl}</span>
         ${stars ? `<span class="b-stars">${stars}</span>` : ''}
       </div>
     </div>
-    <button class="book-del" onclick="event.stopPropagation();delBook(${b.id})">✕</button>
+    <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')">✕</button>
   `;
   return div;
 }
@@ -324,7 +327,7 @@ function setBookF(f, btn) {
 
 /* ══ SHOW / ANIME EPISODE TRACKING ══ */
 function incrementEpisode(id) {
-  const b = (S.media||[]).find(b => b.id === id);
+  const b = (S.media||[]).find(b => String(b.id) === String(id));
   if (!b) return;
   b.currentEpisode = (b.currentEpisode || 0) + 1;
   // Auto-advance season if totalEpisodes per season known
@@ -348,7 +351,7 @@ function incrementEpisode(id) {
 
 /* ══ CYCLE STATUS ══ */
 function cycleBook(id) {
-  const b = (S.media||[]).find(b => b.id === id);
+  const b = (S.media||[]).find(b => String(b.id) === String(id));
   if (!b) return;
 
   if (b.mediaType === 'film') {
@@ -380,7 +383,7 @@ function cycleBook(id) {
 }
 
 function updateBF(id, f, v) {
-  const b = (S.media||[]).find(b => b.id === id);
+  const b = (S.media||[]).find(b => String(b.id) === String(id));
   if (!b) return;
   b[f] = v;
   scheduleSave();
@@ -391,7 +394,7 @@ function updateBF(id, f, v) {
 async function uploadCover(id, input) {
   const f = input.files[0];
   if (!f) return;
-  const b = (S.media||[]).find(b => b.id === id);
+  const b = (S.media||[]).find(b => String(b.id) === String(id));
   if (!b) return;
   try {
     b.coverUrl = await uploadAsset(`covers/${id}`, f);
@@ -409,8 +412,8 @@ async function uploadCover(id, input) {
 
 function delBook(id) {
   if (!confirm(t('remove_item'))) return;
-  S.media = (S.media||[]).filter(b => b.id !== id);
-  if (activeBookId === id) { activeBookId = null; closeModal('mBookDetails'); closeModal('mAlbumDetail'); }
+  S.media = (S.media||[]).filter(b => String(b.id) !== String(id));
+  if (String(activeBookId) === String(id)) { activeBookId = null; closeModal('mBookDetails'); closeModal('mAlbumDetail'); }
   scheduleSave();
   renderBooks();
 }
@@ -459,7 +462,7 @@ function saveBook() {
 /* ══ BOOK / SHOW / FILM DETAIL MODAL ══ */
 function openBookDetails(id) {
   activeBookId = id;
-  const b = (S.media||[]).find(x => x.id === id);
+  const b = (S.media||[]).find(x => String(x.id) === String(id));
   if (!b) return;
   if (b.mediaType === 'album') { openAlbumDetail(id); return; }
   renderBookDetails();
@@ -558,13 +561,13 @@ function renderChapterNotes() {
     card.className = 'chapter-note-card';
     card.innerHTML = `
       <div class="chapter-note-top">
-        <input class="editable" value="${escapeAttr(n.label||'')}" onchange="updateChapterLabel(${n.id},this.value)">
-        <input type="date" value="${escapeAttr(n.date||today())}" onchange="updateChapterNoteDate(${n.id},this.value)"
+        <input class="editable" value="${escapeAttr(n.label||'')}" onchange="updateChapterLabel('${n.id}',this.value)">
+        <input type="date" value="${escapeAttr(n.date||today())}" onchange="updateChapterNoteDate('${n.id}',this.value)"
           style="background:none;border:none;color:var(--muted);font-size:0.58rem;font-family:'DM Mono',monospace;cursor:pointer;padding:0;max-width:96px">
-        <button class="chapter-note-del" onclick="expandNote(${n.id})" title="Expand" style="margin-right:2px;opacity:0.6">⤢</button>
-        <button class="chapter-note-del" onclick="deleteChapterNote(${n.id})">✕</button>
+        <button class="chapter-note-del" onclick="expandNote('${n.id}')" title="Expand" style="margin-right:2px;opacity:0.6">⤢</button>
+        <button class="chapter-note-del" onclick="deleteChapterNote('${n.id}')">✕</button>
       </div>
-      <textarea class="editable-area" rows="4" placeholder="${t('notes_ph')}" oninput="updateChapterNote(${n.id},this.value)">${escapeHtml(n.note||'')}</textarea>
+      <textarea class="editable-area" rows="4" placeholder="${t('notes_ph')}" oninput="updateChapterNote('${n.id}',this.value)">${escapeHtml(n.note||'')}</textarea>
     `;
     wrap.appendChild(card);
   });
@@ -657,7 +660,7 @@ let _expandNoteId = null;
 
 function expandNote(noteId) {
   const b = getActiveBook(); if (!b) return;
-  const n = (b.chapterNotes || []).find(n => n.id === noteId);
+  const n = (b.chapterNotes || []).find(n => String(n.id) === String(noteId));
   if (!n) return;
   _expandNoteId = noteId;
   eid('neLabel').value = n.label || '';
@@ -667,13 +670,13 @@ function expandNote(noteId) {
 
 function updateExpandedLabel(val) {
   const b = getActiveBook(); if (!b || !_expandNoteId) return;
-  const n = (b.chapterNotes || []).find(n => n.id === _expandNoteId);
+  const n = (b.chapterNotes || []).find(n => String(n.id) === String(_expandNoteId));
   if (n) { n.label = val; scheduleSave(); renderChapterNotes(); renderAlbumNotes(); }
 }
 
 function updateExpandedNote(val) {
   const b = getActiveBook(); if (!b || !_expandNoteId) return;
-  const n = (b.chapterNotes || []).find(n => n.id === _expandNoteId);
+  const n = (b.chapterNotes || []).find(n => String(n.id) === String(_expandNoteId));
   if (n) { n.note = val; scheduleSave(); }
 }
 
@@ -686,25 +689,25 @@ function closeNoteExpand() {
 
 function updateChapterLabel(noteId, value) {
   const b = getActiveBook(); if (!b) return;
-  const n = b.chapterNotes.find(n => n.id === noteId);
+  const n = b.chapterNotes.find(n => String(n.id) === String(noteId));
   if (n) { n.label = value; scheduleSave(); }
 }
 
 function updateChapterNote(noteId, value) {
   const b = getActiveBook(); if (!b) return;
-  const n = b.chapterNotes.find(n => n.id === noteId);
+  const n = b.chapterNotes.find(n => String(n.id) === String(noteId));
   if (n) { n.note = value; scheduleSave(); }
 }
 
 function updateChapterNoteDate(noteId, value) {
   const b = getActiveBook(); if (!b) return;
-  const n = b.chapterNotes.find(n => n.id === noteId);
+  const n = b.chapterNotes.find(n => String(n.id) === String(noteId));
   if (n) { n.date = value; scheduleSave(); }
 }
 
 function deleteChapterNote(noteId) {
   const b = getActiveBook(); if (!b) return;
-  b.chapterNotes = b.chapterNotes.filter(n => n.id !== noteId);
+  b.chapterNotes = b.chapterNotes.filter(n => String(n.id) !== String(noteId));
   scheduleSave(); renderChapterNotes();
 }
 
@@ -744,13 +747,13 @@ function renderAlbumDetail() {
     row.className = 'track-row';
     row.innerHTML = `
       <div class="track-num">${idx + 1}</div>
-      <input class="editable track-title-inp" value="${escapeAttr(tr.title)}" placeholder="${t('track_title_ph')}" oninput="updateTrack(${b.id},${tr.id},'title',this.value)">
-      <input class="editable track-dur-inp" value="${escapeAttr(tr.duration)}" placeholder="0:00" oninput="updateTrack(${b.id},${tr.id},'duration',this.value)">
+      <input class="editable track-title-inp" value="${escapeAttr(tr.title)}" placeholder="${t('track_title_ph')}" oninput="updateTrack('${b.id}','${tr.id}','title',this.value)">
+      <input class="editable track-dur-inp" value="${escapeAttr(tr.duration)}" placeholder="0:00" oninput="updateTrack('${b.id}','${tr.id}','duration',this.value)">
       <div class="track-stars">
-        ${[1,2,3,4,5,6,7,8,9,10].map(n => `<span class="track-star${tr.rating>=n?' lit':''}" onclick="rateTrack(${b.id},${tr.id},${n})">${tr.rating>=n?'★':'☆'}</span>`).join('')}
+        ${[1,2,3,4,5,6,7,8,9,10].map(n => `<span class="track-star${tr.rating>=n?' lit':''}" onclick="rateTrack('${b.id}','${tr.id}',${n})">${tr.rating>=n?'★':'☆'}</span>`).join('')}
       </div>
-      <button class="habit-del" onclick="deleteTrack(${b.id},${tr.id})">✕</button>
-      <textarea class="editable-area track-review-inp" rows="2" placeholder="${t('track_review_ph')}" oninput="updateTrack(${b.id},${tr.id},'review',this.value)">${escapeHtml(tr.review||'')}</textarea>
+      <button class="habit-del" onclick="deleteTrack('${b.id}','${tr.id}')">✕</button>
+      <textarea class="editable-area track-review-inp" rows="2" placeholder="${t('track_review_ph')}" oninput="updateTrack('${b.id}','${tr.id}','review',this.value)">${escapeHtml(tr.review||'')}</textarea>
     `;
     wrap.appendChild(row);
   });
@@ -770,11 +773,11 @@ function renderAlbumNotes() {
     card.className = 'chapter-note-card';
     card.innerHTML = `
       <div class="chapter-note-top">
-        <input class="editable" value="${escapeAttr(n.label||'')}" onchange="updateChapterLabel(${n.id},this.value);renderAlbumNotes()">
-        <button class="chapter-note-del" onclick="expandNote(${n.id})" title="Expand" style="margin-right:2px;opacity:0.6">⤢</button>
-        <button class="chapter-note-del" onclick="deleteChapterNote(${n.id});renderAlbumNotes()">✕</button>
+        <input class="editable" value="${escapeAttr(n.label||'')}" onchange="updateChapterLabel('${n.id}',this.value);renderAlbumNotes()">
+        <button class="chapter-note-del" onclick="expandNote('${n.id}')" title="Expand" style="margin-right:2px;opacity:0.6">⤢</button>
+        <button class="chapter-note-del" onclick="deleteChapterNote('${n.id}');renderAlbumNotes()">✕</button>
       </div>
-      <textarea class="editable-area" rows="4" placeholder="${t('notes_ph')}" oninput="updateChapterNote(${n.id},this.value)">${escapeHtml(n.note||'')}</textarea>
+      <textarea class="editable-area" rows="4" placeholder="${t('notes_ph')}" oninput="updateChapterNote('${n.id}',this.value)">${escapeHtml(n.note||'')}</textarea>
     `;
     wrap.appendChild(card);
   });
@@ -783,22 +786,22 @@ function renderAlbumNotes() {
 function addAlbumNote() {
   const b = getActiveBook(); if (!b) return;
   if (!Array.isArray(b.chapterNotes)) b.chapterNotes = [];
-  b.chapterNotes.push({ id: Date.now(), label: mediaNoteDefaultLabel('album', b.chapterNotes.length), note: '' });
+  b.chapterNotes.push({ id: uid(), label: mediaNoteDefaultLabel('album', b.chapterNotes.length), note: '' });
   scheduleSave(); renderAlbumNotes();
 }
 
 function addTrack(albumId) {
-  const b = (S.media||[]).find(x => x.id === albumId);
+  const b = (S.media||[]).find(x => String(x.id) === String(albumId));
   if (!b) return;
   if (!Array.isArray(b.tracks)) b.tracks = [];
-  b.tracks.push({ id: Date.now(), title: '', duration: '', rating: 0, review: '' });
+  b.tracks.push({ id: uid(), title: '', duration: '', rating: 0, review: '' });
   scheduleSave(); renderAlbumDetail();
 }
 
 function updateTrack(albumId, trackId, field, value) {
-  const b = (S.media||[]).find(x => x.id === albumId);
+  const b = (S.media||[]).find(x => String(x.id) === String(albumId));
   if (!b) return;
-  const tr = (b.tracks||[]).find(t => t.id === trackId);
+  const tr = (b.tracks||[]).find(t => String(t.id) === String(trackId));
   if (!tr) return;
   tr[field] = value;
   scheduleSave();
@@ -806,18 +809,18 @@ function updateTrack(albumId, trackId, field, value) {
 }
 
 function rateTrack(albumId, trackId, rating) {
-  const b = (S.media||[]).find(x => x.id === albumId);
+  const b = (S.media||[]).find(x => String(x.id) === String(albumId));
   if (!b) return;
-  const tr = (b.tracks||[]).find(t => t.id === trackId);
+  const tr = (b.tracks||[]).find(t => String(t.id) === String(trackId));
   if (!tr) return;
   tr.rating = tr.rating === rating ? 0 : rating; // toggle off if same
   scheduleSave(); renderAlbumDetail();
 }
 
 function deleteTrack(albumId, trackId) {
-  const b = (S.media||[]).find(x => x.id === albumId);
+  const b = (S.media||[]).find(x => String(x.id) === String(albumId));
   if (!b) return;
-  b.tracks = (b.tracks||[]).filter(t => t.id !== trackId);
+  b.tracks = (b.tracks||[]).filter(t => String(t.id) !== String(trackId));
   scheduleSave(); renderAlbumDetail();
 }
 

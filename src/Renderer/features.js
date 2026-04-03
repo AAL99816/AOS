@@ -539,7 +539,7 @@ function renderFocusItems() {
     const pct      = target ? Math.min(100, Math.round(done / target * 100)) : 0;
     return `
       <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--panel);border:1px solid ${isActive ? 'var(--blush)' : 'var(--border)'};border-radius:12px;margin-bottom:10px;transition:border-color 0.2s;${item.completed?'opacity:0.5':''}">
-        <input type="checkbox" ${item.completed?'checked':''} onchange="toggleFocusItemDone(${item.id})" title="Mark complete" style="flex-shrink:0">
+        <input type="checkbox" ${item.completed?'checked':''} onchange="toggleFocusItemDone('${item.id}')" title="Mark complete" style="flex-shrink:0">
         <div style="flex:1;min-width:0">
           <div style="font-size:0.84rem;color:var(--cream);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${item.completed?'text-decoration:line-through;opacity:0.6':''}">${escapeHtml(label)}</div>
           <div style="font-size:0.68rem;color:var(--muted)">
@@ -549,8 +549,8 @@ function renderFocusItems() {
           </div>
           ${target ? `<div style="height:2px;background:var(--mid);border-radius:2px;margin-top:4px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--blush);border-radius:2px"></div></div>` : ''}
         </div>
-        ${!item.completed ? `<button onclick="startFocusOn(${item.id})" class="btn ${isActive ? 'btn-p' : 'btn-g'}" style="font-size:0.68rem;flex-shrink:0">${isActive ? '▶ Active' : 'Focus'}</button>` : ''}
-        <button onclick="deleteFocusItem(${item.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.78rem;padding:0 4px;flex-shrink:0">✕</button>
+        ${!item.completed ? `<button onclick="startFocusOn('${item.id}')" class="btn ${isActive ? 'btn-p' : 'btn-g'}" style="font-size:0.68rem;flex-shrink:0">${isActive ? '▶ Active' : 'Focus'}</button>` : ''}
+        <button onclick="deleteFocusItem('${item.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.78rem;padding:0 4px;flex-shrink:0">✕</button>
       </div>`;
   };
 
@@ -563,7 +563,7 @@ function renderFocusItems() {
 }
 
 function toggleFocusItemDone(id) {
-  const item = (S.focusItems || []).find(i => i.id === id);
+  const item = (S.focusItems || []).find(i => String(i.id) === String(id));
   if (!item) return;
   item.completed = !item.completed;
   if (item.completed && _focusItemId === id) _focusItemId = null;
@@ -608,15 +608,15 @@ function saveFocusItem() {
 }
 
 function deleteFocusItem(id) {
-  S.focusItems = (S.focusItems||[]).filter(f => f.id !== id);
-  if (_focusItemId === id) { _focusItemId = null; eid('focusActiveLabel').textContent = ''; }
+  S.focusItems = (S.focusItems||[]).filter(f => String(f.id) !== String(id));
+  if (String(_focusItemId) === String(id)) { _focusItemId = null; eid('focusActiveLabel').textContent = ''; }
   scheduleSave();
   renderFocusItems();
 }
 
 function startFocusOn(id) {
   _focusItemId = id;
-  const item = (S.focusItems||[]).find(f => f.id === id);
+  const item = (S.focusItems||[]).find(f => String(f.id) === String(id));
   const lbl  = eid('focusActiveLabel');
   if (lbl && item) lbl.textContent = item.label;
   renderFocusItems();
@@ -722,7 +722,7 @@ function focusOnProject(projectId) {
   let item = S.focusItems.find(f => f.projectId == projectId);
   if (!item) {
     item = {
-      id: Date.now(),
+      id: uid(),
       label: project.title || 'Focus',
       projectId,
       pomodorosTarget: 0,

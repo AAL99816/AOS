@@ -37,30 +37,30 @@ function renderGoals() {
       card.className = 'goal-item';
 
       card.innerHTML = `
-        <button class="goal-del" onclick="delGoal(${g.id})">✕</button>
+        <button class="goal-del" onclick="delGoal('${g.id}')">✕</button>
 
         <div class="goal-head">
-          <div class="goal-circle ${statusClass}" onclick="nudgeGoal(${g.id})" title="Advance progress">
+          <div class="goal-circle ${statusClass}" onclick="nudgeGoal('${g.id}')" title="Advance progress">
             ${pct >= 100 ? '✓' : ''}
           </div>
           <input
             class="editable goal-txt-inp"
             value="${escapeAttr(g.text || '')}"
-            onchange="updateGoalField(${g.id}, 'text', this.value)"
+            onchange="updateGoalField('${g.id}', 'text', this.value)"
             title="Edit title"
           >
         </div>
 
         <div style="display:flex;gap:6px;margin-bottom:4px">
-          <input class="editable" style="font-size:0.62rem;color:var(--blush);font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;width:50%" value="${escapeAttr(g.type||'')}" placeholder="${t('type_ph')}" onchange="updateGoalField(${g.id},'type',this.value)">
-          <input class="editable" style="font-size:0.62rem;color:var(--blush);font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;width:50%" value="${escapeAttr(g.context||'')}" placeholder="${t('context_ph')}" onchange="updateGoalField(${g.id},'context',this.value)">
+          <input class="editable" style="font-size:0.62rem;color:var(--blush);font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;width:50%" value="${escapeAttr(g.type||'')}" placeholder="${t('type_ph')}" onchange="updateGoalField('${g.id}','type',this.value)">
+          <input class="editable" style="font-size:0.62rem;color:var(--blush);font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;width:50%" value="${escapeAttr(g.context||'')}" placeholder="${t('context_ph')}" onchange="updateGoalField('${g.id}','context',this.value)">
         </div>
-        <select class="editable" style="font-size:0.62rem;color:var(--muted-lt);font-family:'DM Mono',monospace;width:100%;margin-bottom:6px;background:transparent;border:1px solid var(--border);border-radius:5px;padding:3px 6px;" onchange="updateGoalField(${g.id},'projectId',this.value||null)">
+        <select class="editable" style="font-size:0.62rem;color:var(--muted-lt);font-family:'DM Mono',monospace;width:100%;margin-bottom:6px;background:transparent;border:1px solid var(--border);border-radius:5px;padding:3px 6px;" onchange="updateGoalField('${g.id}','projectId',this.value||null)">
           <option value="">${t('no_project')}</option>
           ${(S.projects||[]).map(p=>`<option value="${p.id}"${String(g.projectId)===String(p.id)?' selected':''}>${escapeHtml(p.title)}</option>`).join('')}
         </select>
 
-        <textarea class="editable-area" style="font-size:0.72rem;color:var(--muted);margin-bottom:7px;min-height:42px;" placeholder="${t('notes_ph')}" onchange="updateGoalField(${g.id},'notes',this.value)">${escapeHtml(g.notes||'')}</textarea>
+        <textarea class="editable-area" style="font-size:0.72rem;color:var(--muted);margin-bottom:7px;min-height:42px;" placeholder="${t('notes_ph')}" onchange="updateGoalField('${g.id}','notes',this.value)">${escapeHtml(g.notes||'')}</textarea>
 
         <div class="goal-bar">
           <div class="goal-fill" style="width:${pct}%"></div>
@@ -71,7 +71,7 @@ function renderGoals() {
             class="editable goal-dl-inp"
             type="date"
             value="${escapeAttr(dateText)}"
-            onchange="updateGoalField(${g.id}, 'deadline', this.value)"
+            onchange="updateGoalField('${g.id}', 'deadline', this.value)"
           >
           <input
             class="goal-pct-inp"
@@ -79,7 +79,7 @@ function renderGoals() {
             min="0"
             max="100"
             value="${pct}"
-            onchange="setGoalPct(${g.id}, this.value)"
+            onchange="setGoalPct('${g.id}', this.value)"
             title="Edit progress"
           >
         </div>
@@ -102,7 +102,7 @@ function renderGoals() {
 }
 
 function updateGoalField(id, field, value) {
-  const g = S.goals.find(x => x.id === id);
+  const g = S.goals.find(x => String(x.id) === String(id));
   if (!g) return;
 
   g[field] = value;
@@ -118,7 +118,7 @@ function updateGoalField(id, field, value) {
 }
 
 function nudgeGoal(id) {
-  const g = S.goals.find(x => x.id === id);
+  const g = S.goals.find(x => String(x.id) === String(id));
   if (!g) return;
 
   const steps = [0, 25, 50, 75, 100];
@@ -134,7 +134,7 @@ function nudgeGoal(id) {
 }
 
 function setGoalPct(id, value) {
-  const g = S.goals.find(x => x.id === id);
+  const g = S.goals.find(x => String(x.id) === String(id));
   if (!g) return;
 
   g.progress = clampPct(value);
@@ -145,7 +145,7 @@ function setGoalPct(id, value) {
 function delGoal(id) {
   if (!confirm(t('remove_goal_confirm'))) return;
 
-  S.goals = S.goals.filter(x => x.id !== id);
+  S.goals = S.goals.filter(x => String(x.id) !== String(id));
   scheduleSave();
   renderGoals();
 }
@@ -157,7 +157,7 @@ function saveGoal() {
   if (!Array.isArray(S.goals)) S.goals = [];
 
   S.goals.push(makeGoal({
-    id: Date.now(),
+    id: uid(),
     text,
     category: eid('gCat').value.trim() || 'Unsorted',
     type: eid('gType').value.trim(),
@@ -190,4 +190,3 @@ function clampPct(v) {
   if (Number.isNaN(n)) return 0;
   return Math.max(0, Math.min(100, n));
 }
-

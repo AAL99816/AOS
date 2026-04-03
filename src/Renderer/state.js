@@ -208,6 +208,24 @@ function normalizeAppState(raw={}){
     log: (cs.log && typeof cs.log === 'object') ? cs.log : {}
   }));
 
+  // Migrate legacy Date.now() IDs (13-digit numbers) on customFoods and foodLog entries to UUIDs
+  if (Array.isArray(out.customFoods)) {
+    out.customFoods = out.customFoods.map(cf => ({
+      ...cf,
+      id: (typeof cf.id === 'number' || (typeof cf.id === 'string' && /^\d{13}$/.test(cf.id))) ? uid() : cf.id
+    }));
+  }
+  if (out.foodLog && typeof out.foodLog === 'object') {
+    Object.keys(out.foodLog).forEach(date => {
+      if (Array.isArray(out.foodLog[date])) {
+        out.foodLog[date] = out.foodLog[date].map(e => ({
+          ...e,
+          id: (typeof e.id === 'number' || (typeof e.id === 'string' && /^\d{13}$/.test(e.id))) ? uid() : e.id
+        }));
+      }
+    });
+  }
+
   out.habits = (Array.isArray(out.habits) ? out.habits : clone(DS.habits)).map(makeHabit);
   out.goals = (Array.isArray(out.goals) ? out.goals : clone(DS.goals)).map(makeGoal);
   out.workout = (Array.isArray(out.workout) ? out.workout : clone(DS.workout)).map(makeWorkoutDay);
