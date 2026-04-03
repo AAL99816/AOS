@@ -169,6 +169,7 @@ function openSettings() {
 async function uploadAvatarFromSettings(input) {
   const f = input.files[0];
   if (!f || !currentUser) return;
+  if (f.size > 5 * 1024 * 1024) { toast('Image too large — max 5 MB'); input.value = ''; return; }
   const status = eid('stAvatarStatus');
   status.textContent = 'Uploading…';
   input.disabled = true;

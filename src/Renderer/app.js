@@ -27,6 +27,7 @@ function renderHeroProfile(){
 async function uploadAvatar(input){
   const f = input.files[0];
   if(!f || !currentUser) return;
+  if(f.size > 5 * 1024 * 1024){ toast(t('avatar_upload_error') || 'Image too large — max 5 MB'); input.value = ''; return; }
   try{
     const url = await uploadAsset('avatar', f);
     await sb.from('profiles').upsert({ id: currentUser.id, email: currentUser.email, avatar_url: url }, { onConflict: 'id' });
@@ -51,6 +52,7 @@ async function saveUsername(val){
 async function uploadHero(input){
   const f = input.files[0];
   if(!f) return;
+  if(f.size > 5 * 1024 * 1024){ toast('Image too large — max 5 MB'); input.value = ''; return; }
 
   try {
     S.heroImg = await uploadAsset('hero', f);

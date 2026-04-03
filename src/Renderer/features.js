@@ -137,6 +137,7 @@ const POMO_LONG_BREAK = 20 * 60;
 const POMO_CYCLE      = 4;        // sessions before long break
 
 function _playChime() {
+  let played = false;
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator();
@@ -149,7 +150,13 @@ function _playChime() {
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
     osc.start();
     osc.stop(ctx.currentTime + 1.2);
+    played = true;
   } catch {}
+  // Visual flash fallback if audio is blocked or fails
+  if (!played) {
+    const w = eid('pomodoroWidget');
+    if (w) { w.style.outline = '2px solid var(--blush)'; setTimeout(() => { w.style.outline = ''; }, 800); }
+  }
 }
 
 function _savePomodoroState() {

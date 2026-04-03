@@ -87,11 +87,12 @@ function renderHabits() {
   // Week navigation header
   const nav = document.createElement('div');
   nav.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)';
+  const atLimit = habitWeekOffset <= -52;
   nav.innerHTML = `
-    <button class="btn btn-g" style="padding:2px 8px;font-size:0.62rem" onclick="habitWeekOffset--;renderHabits()">‹ Prev</button>
+    <button class="btn btn-g" style="padding:2px 8px;font-size:0.62rem" onclick="if(habitWeekOffset>-52){habitWeekOffset--;renderHabits()}" ${atLimit ? 'disabled style="opacity:0.3"' : ''}>‹ Prev</button>
     <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
       <span style="font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.06em">${escapeHtml(weekLabelForOffset(habitWeekOffset))}</span>
-      ${habitWeekOffset !== 0 ? `<button class="btn btn-g" style="padding:1px 7px;font-size:0.54rem" onclick="habitWeekOffset=0;renderHabits()">Today</button>` : ''}
+      ${habitWeekOffset !== 0 ? `<button class="btn btn-g" style="padding:1px 7px;font-size:0.54rem" onclick="habitWeekOffset=0;renderHabits()">Today</button>` : `<button class="btn btn-g" style="padding:1px 7px;font-size:0.54rem" onclick="markAllHabitsDone()">Mark All</button>`}
     </div>
     <button class="btn btn-g" style="padding:2px 8px;font-size:0.62rem" onclick="if(habitWeekOffset<0){habitWeekOffset++;renderHabits()}" ${habitWeekOffset >= 0 ? 'disabled style="opacity:0.3"' : ''}>Next ›</button>
   `;
@@ -241,14 +242,28 @@ function delHabit(id) {
 }
 
 function addHabit() {
-  const name = eid('newHabitName').value.trim();
+  const name = eid('newHabitName').value.trim().slice(0, 80);
   if (!name) return;
   if (!Array.isArray(S.habits)) S.habits = [];
-  S.habits.push(makeHabit({ id: Date.now(), name }));
+  S.habits.push(makeHabit({ name }));
   eid('newHabitName').value = '';
   scheduleSave();
   renderHabits();
   toast(`"${name}" ${t('added')}`);
+}
+
+function markAllHabitsDone() {
+  const d = today();
+  if (!Array.isArray(S.habits) || !S.habits.length) return;
+  const allDone = S.habits.every(h => h.days && h.days[d]);
+  S.habits.forEach(h => {
+    if (!h.days) h.days = {};
+    if (allDone) delete h.days[d];
+    else h.days[d] = true;
+  });
+  scheduleSave();
+  renderHabits();
+  toast(allDone ? 'All habits unmarked' : 'All habits marked done');
 }
 
 /* ══ HELPERS (used by weekly summary, fitness, etc.) ══ */

@@ -431,7 +431,6 @@ function saveBook() {
   const type = eid('bkType').value;
   const af = typeof consumeAutofillData === 'function' ? consumeAutofillData() : {};
   S.media.push(makeMedia({
-    id: Date.now(),
     mediaType: type,
     title,
     author:        eid('bkA').value.trim(),
@@ -650,7 +649,7 @@ function updateActiveBookNotes(value) {
 function addChapterNote() {
   const b = getActiveBook(); if (!b) return;
   if (!Array.isArray(b.chapterNotes)) b.chapterNotes = [];
-  b.chapterNotes.push({ id: Date.now(), label: mediaNoteDefaultLabel(b.mediaType, b.chapterNotes.length), note: '', date: today() });
+  b.chapterNotes.push({ id: uid(), label: mediaNoteDefaultLabel(b.mediaType, b.chapterNotes.length), note: '', date: today() });
   scheduleSave(); renderChapterNotes();
 }
 

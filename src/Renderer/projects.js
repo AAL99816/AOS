@@ -120,7 +120,7 @@ function addProjectNote(id) {
   if (!text) return;
   if (!Array.isArray(p.notesLog)) p.notesLog = [];
   if (p.notesLog.length >= 50) { toast('Note limit reached (50 max) — delete some to add more'); return; }
-  p.notesLog.push({ id: Date.now(), date: today(), text });
+  p.notesLog.push({ id: uid(), date: today(), text });
   p.updatedOn = today();
   if (inp) inp.value = '';
   scheduleSave();
@@ -230,7 +230,7 @@ function addProjectTask() {
   const p = ensureProjects().find(x => x.id === _activeProjectId);
   if (!p) return;
   if (!Array.isArray(p.tasks)) p.tasks = [];
-  p.tasks.push({ id: Date.now(), text, done: false, dueDate, taskNotes });
+  p.tasks.push({ id: uid(), text, done: false, dueDate, taskNotes });
   eid('pdNewTask').value      = '';
   eid('pdNewTaskDate').value  = '';
   eid('pdNewTaskNotes').value = '';
@@ -274,10 +274,15 @@ function reorderTask(projectId, fromIdx, dir) {
 function deleteProjectTask(id, taskId) {
   const p = ensureProjects().find(x => x.id === id);
   if (!p) return;
+  const removed = (p.tasks || []).find(t => t.id === taskId);
   p.tasks = (p.tasks || []).filter(t => t.id !== taskId);
   scheduleSave();
   renderPdTasks(p);
   renderProjects();
+  if (removed) toastUndo(`"${removed.text || 'Task'}" removed`, () => {
+    const pp = ensureProjects().find(x => x.id === id);
+    if (pp) { if (!Array.isArray(pp.tasks)) pp.tasks = []; pp.tasks.push(removed); scheduleSave(); renderPdTasks(pp); renderProjects(); }
+  });
 }
 
 /* ══ PROJECT CRUD ══ */
@@ -318,7 +323,6 @@ function saveProject() {
   const title = eid('pTitle').value.trim();
   if (!title) return;
   ensureProjects().push(makeProject({
-    id:       Date.now(),
     title,
     type:     eid('pType').value.trim(),
     context:  eid('pCtx').value.trim(),

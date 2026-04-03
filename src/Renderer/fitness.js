@@ -57,7 +57,7 @@ function logWeightEntry() {
 
   // Replace existing entry for same date or push new
   const idx = S.weightLog.findIndex(e => e.date === date);
-  const entry = { id: Date.now(), date, weight: kg, notes };
+  const entry = { id: uid(), date, weight: kg, notes };
   if (idx >= 0) S.weightLog[idx] = entry;
   else S.weightLog.push(entry);
 
@@ -167,7 +167,7 @@ function updateWDay(i, val) {
   ensureFitnessState();
 
   if (!S.workout[i]) S.workout[i] = { type: '', rest: false, cardId: null };
-  S.workout[i].type = val;
+  S.workout[i].type = String(val).trim().slice(0, 60);
   S.workout[i].rest = String(val).trim().toLowerCase() === 'rest';
   S.workout[i].cardId = null; // clear preset link when manually renaming
 
@@ -425,7 +425,7 @@ function _refreshExerciseDatalist() {
 
 function addWorkoutCard(){
   ensureFitnessState();
-  S.workoutCards.push({id:Date.now(),title:t('new_block'),subtitle:'',exercises:[]});
+  S.workoutCards.push({id:uid(),title:t('new_block'),subtitle:'',exercises:[]});
   scheduleSave();
   renderWorkoutCards();
 }
@@ -464,7 +464,19 @@ function delEx(wcId, exId) {
   const wc = S.workoutCards.find(w => w.id === wcId);
   if (!wc) return;
 
+  const ex = (wc.exercises || []).find(e => e.id === exId);
   wc.exercises = (wc.exercises || []).filter(e => e.id !== exId);
+
+  // Clean up exercise history so deleted exercises don't ghost in PBs
+  if (ex && ex.name) {
+    const key = normExerciseKey(ex.name);
+    // Only remove if no other card still has an exercise with the same name
+    const stillUsed = (S.workoutCards || []).some(w =>
+      (w.exercises || []).some(e => normExerciseKey(e.name) === key)
+    );
+    if (!stillUsed) delete S.exerciseHistory[key];
+  }
+
   scheduleSave();
   renderWorkoutCards();
 }
@@ -479,7 +491,7 @@ function addEx(wcId) {
   if (!wc) return;
 
   if (!Array.isArray(wc.exercises)) wc.exercises = [];
-  wc.exercises.push({ id: Date.now(), name });
+  wc.exercises.push({ id: uid(), name });
 
   eid(`exN-${wcId}`).value = '';
 
@@ -560,7 +572,7 @@ function logWorkoutSession(wcId) {
     .join(' · ');
 
   S.workoutHistory.push({
-    id: Date.now(),
+    id: uid(),
     cardId: wc.id,
     title: wc.title || 'Workout',
     date: today(),
@@ -658,7 +670,7 @@ function logCardioSession() {
 }
 
 function deleteCardioSession(id) {
-  S.cardioHistory = (S.cardioHistory || []).filter(s => s.id !== id);
+  S.cardioHistory = (S.cardioHistory || []).filter(s => String(s.id) !== String(id));
   scheduleSave();
   renderCardioHistory();
 }
@@ -711,7 +723,7 @@ function logCalorieSession() {
   const dateVal     = eid('calorieDate').value || today();
   if (!calories) return;
   if (!Array.isArray(S.calorieHistory)) S.calorieHistory = [];
-  S.calorieHistory.push({ id: Date.now(), date: dateVal, description, calories });
+  S.calorieHistory.push({ id: uid(), date: dateVal, description, calories });
   scheduleSave();
   if (mealEl) mealEl.value = '';
   eid('calorieAmount').value = '';
@@ -721,7 +733,7 @@ function logCalorieSession() {
 }
 
 function deleteCalorieSession(id) {
-  S.calorieHistory = (S.calorieHistory || []).filter(s => s.id !== id);
+  S.calorieHistory = (S.calorieHistory || []).filter(s => String(s.id) !== String(id));
   scheduleSave();
   renderCalorieHistory();
 }

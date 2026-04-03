@@ -367,13 +367,15 @@ function renderFoodMacroBar() {
   if (!el) return;
   const entries = S.foodLog[_foodEffectiveDate()] || [];
   const totals = _sumMacros(entries);
-  const T = S.foodTargets;
+  const T = S.foodTargets || { kcal: 2000, protein: 150, carbs: 200, fat: 65, fiber: 25 };
 
   const remaining = T.kcal - Math.round(totals.kcal);
   const over      = remaining < 0;
-  const remColor  = over ? 'var(--petal)' : 'var(--gold-lt)';
   const consumed  = Math.round(totals.kcal);
   const pct       = T.kcal ? Math.min(100, Math.round((consumed / T.kcal) * 100)) : 0;
+  const near      = pct >= 80 && !over;
+  const remColor  = over ? 'var(--petal)' : near ? 'var(--gold)' : 'var(--gold-lt)';
+  const barColor  = over ? 'var(--petal)' : near ? 'var(--gold)' : 'var(--blush)';
   const itemCount = entries.length;
 
   el.innerHTML = `
@@ -390,7 +392,7 @@ function renderFoodMacroBar() {
     </div>
     <!-- Calorie progress bar -->
     <div style="height:5px;background:var(--mid);border-radius:3px;overflow:hidden;margin-bottom:14px">
-      <div style="height:100%;width:${pct}%;background:${over?'var(--petal)':'var(--blush)'};border-radius:3px;transition:width 0.3s"></div>
+      <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px;transition:width 0.3s"></div>
     </div>
     <!-- Macro grid -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
@@ -971,7 +973,7 @@ function _saveToMyFoodsFromResult(name, per100g) {
   if (S.customFoods.some(cf => cf.name.toLowerCase() === name.toLowerCase())) {
     toast(`"${name}" already in My Foods`); return;
   }
-  S.customFoods.push({ id: Date.now(), name, kcal: per100g.kcal, protein: per100g.protein, carbs: per100g.carbs, fat: per100g.fat, fiber: per100g.fiber || 0 });
+  S.customFoods.push({ id: uid(), name, kcal: per100g.kcal, protein: per100g.protein, carbs: per100g.carbs, fat: per100g.fat, fiber: per100g.fiber || 0 });
   scheduleSave();
   closeFoodSearch();
   renderMyFoodsTab();
@@ -1039,7 +1041,7 @@ function saveQuickAdd() {
   if (saveCustom && !isEdit) {
     if (!Array.isArray(S.customFoods)) S.customFoods = [];
     const exists = S.customFoods.some(cf => cf.name.toLowerCase() === name.toLowerCase());
-    if (!exists) S.customFoods.push({ id: Date.now(), name, kcal, protein, carbs, fat, fiber });
+    if (!exists) S.customFoods.push({ id: uid(), name, kcal, protein, carbs, fat, fiber });
   }
 
   // Dispatch to meal plan if target set
@@ -1047,7 +1049,7 @@ function saveQuickAdd() {
     const plan = (S.mealPlans || []).find(p => p.id === _foodSearchTarget.planId);
     if (!plan) { toast('Plan not found'); return; }
     if (!plan.foods) plan.foods = [];
-    plan.foods.push({ id: Date.now(), name, brand: '', meal: _foodSearchTarget.meal, grams: 0, kcal, protein, carbs, fat, fiber, per100g: null });
+    plan.foods.push({ id: uid(), name, brand: '', meal: _foodSearchTarget.meal, grams: 0, kcal, protein, carbs, fat, fiber, per100g: null });
     scheduleSave();
     closeFoodSearch();
     renderMealPlansList();
@@ -1065,7 +1067,7 @@ function saveQuickAdd() {
     _foodEditId = null;
   } else {
     S.foodLog[_date].push({
-      id: Date.now(),
+      id: uid(),
       name, brand: '', meal, grams: 0,
       kcal, protein, carbs, fat, fiber,
       per100g: null
@@ -1188,7 +1190,7 @@ function saveFoodEntry() {
   }
 
   const storedGrams = form._servingsMode ? 0 : grams;
-  const entry = { id: Date.now(), name, brand, meal, grams: storedGrams, kcal, protein, carbs, fat, fiber, per100g };
+  const entry = { id: uid(), name, brand, meal, grams: storedGrams, kcal, protein, carbs, fat, fiber, per100g };
   // Store per-serving data so inline +/- adjustment is possible later
   if (form._servingsMode && !form._manual && form._per100g) {
     entry.perServing = { kcal: form._per100g.kcal, protein: form._per100g.protein, carbs: form._per100g.carbs, fat: form._per100g.fat, fiber: form._per100g.fiber || 0 };
@@ -1524,7 +1526,7 @@ function saveMealPlan() {
   const entries = (S.foodLog?.[_foodEffectiveDate()] || []).map(e => ({...e}));
   if (!entries.length) { toast('No food to save'); return; }
   if (!S.mealPlans) S.mealPlans = [];
-  S.mealPlans.push({ id: Date.now(), name, foods: entries, createdOn: today() });
+  S.mealPlans.push({ id: uid(), name, foods: entries, createdOn: today() });
   scheduleSave();
   eid('mSaveMealPlan').classList.remove('open');
   renderMealPlansList();
@@ -1533,7 +1535,7 @@ function saveMealPlan() {
 
 function applyMealPlan(i) {
   const plan = (S.mealPlans || [])[i];
-  if (!plan) return;
+  if (!plan || !Array.isArray(plan.foods) || !plan.foods.length) return;
   if (!S.foodLog) S.foodLog = {};
   const _date = _foodEffectiveDate();
   if (!S.foodLog[_date]) S.foodLog[_date] = [];
@@ -1566,7 +1568,7 @@ function createBlankMealPlan() {
   const name = prompt('Plan name (e.g. Bulk Day, Cut Day):');
   if (!name?.trim()) return;
   if (!S.mealPlans) S.mealPlans = [];
-  const plan = { id: Date.now(), name: name.trim(), foods: [], createdOn: today() };
+  const plan = { id: uid(), name: name.trim(), foods: [], createdOn: today() };
   S.mealPlans.push(plan);
   _expandedPlans.add(plan.id);
   scheduleSave();
