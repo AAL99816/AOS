@@ -84,31 +84,71 @@ function _weightWeeklyTrend(entries) {
 
 function _weightSparklineSVG(ascEntries) {
   if (ascEntries.length < 2) return '';
-  const W = 300, H = 56, PAD = 4;
   const weights = ascEntries.map(e => +e.weight).filter(Number.isFinite);
   if (weights.length < 2) return '';
-  const mn = Math.min(...weights), mx = Math.max(...weights);
-  const range = mx - mn || 1;
-  const pts = ascEntries.map((e, i) => {
-    const x = PAD + (i / (ascEntries.length - 1)) * (W - PAD * 2);
-    const y = H - PAD - ((+e.weight - mn) / range) * (H - PAD * 2);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  });
-  const lastX = (PAD + (W - PAD * 2)).toFixed(1);
-  const firstX = PAD.toFixed(1);
-  const fillD = `M ${pts[0]} L ${pts.join(' L ')} L ${lastX},${H} L ${firstX},${H} Z`;
-  const minLbl = mn.toFixed(1), maxLbl = mx.toFixed(1);
-  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="display:block;width:100%;height:56px;margin-bottom:8px">
+
+  const W = 460, H = 110;
+  const PAD = { top: 20, right: 16, bottom: 24, left: 48 };
+  const iW = W - PAD.left - PAD.right;
+  const iH = H - PAD.top - PAD.bottom;
+
+  const mn = Math.min(...weights);
+  const mx = Math.max(...weights);
+  // When all values are the same, expand the axis ±0.5 kg so it doesn't collapse
+  const lo = mn === mx ? mn - 0.5 : mn;
+  const hi = mn === mx ? mx + 0.5 : mx;
+  const range = hi - lo;
+
+  const xOf = i => PAD.left + (ascEntries.length === 1 ? iW / 2 : (i / (ascEntries.length - 1)) * iW);
+  const yOf = v => PAD.top + iH - ((v - lo) / range) * iH;
+
+  const pts = ascEntries.map((e, i) => `${xOf(i).toFixed(1)},${yOf(+e.weight).toFixed(1)}`);
+
+  // Filled area path
+  const fillD = `M ${pts[0]} L ${pts.join(' L ')} L ${xOf(ascEntries.length - 1).toFixed(1)},${(PAD.top + iH).toFixed(1)} L ${xOf(0).toFixed(1)},${(PAD.top + iH).toFixed(1)} Z`;
+
+  // Y-axis ticks: 3 even steps
+  const yTicks = [lo, lo + range / 2, hi];
+  const yTicksHtml = yTicks.map(v =>
+    `<text x="${(PAD.left - 6).toFixed(1)}" y="${(yOf(v) + 3.5).toFixed(1)}" font-size="8.5" fill="#666" font-family="DM Mono,monospace" text-anchor="end">${v.toFixed(1)}</text>
+     <line x1="${PAD.left}" y1="${yOf(v).toFixed(1)}" x2="${(PAD.left + iW).toFixed(1)}" y2="${yOf(v).toFixed(1)}" stroke="#2a2a2a" stroke-width="1"/>`
+  ).join('');
+
+  // X-axis date labels (max 5)
+  const step = Math.max(1, Math.floor(ascEntries.length / 5));
+  const xLabels = ascEntries
+    .filter((_, i) => i % step === 0 || i === ascEntries.length - 1)
+    .map((e, _, arr) => {
+      const origIdx = ascEntries.indexOf(e);
+      return `<text x="${xOf(origIdx).toFixed(1)}" y="${(H - 4).toFixed(1)}" font-size="8" fill="#555" font-family="DM Mono,monospace" text-anchor="middle">${e.date.slice(5)}</text>`;
+    }).join('');
+
+  // Dots
+  const dots = ascEntries.map((e, i) =>
+    `<circle cx="${xOf(i).toFixed(1)}" cy="${yOf(+e.weight).toFixed(1)}" r="3" fill="var(--blush)" stroke="#111" stroke-width="1.2"><title>${e.date}: ${e.weight} kg</title></circle>`
+  ).join('');
+
+  // Current weight label at last point
+  const lastE = ascEntries[ascEntries.length - 1];
+  const lastX = xOf(ascEntries.length - 1);
+  const lastY = yOf(+lastE.weight);
+  const labelAnchor = lastX > W * 0.8 ? 'end' : 'start';
+  const labelDx = lastX > W * 0.8 ? -8 : 8;
+  const currentLabel = `<text x="${(lastX + labelDx).toFixed(1)}" y="${(lastY - 6).toFixed(1)}" font-size="9.5" fill="#c9a96e" font-family="DM Mono,monospace" text-anchor="${labelAnchor}" font-weight="600">${lastE.weight} kg</text>`;
+
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="display:block;width:100%;height:110px;margin-bottom:10px">
     <defs>
-      <linearGradient id="wSparkGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#c9a96e" stop-opacity="0.25"/>
-        <stop offset="100%" stop-color="#c9a96e" stop-opacity="0.02"/>
+      <linearGradient id="wGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--blush)" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="var(--blush)" stop-opacity="0.02"/>
       </linearGradient>
     </defs>
-    <path d="${fillD}" fill="url(#wSparkGrad)"/>
-    <polyline points="${pts.join(' ')}" fill="none" stroke="#c9a96e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
-    <text x="${PAD}" y="${H - 1}" font-size="8" fill="#7a7a7a" font-family="monospace">${minLbl}</text>
-    <text x="${PAD}" y="10" font-size="8" fill="#7a7a7a" font-family="monospace">${maxLbl}</text>
+    ${yTicksHtml}
+    <path d="${fillD}" fill="url(#wGrad)"/>
+    <polyline points="${pts.join(' ')}" fill="none" stroke="var(--blush)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}
+    ${currentLabel}
+    ${xLabels}
   </svg>`;
 }
 
@@ -473,11 +513,21 @@ function openSessionDetail(id){
               const count = (parseInt(set.sets) || 1);
               for (let i = 0; i < count; i++) rows.push(set);
             });
-            return rows.map((set, i) => `
+            if (!rows.length) {
+              return `<div style="font-size:0.66rem;color:var(--muted);font-style:italic">No set data recorded</div>`;
+            }
+            return rows.map((set, i) => {
+              const w = set.weight !== undefined && set.weight !== null ? parseFloat(set.weight) : null;
+              const r = set.reps  !== undefined && set.reps  !== null ? parseInt(set.reps)     : null;
+              const wStr = w !== null && !isNaN(w) ? w + 'kg' : '';
+              const rStr = r !== null && !isNaN(r) ? r + ' reps' : '';
+              const mid  = wStr && rStr ? ' \u00d7 ' : '';
+              return `
               <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--muted-lt);padding:2px 0;font-family:'DM Mono',monospace">
                 <span style="color:var(--muted)">Set ${i + 1}</span>
-                <span>${set.weight != null ? set.weight + 'kg' : ''}${set.weight != null && set.reps != null ? ' \u00d7 ' : ''}${set.reps != null ? set.reps + ' reps' : ''}</span>
-              </div>`).join('');
+                <span>${wStr}${mid}${rStr}</span>
+              </div>`;
+            }).join('');
           })()}
         </div>`;
     }).join('');
@@ -1110,10 +1160,12 @@ function renderTrainingFullList(query) {
         <div style="display:none;padding:6px 0 10px 12px">
           ${(item.exercises||[]).map(e=>{
             const setsArr = Array.isArray(e.loggedSets) ? e.loggedSets
-              : (e.weight != null ? [{ weight: e.weight, reps: e.reps, sets: e.sets }] : []);
+              : (e.weight !== undefined && e.weight !== null ? [{ weight: e.weight, reps: e.reps, sets: e.sets }] : []);
             const best = setsArr.reduce((b, s) => (!b || (parseFloat(s.weight)||0) > (parseFloat(b.weight)||0)) ? s : b, null);
-            const summary = best
-              ? [setsArr.length > 1 ? setsArr.length + ' sets' : null, best.weight != null ? best.weight+'kg' : null, best.reps != null ? best.reps+' reps' : null].filter(Boolean).join(' × ')
+            const bw = best && (parseFloat(best.weight) || 0);
+            const br = best && (parseInt(best.reps) || 0);
+            const summary = best && (bw || br)
+              ? [setsArr.length > 1 ? setsArr.length + ' sets' : null, bw ? bw+'kg' : null, br ? br+' reps' : null].filter(Boolean).join(' × ')
               : '';
             return `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.76rem">
               <span style="color:var(--mist)">${escapeHtml(e.name||'')}</span>
