@@ -393,3 +393,70 @@ function renderDayDetail(dateStr) {
     </div>
   `;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WINS LOG
+// ─────────────────────────────────────────────────────────────────────────────
+
+function renderWinsLog() {
+  const listEl  = eid('winsList');
+  const countEl = eid('winsCount');
+  if (!listEl) return;
+
+  const wins = [...(S.winsLog || [])].reverse();
+  if (countEl) countEl.textContent = wins.length ? `${wins.length} total` : '';
+
+  if (!wins.length) {
+    listEl.innerHTML = `<div style="text-align:center;padding:24px;font-size:0.72rem;color:var(--muted)">No wins yet — record your first one above.</div>`;
+    return;
+  }
+
+  // Group by month
+  const grouped = {};
+  wins.forEach(w => {
+    const month = (w.date || '').slice(0, 7);
+    if (!grouped[month]) grouped[month] = [];
+    grouped[month].push(w);
+  });
+
+  listEl.innerHTML = Object.keys(grouped).sort().reverse().map(month => {
+    const d = new Date(month + '-02');
+    const label = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return `
+      <div style="font-size:0.58rem;color:var(--blush);letter-spacing:0.12em;text-transform:uppercase;font-family:'DM Mono',monospace;padding:10px 0 6px;border-bottom:1px solid var(--border);margin-bottom:6px">${label}</div>
+      ${grouped[month].map(w => `
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border-lt)">
+          <span style="font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace;flex-shrink:0;margin-top:2px">${w.date || ''}</span>
+          <span style="flex:1;font-size:0.8rem;color:var(--mist);line-height:1.5">${escapeHtml(w.text)}</span>
+          <button onclick="deleteWin('${w.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.68rem;padding:0 2px;flex-shrink:0">✕</button>
+        </div>`).join('')}`;
+  }).join('');
+}
+
+function addWin() {
+  const inp = eid('winsInput');
+  if (!inp) return;
+  const text = inp.value.trim();
+  if (!text) return;
+  if (!Array.isArray(S.winsLog)) S.winsLog = [];
+  S.winsLog.push({ id: uid(), text, date: today() });
+  inp.value = '';
+  scheduleSave();
+  renderWinsLog();
+}
+
+function deleteWin(id) {
+  if (!Array.isArray(S.winsLog)) return;
+  const backup = S.winsLog.find(w => w.id === id);
+  S.winsLog = S.winsLog.filter(w => w.id !== id);
+  scheduleSave();
+  renderWinsLog();
+  if (backup) {
+    toastUndo(`Win removed`, () => {
+      if (!Array.isArray(S.winsLog)) S.winsLog = [];
+      S.winsLog.push(backup);
+      scheduleSave();
+      renderWinsLog();
+    });
+  }
+}

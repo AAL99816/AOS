@@ -450,7 +450,10 @@ function renderFoodMeals() {
         <div style="margin-bottom:6px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${items.length ? '4px' : '0'}">
             <span style="font-size:0.72rem;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase">${MEAL_LABELS[meal]}</span>
-            ${items.length ? `<span style="font-size:0.66rem;color:var(--muted-lt);font-family:'DM Mono',monospace">${Math.round(totals.kcal)} kcal</span>` : ''}
+            <div style="display:flex;align-items:center;gap:6px">
+              ${items.length ? `<span style="font-size:0.66rem;color:var(--muted-lt);font-family:'DM Mono',monospace">${Math.round(totals.kcal)} kcal</span>` : ''}
+              ${items.length ? `<button onclick="event.stopPropagation();copyMealTo('${meal}')" title="Copy meal to another slot" style="background:none;border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;font-size:0.56rem;padding:1px 5px;line-height:1.4">copy ⤴</button>` : ''}
+            </div>
           </div>
           ${items.length ? `<div style="height:2px;background:var(--mid);border-radius:2px;overflow:hidden"><div style="height:100%;width:${mealPct}%;background:var(--blush);opacity:0.55;border-radius:2px;transition:width 0.3s"></div></div>` : ''}
         </div>
@@ -464,6 +467,29 @@ function renderFoodMeals() {
         </div>
       </div>`;
   }).join('');
+}
+
+function copyMealTo(sourceMeal) {
+  const otherMeals = MEAL_TYPES.filter(m => m !== sourceMeal);
+  const choice = prompt(
+    `Copy ${MEAL_LABELS[sourceMeal]} items to:\n` +
+    otherMeals.map((m, i) => `${i + 1}. ${MEAL_LABELS[m]}`).join('\n') +
+    '\n\nEnter number:'
+  );
+  const idx = parseInt(choice) - 1;
+  if (idx < 0 || idx >= otherMeals.length) return;
+  const targetMeal = otherMeals[idx];
+  const d = _foodEffectiveDate();
+  if (!S.foodLog[d]) S.foodLog[d] = [];
+  const items = S.foodLog[d].filter(e => e.meal === sourceMeal);
+  if (!items.length) { toast('Nothing to copy'); return; }
+  items.forEach(e => {
+    S.foodLog[d].push({ ...e, id: uid(), meal: targetMeal });
+  });
+  scheduleSave();
+  renderFoodMeals();
+  renderFoodDiaryHeader();
+  toast(`Copied ${items.length} item${items.length !== 1 ? 's' : ''} to ${MEAL_LABELS[targetMeal]}`);
 }
 
 function _foodEntryRow(e) {
@@ -1521,9 +1547,12 @@ function renderMealPlansList() {
                 <button onclick="event.stopPropagation();removeMealPlanFood('${plan.id}','${f.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.62rem;padding:0 2px;flex-shrink:0">\u2715</button>
               </div>`).join('') : `<div style="font-size:0.66rem;color:var(--muted);padding:4px 0;font-style:italic">Empty</div>`}
           </div>`).join('')}
-        <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+        <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap">
           <button class="btn btn-d" style="font-size:0.66rem;padding:4px 9px" onclick="deleteMealPlan('${plan.id}')">Remove</button>
-          <button class="btn btn-p" style="font-size:0.68rem;padding:5px 12px" onclick="applyMealPlan('${plan.id}')">Apply to Today</button>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-g" style="font-size:0.66rem;padding:4px 10px" onclick="openGroceryList('${plan.id}')">🛒 Grocery</button>
+            <button class="btn btn-p" style="font-size:0.68rem;padding:5px 12px" onclick="applyMealPlan('${plan.id}')">Apply to Today</button>
+          </div>
         </div>
       </div>` : '';
 
@@ -1787,4 +1816,90 @@ function deleteCustomFood(id) {
     scheduleSave();
     renderMyFoodsTab();
   });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GROCERY LIST
+// ─────────────────────────────────────────────────────────────────────────────
+
+function openGroceryList(planId) {
+  const plan = (S.mealPlans || []).find(p => String(p.id) === String(planId));
+  if (!plan) return;
+
+  // Merge plan foods into saved grocery list (S.groceryList)
+  if (!Array.isArray(S.groceryList)) S.groceryList = [];
+
+  // Deduplicate by name (case-insensitive) — add new items unchecked
+  (plan.foods || []).forEach(f => {
+    const name = (f.name || '').trim();
+    if (!name) return;
+    const exists = S.groceryList.some(g => g.name.toLowerCase() === name.toLowerCase());
+    if (!exists) S.groceryList.push({ id: uid(), name, checked: false, planId });
+  });
+
+  scheduleSave();
+  renderGroceryModal();
+  openModal('mGroceryList');
+}
+
+function renderGroceryModal() {
+  const el = eid('groceryItems');
+  if (!el) return;
+  const list = S.groceryList || [];
+
+  if (!list.length) {
+    el.innerHTML = `<div style="text-align:center;padding:32px 0;font-size:0.72rem;color:var(--muted)">No items — open a meal plan and tap 🛒 Grocery to populate.</div>`;
+    return;
+  }
+
+  const unchecked = list.filter(g => !g.checked);
+  const checked   = list.filter(g => g.checked);
+
+  function itemHtml(g) {
+    return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border-lt)">
+      <div onclick="groceryToggle('${g.id}')" style="width:20px;height:20px;border-radius:50%;border:2px solid ${g.checked ? 'var(--blush)' : 'var(--border)'};background:${g.checked ? 'var(--blush)' : 'transparent'};flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center">
+        ${g.checked ? `<svg width="10" height="8" viewBox="0 0 10 8"><polyline points="1,4 4,7 9,1" fill="none" stroke="var(--cream)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
+      </div>
+      <span style="flex:1;font-size:0.8rem;color:${g.checked ? 'var(--muted)' : 'var(--mist)'};text-decoration:${g.checked ? 'line-through' : 'none'}">${escapeHtml(g.name)}</span>
+      <button onclick="groceryRemove('${g.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.7rem;padding:2px 4px">✕</button>
+    </div>`;
+  }
+
+  el.innerHTML = unchecked.map(itemHtml).join('') +
+    (checked.length ? `<div style="font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin:10px 0 4px;font-family:'DM Mono',monospace">In basket</div>` + checked.map(itemHtml).join('') : '');
+}
+
+function groceryToggle(id) {
+  const item = (S.groceryList || []).find(g => g.id === id);
+  if (!item) return;
+  item.checked = !item.checked;
+  scheduleSave();
+  renderGroceryModal();
+}
+
+function groceryRemove(id) {
+  if (!Array.isArray(S.groceryList)) return;
+  S.groceryList = S.groceryList.filter(g => g.id !== id);
+  scheduleSave();
+  renderGroceryModal();
+}
+
+function groceryAddManual() {
+  const inp = eid('groceryManualInput');
+  if (!inp) return;
+  const name = inp.value.trim();
+  if (!name) return;
+  if (!Array.isArray(S.groceryList)) S.groceryList = [];
+  const exists = S.groceryList.some(g => g.name.toLowerCase() === name.toLowerCase());
+  if (!exists) S.groceryList.push({ id: uid(), name, checked: false });
+  inp.value = '';
+  scheduleSave();
+  renderGroceryModal();
+}
+
+function groceryClearChecked() {
+  if (!Array.isArray(S.groceryList)) return;
+  S.groceryList = S.groceryList.filter(g => !g.checked);
+  scheduleSave();
+  renderGroceryModal();
 }

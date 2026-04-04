@@ -139,53 +139,107 @@ function openHabitHistory(id) {
   openModal('mHabitHistory');
 }
 
+let _habitHistWeeks = 52; // toggled between 12 and 52
+
 function _renderHabitHistGrid(h) {
   const c = eid('habitHistGrid');
   if (!c) return;
 
-  // Build 12-week grid ending at end of current week
+  const weeks = _habitHistWeeks;
   const todayStr = today();
-  const now  = new Date();
-  const dow  = now.getDay(); // 0=Sun
-  // End = this Sunday
+  const now = new Date();
+  // Anchor end to current Sunday (week end)
+  const dow = now.getDay(); // 0=Sun
   const endD = new Date(now);
   endD.setDate(now.getDate() + (dow === 0 ? 0 : 7 - dow));
 
-  const days = [];
-  for (let w = 11; w >= 0; w--) {
-    for (let i = 0; i < 7; i++) {
+  // Build array: weeks × 7 days, oldest-first row by row
+  // Each row = one week (Mon–Sun)
+  const cols = weeks; // number of week columns
+  const grid = []; // [colIdx][dayIdx(0=Mon..6=Sun)] = dateStr
+  for (let w = cols - 1; w >= 0; w--) {
+    const col = [];
+    for (let d = 6; d >= 0; d--) {
       const nd = new Date(endD);
-      nd.setDate(endD.getDate() - w * 7 - (6 - i));
-      days.push(dStr(nd));
+      nd.setDate(endD.getDate() - w * 7 - d);
+      col.push(dStr(nd));
     }
+    grid.push(col); // col[0]=Mon … col[6]=Sun
   }
 
-  const done  = days.filter(d => d <= todayStr && h.days && h.days[d]).length;
-  const total = days.filter(d => d <= todayStr).length;
+  // Flatten for stats
+  const allDays = grid.flat();
+  const done  = allDays.filter(d => d <= todayStr && h.days && h.days[d]).length;
+  const total = allDays.filter(d => d <= todayStr).length;
+
+  // Streak
+  const streak = (typeof calcStreak === 'function') ? calcStreak(h.days || {}) : 0;
+
+  // Month labels — detect first day of each month across the grid columns
+  const monthLabels = weeks >= 24 ? (() => {
+    const labels = new Array(cols).fill('');
+    grid.forEach((col, ci) => {
+      const monDay = col[0]; // Monday of this week column
+      if (monDay.slice(8) <= '07') { // first week of month
+        const d = new Date(monDay + 'T00:00:00');
+        labels[ci] = d.toLocaleDateString('en-US', { month: 'short' });
+      }
+    });
+    return labels;
+  })() : [];
+
+  // Render: columns = weeks, rows = days (Mon on top)
+  const cellSize = weeks >= 24 ? 12 : 18; // px, smaller for year view
+  const gap = 2;
 
   c.innerHTML = `
-    <div style="font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:12px">
-      ${done} / ${total} days completed (last 12 weeks)
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">
+      <div style="font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace">
+        ${done}/${total} days · ${streak}d streak
+      </div>
+      <button class="btn btn-g" style="font-size:0.62rem;padding:2px 10px"
+        onclick="_habitHistWeeks=(_habitHistWeeks===52?12:52);openHabitHistory('${escapeAttr(String(h.id))}')">
+        ${weeks === 52 ? '12 weeks' : '1 year'}
+      </button>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px">
-      ${['Mo','Tu','We','Th','Fr','Sa','Su'].map(d =>
-        `<div style="text-align:center;font-size:0.45rem;color:var(--muted);font-family:'DM Mono',monospace">${d}</div>`
-      ).join('')}
+
+    ${monthLabels.length ? `
+    <div style="display:flex;gap:${gap}px;margin-bottom:2px;padding-left:${cellSize + gap}px">
+      ${monthLabels.map(lbl => `<div style="width:${cellSize}px;flex-shrink:0;font-size:0.44rem;color:var(--muted);font-family:'DM Mono',monospace;overflow:hidden">${lbl}</div>`).join('')}
+    </div>` : ''}
+
+    <div style="display:flex;gap:${gap}px">
+      <!-- Day-of-week labels -->
+      <div style="display:flex;flex-direction:column;gap:${gap}px;flex-shrink:0">
+        ${['M','T','W','T','F','S','S'].map(d =>
+          `<div style="height:${cellSize}px;width:${cellSize}px;display:flex;align-items:center;justify-content:center;font-size:0.42rem;color:var(--muted);font-family:'DM Mono',monospace">${d}</div>`
+        ).join('')}
+      </div>
+      <!-- Grid columns (weeks) -->
+      <div style="display:flex;gap:${gap}px;overflow-x:auto">
+        ${grid.map(col => `
+          <div style="display:flex;flex-direction:column;gap:${gap}px;flex-shrink:0">
+            ${col.map(d => {
+              const on     = !!(h.days && h.days[d]);
+              const future = d > todayStr;
+              const isToday = d === todayStr;
+              return `<div
+                onclick="${future ? '' : `_habitHistToggle('${h.id}','${d}')`}"
+                title="${d}"
+                style="width:${cellSize}px;height:${cellSize}px;border-radius:2px;flex-shrink:0;cursor:${future?'default':'pointer'};
+                  background:${on ? 'var(--blush)' : future ? 'transparent' : 'var(--mid)'};
+                  opacity:${future ? '0.12' : '1'};
+                  ${isToday ? `outline:1.5px solid var(--cream);outline-offset:1px;` : ''}">
+              </div>`;
+            }).join('')}
+          </div>`).join('')}
+      </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">
-      ${days.map(d => {
-        const on      = !!(h.days && h.days[d]);
-        const future  = d > todayStr;
-        const isToday = d === todayStr;
-        return `<div
-          onclick="${future ? '' : `_habitHistToggle('${h.id}','${d}')`}"
-          title="${d}"
-          style="aspect-ratio:1;border-radius:3px;cursor:${future?'default':'pointer'};
-            background:${on ? 'var(--blush)' : future ? 'transparent' : 'var(--mid)'};
-            opacity:${future ? '0.15' : '1'};
-            ${isToday ? 'outline:2px solid var(--cream);outline-offset:1px;' : ''}">
-        </div>`;
-      }).join('')}
+    <div style="display:flex;align-items:center;gap:4px;margin-top:8px;justify-content:flex-end">
+      <span style="font-size:0.5rem;color:var(--muted)">None</span>
+      <div style="width:10px;height:10px;border-radius:2px;background:var(--mid)"></div>
+      <div style="width:10px;height:10px;border-radius:2px;background:var(--blush)"></div>
+      <span style="font-size:0.5rem;color:var(--muted)">Done</span>
     </div>
   `;
 }

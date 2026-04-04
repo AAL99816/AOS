@@ -971,6 +971,22 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
     </div>
     <div id="reviewContent"></div>
     <div id="dayDetailPanel" style="display:none;margin-top:18px"></div>
+
+    <!-- Wins Log -->
+    <div style="margin-top:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="sec" style="margin:0">Wins</div>
+        <span id="winsCount" style="font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace"></span>
+      </div>
+      <div class="card" style="margin-bottom:14px;padding:12px 14px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="winsInput" class="add-inp" placeholder="Write a win…" style="flex:1"
+            onkeydown="if(event.key==='Enter')addWin()">
+          <button class="btn btn-p" onclick="addWin()" style="font-size:0.76rem">+ Add</button>
+        </div>
+      </div>
+      <div id="winsList"></div>
+    </div>
   </div>
 
   <!-- TODAY DASHBOARD -->
@@ -1140,12 +1156,19 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <button class="fpill"        data-status="done"    onclick="setBookF('done',this)"    >Finished</button>
     </div>
 
-    <!-- Search + Queue (M1, M9) -->
-    <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+    <!-- Search + Sort + Queue -->
+    <div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap">
       <input id="mediaSearchInp" type="search" placeholder="Search title or author…"
         oninput="setMediaSearch(this.value)"
-        style="flex:1;background:var(--mid);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:0.76rem;color:var(--mist);font-family:inherit;outline:none">
-      <button id="mediaQueueBtn" class="btn btn-g" style="font-size:0.64rem;padding:5px 10px;white-space:nowrap" onclick="toggleMediaQueue()">☰ Queue</button>
+        style="flex:2;min-width:120px;background:var(--mid);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:0.76rem;color:var(--mist);font-family:inherit;outline:none">
+      <select id="mediaSortSel" onchange="setMediaSort(this.value)"
+        style="background:var(--mid);border:1px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--muted);font-size:0.74rem;font-family:inherit;flex-shrink:0">
+        <option value="added">Added</option>
+        <option value="title">Title A–Z</option>
+        <option value="rating">Rating</option>
+        <option value="progress">Progress</option>
+      </select>
+      <button id="mediaQueueBtn" class="btn btn-g" style="font-size:0.64rem;padding:5px 10px;white-space:nowrap;flex-shrink:0" onclick="toggleMediaQueue()">☰ Queue</button>
     </div>
     <div id="mediaQueuePanel" style="display:none;background:var(--panel);border:1px solid var(--border);border-radius:10px;margin-top:8px;overflow:hidden;max-height:280px;overflow-y:auto"></div>
 
@@ -1219,6 +1242,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
     </div>
     <div style="display:flex;gap:6px;margin-bottom:16px">
       <input class="add-inp" id="pdNewTaskNotes" placeholder="Task notes (optional)…" style="flex:1">
+      <input class="add-inp" id="pdNewTaskEst" type="number" min="1" step="5" placeholder="Est (min)" style="width:80px;flex-shrink:0" title="Time estimate in minutes">
       <button class="btn btn-g" style="font-size:0.68rem;flex-shrink:0" onclick="addProjectTask()">+ Add</button>
     </div>
   </div>
@@ -1330,6 +1354,20 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
     <div class="book-detail-actions">
       <button class="btn btn-g" onclick="addChapterNote()" data-i18n="add_note">+ Add Note</button>
       <button class="btn btn-g" onclick="closeModal('mBookDetails')" data-i18n="done_btn">Done</button>
+    </div>
+  </div>
+
+  <!-- Reading Highlights -->
+  <div class="book-detail-block" id="bdHighlightsBlock">
+    <div class="book-detail-kicker">Highlights</div>
+    <div id="bdHighlights" class="chapter-notes"></div>
+    <div style="margin-top:10px">
+      <textarea id="bdHighlightInput" class="editable-area" rows="3"
+        placeholder="Paste a quote or highlight…" style="font-size:0.78rem"></textarea>
+      <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
+        <input id="bdHighlightPage" type="number" min="1" class="add-inp" placeholder="Page #" style="width:80px;flex-shrink:0">
+        <button class="btn btn-g" onclick="addHighlight()" style="font-size:0.74rem">+ Add</button>
+      </div>
     </div>
   </div>
 </div></div>
@@ -1491,6 +1529,21 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   </div>
   <div id="tfList" style="max-height:62vh;overflow-y:auto"></div>
   <div class="modal-acts"><button class="btn btn-p" onclick="closeModal('mTrainingFull')" data-i18n="close">Close</button></div>
+</div></div>
+
+<!-- Grocery List Modal -->
+<div class="modal-bg" id="mGroceryList" onclick="if(event.target===this)closeModal('mGroceryList')"><div class="modal" style="max-width:420px;width:94vw">
+  <h2 style="margin-bottom:14px">Grocery List</h2>
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <input id="groceryManualInput" class="add-inp" placeholder="Add item…" style="flex:1"
+      onkeydown="if(event.key==='Enter')groceryAddManual()">
+    <button class="btn btn-p" onclick="groceryAddManual()" style="font-size:0.76rem">Add</button>
+  </div>
+  <div id="groceryItems" style="max-height:55vh;overflow-y:auto"></div>
+  <div class="modal-acts" style="gap:8px">
+    <button class="btn btn-g" onclick="groceryClearChecked()" style="font-size:0.72rem">Clear checked</button>
+    <button class="btn btn-p" onclick="closeModal('mGroceryList')">Done</button>
+  </div>
 </div></div>
 
 <!-- Habit History Modal -->

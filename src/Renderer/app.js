@@ -97,6 +97,7 @@ function _renderTab(name) {
   if (name === 'summary' || name === 'review') {
     if (typeof renderWeeklyReview === 'function') renderWeeklyReview();
     if (typeof renderAnnualGoals  === 'function') renderAnnualGoals();
+    if (typeof renderWinsLog      === 'function') renderWinsLog();
   }
   if (name === 'today') {
     renderHabits();

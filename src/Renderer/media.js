@@ -15,6 +15,7 @@ let bookF      = 'all';
 let mediaTypeF = 'book';   // default tab — no more 'all'
 let activeBookId = null;
 let _mediaSearchQ = '';    // M1: search filter
+let _mediaSort = 'added';  // added | title | rating | progress
 
 /* removed: MEDIA_TYPES array — no longer needed */
 
@@ -95,6 +96,9 @@ function renderMediaSection(type) {
     (b.title||'').toLowerCase().includes(_mediaSearchQ) ||
     (b.author||'').toLowerCase().includes(_mediaSearchQ)
   );
+
+  /* Sort */
+  list = _sortMedia(list);
 
   /* Update status filter labels for current type */
   updateStatusFilterLabels(type);
@@ -307,6 +311,25 @@ function buildGameCard(b, idx) {
   return div;
 }
 
+/* ══ SORT ══ */
+function _sortMedia(list) {
+  const arr = [...list];
+  if (_mediaSort === 'title') {
+    arr.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+  } else if (_mediaSort === 'rating') {
+    arr.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  } else if (_mediaSort === 'progress') {
+    arr.sort((a, b) => (getBookPct(b) || 0) - (getBookPct(a) || 0));
+  }
+  // 'added' = original insertion order (no sort)
+  return arr;
+}
+
+function setMediaSort(val) {
+  _mediaSort = val || 'added';
+  renderBooks();
+}
+
 /* ══ TYPE / STATUS FILTERS ══ */
 function setMediaTypeF(f, btn) {
   mediaTypeF = f;
@@ -510,6 +533,10 @@ function renderBookDetails() {
       : t('set_total_pages');
     eid('bdChapterNotesLabel').textContent = mediaNotesLabel(b.mediaType);
     renderChapterNotes();
+    renderHighlights();
+  } else {
+    const hb = eid('bdHighlightsBlock');
+    if (hb) hb.style.display = 'none';
   }
 
   if (isShow) {
@@ -571,6 +598,61 @@ function renderChapterNotes() {
     `;
     wrap.appendChild(card);
   });
+}
+
+/* ══ READING HIGHLIGHTS ══ */
+function renderHighlights() {
+  const b = getActiveBook();
+  const wrap = eid('bdHighlights');
+  const block = eid('bdHighlightsBlock');
+  if (!b || !wrap) return;
+
+  // Show only for books (other types can use chapter notes)
+  if (block) block.style.display = b.mediaType === 'book' ? '' : 'none';
+
+  if (!Array.isArray(b.highlights)) b.highlights = [];
+  if (!b.highlights.length) {
+    wrap.innerHTML = `<div style="color:var(--muted);font-size:0.76rem;padding:8px 0">No highlights yet.</div>`;
+    return;
+  }
+  wrap.innerHTML = [...b.highlights].reverse().map(h => `
+    <div class="chapter-note-card" style="border-left:3px solid var(--blush);padding-left:10px">
+      <div class="chapter-note-top">
+        ${h.page ? `<span style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace">p.${h.page}</span>` : ''}
+        <span style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;margin-left:auto">${h.date||''}</span>
+        <button class="chapter-note-del" onclick="deleteHighlight('${h.id}')">✕</button>
+      </div>
+      <div style="font-size:0.8rem;color:var(--mist);line-height:1.6;font-style:italic;margin-top:4px">"${escapeHtml(h.text)}"</div>
+    </div>`).join('');
+}
+
+function addHighlight() {
+  const b = getActiveBook();
+  if (!b) return;
+  const inp  = eid('bdHighlightInput');
+  const pgEl = eid('bdHighlightPage');
+  if (!inp) return;
+  const text = inp.value.trim();
+  if (!text) return;
+  if (!Array.isArray(b.highlights)) b.highlights = [];
+  b.highlights.push({
+    id:   uid(),
+    text,
+    page: pgEl ? (parseInt(pgEl.value) || null) : null,
+    date: today()
+  });
+  inp.value = '';
+  if (pgEl) pgEl.value = '';
+  scheduleSave();
+  renderHighlights();
+}
+
+function deleteHighlight(id) {
+  const b = getActiveBook();
+  if (!b || !Array.isArray(b.highlights)) return;
+  b.highlights = b.highlights.filter(h => h.id !== id);
+  scheduleSave();
+  renderHighlights();
 }
 
 function updateActiveBookField(field, value) {

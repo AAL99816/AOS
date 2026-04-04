@@ -189,10 +189,17 @@ function renderPdTasks(p) {
   const pct      = tasks.length ? Math.round(done / tasks.length * 100) : 0;
   const todayStr = today();
 
+  // Total remaining time estimate
+  const totalEstMins = tasks.filter(tk => !tk.done && tk.timeEst).reduce((s, tk) => s + (tk.timeEst || 0), 0);
+  const estLabel = totalEstMins >= 60
+    ? `${Math.floor(totalEstMins / 60)}h${totalEstMins % 60 ? ' ' + (totalEstMins % 60) + 'm' : ''}`
+    : totalEstMins > 0 ? `${totalEstMins}m` : '';
+
   const list = eid('pdTasks');
   list.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <span style="font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace">${done}/${tasks.length} done · ${pct}%</span>
+      ${estLabel ? `<span style="font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace" title="Total remaining estimate">${estLabel} remaining</span>` : ''}
     </div>
     ${tasks.length ? tasks.map((tk, ti) => {
       const overdue = !tk.done && tk.dueDate && tk.dueDate < todayStr;
@@ -202,6 +209,7 @@ function renderPdTasks(p) {
           <input type="checkbox" ${tk.done ? 'checked' : ''} onchange="toggleProjectTask('${p.id}','${tk.id}')">
           <input class="editable" style="flex:1;font-size:0.8rem;color:var(--mist);background:none;border:none;${tk.done?'text-decoration:line-through;opacity:0.45':''}"
             value="${escapeAttr(tk.text||'')}" onchange="updateProjectTask('${p.id}','${tk.id}','text',this.value)">
+          ${tk.timeEst && !tk.done ? `<span style="font-size:0.52rem;color:var(--muted);font-family:'DM Mono',monospace;flex-shrink:0" title="Time estimate">${tk.timeEst}m</span>` : ''}
           ${tk.dueDate ? `<span style="font-size:0.55rem;font-family:'DM Mono',monospace;flex-shrink:0;color:${overdue?'var(--petal)':'var(--muted-lt)'}${overdue?';font-weight:600':''}" title="${overdue?'Overdue':''}">${escapeHtml(tk.dueDate)}${overdue?' !':''}</span>` : ''}
           <div style="display:flex;flex-direction:column;gap:1px;flex-shrink:0">
             ${ti > 0 ? `<button onclick="reorderTask('${p.id}',${ti},-1)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.6rem;padding:0;line-height:1" title="Move up">▲</button>` : '<div style="width:14px"></div>'}
@@ -234,13 +242,15 @@ function addProjectTask() {
   if (!text || !_activeProjectId) return;
   const dueDate   = eid('pdNewTaskDate').value || '';
   const taskNotes = (eid('pdNewTaskNotes').value || '').trim();
+  const timeEst   = parseInt(eid('pdNewTaskEst')?.value) || null;
   const p = ensureProjects().find(x => String(x.id) === String(_activeProjectId));
   if (!p) return;
   if (!Array.isArray(p.tasks)) p.tasks = [];
-  p.tasks.push({ id: uid(), text, done: false, dueDate, taskNotes });
+  p.tasks.push({ id: uid(), text, done: false, dueDate, taskNotes, timeEst });
   eid('pdNewTask').value      = '';
   eid('pdNewTaskDate').value  = '';
   eid('pdNewTaskNotes').value = '';
+  if (eid('pdNewTaskEst')) eid('pdNewTaskEst').value = '';
   scheduleSave();
   renderPdTasks(p);
 }
