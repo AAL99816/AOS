@@ -323,6 +323,7 @@ async function initApp(){
   }
   if(!S.onboarded){ S.onboarded=true; scheduleSave(); }
   if (typeof initFoodTab === 'function') initFoodTab();
+  if (typeof migrateExerciseHistory === 'function') migrateExerciseHistory();
   renderAll();
 }
 

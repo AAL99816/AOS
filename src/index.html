@@ -973,38 +973,23 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
     <div id="dayDetailPanel" style="display:none;margin-top:18px"></div>
   </div>
 
-  <!-- TODAY -->
+  <!-- TODAY DASHBOARD -->
   <div id="panel-today" class="panel">
-    <!-- FEATURE: Mood Tracking — remove this block to disable -->
-    <div id="moodTrackingSection" class="card" style="margin-bottom:18px;display:none">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <span style="font-size:0.7rem;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase">Today's Mood</span>
-        <span id="moodScore" style="font-size:0.78rem;color:var(--gold-lt);font-family:'DM Mono',monospace">—</span>
-      </div>
-      <div id="moodGrid" style="display:flex;gap:3px;flex-wrap:wrap"></div>
+    <div id="todayDashboard"></div>
+    <!-- Hidden mood tracking section — still rendered by features.js -->
+    <div id="moodTrackingSection" style="display:none">
+      <span id="moodScore"></span>
+      <div id="moodGrid"></div>
     </div>
-    <!-- END FEATURE: Mood Tracking -->
-    <div id="reflectionCard" class="card quote-card" style="margin-bottom:22px">
-      <div class="q-label">Daily Reflection</div>
-      <textarea id="quoteText" class="editable-area" rows="3" placeholder="Write your quote or reflection…" oninput="S.quote.text=this.value;scheduleSave()"></textarea>
-      <input id="quoteAuthor" class="editable" placeholder="— Author" oninput="S.quote.author=this.value;scheduleSave()">
-    </div>
-    <div id="todaySummary" style="margin-bottom:22px"></div>
-    <div class="sec"><span data-i18n="prayer">Prayer</span> <span class="lbl" data-i18n="nav_today">Today</span></div>
-    <div class="card" style="margin-bottom:18px">
+    <!-- Keep these IDs for backward compat with renderAll / habits.js -->
+    <div style="display:none">
+      <textarea id="dailyNotes"></textarea>
+      <div id="habitList"></div>
+      <input id="newHabitName">
       <div id="prayerRow"></div>
-    </div>
-    <div class="sec"><span data-i18n="daily_habits">Daily Habits</span> <span class="lbl" data-i18n="this_week">This Week</span></div>
-    <div class="card" style="margin-bottom:18px">
-      <div class="habit-list" id="habitList"></div>
-      <div class="add-row" style="margin-top:10px">
-        <input class="add-inp" id="newHabitName" data-i18n-ph="habit_name_ph" placeholder="Add a habit…" onkeydown="if(event.key==='Enter')addHabit()">
-        <button class="btn btn-p" onclick="addHabit()" data-i18n="add">+ Add</button>
-      </div>
-    </div>
-    <div class="sec" style="display:flex;align-items:center;gap:8px"><span data-i18n="daily_notes_lbl">Daily Notes</span> <span class="lbl" data-i18n="nav_today">Today</span><button class="btn btn-g" style="font-size:0.6rem;padding:2px 8px;margin-left:auto" onclick="openPastNotes()" data-i18n="past_notes_btn">Past</button></div>
-    <div class="card">
-      <textarea id="dailyNotes" class="editable-area" rows="5" placeholder="Write anything…" data-i18n-ph="daily_notes_ph" oninput="S.notes[today()]=this.value;scheduleSave()"></textarea>
+      <textarea id="quoteText"></textarea>
+      <input id="quoteAuthor">
+      <div id="todaySummary"></div>
     </div>
   </div>
 
@@ -1814,6 +1799,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 <script src="./Renderer/auth.js"></script>
 <script src="./Renderer/sync.js"></script>
 <script src="./Renderer/updater.js"></script>
+<script src="./Renderer/exercises.js"></script>
 <script src="./Renderer/habits.js"></script>
 <script src="./Renderer/fitness.js"></script>
 <script src="./Renderer/goals.js"></script>
@@ -1825,6 +1811,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 <script src="./Renderer/settings.js"></script>
 <script src="./Renderer/features.js"></script>
 <script src="./Renderer/food.js"></script>
+<script src="./Renderer/today.js"></script>
 <script src="./Renderer/app.js"></script>
 <div id="updateBanner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--blush);color:var(--cream);padding:10px 22px;border-radius:20px;font-size:0.78rem;font-family:'Jost',sans-serif;letter-spacing:0.04em;z-index:9999;cursor:pointer;box-shadow:0 4px 24px rgba(0,0,0,0.5)" onclick="window.location.reload()">
   Update available — tap to reload

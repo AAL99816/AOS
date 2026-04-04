@@ -30,6 +30,10 @@ prayerLog:{},
 notes:{},
 workoutHistory:[],
 exerciseHistory:{},
+customExercises:[],
+waterLog:{},
+winsLog:[],
+groceryList:[],
 weeklyReflections:{},
 weightLog:[],
 moodLog:{},
@@ -193,6 +197,10 @@ function normalizeAppState(raw={}){
   out.mealPlans = Array.isArray(src.mealPlans) ? src.mealPlans : [];
   out.workoutHistory = (Array.isArray(out.workoutHistory) ? out.workoutHistory : []).map(makeWorkoutSession);
   out.exerciseHistory = out.exerciseHistory && typeof out.exerciseHistory === 'object' ? out.exerciseHistory : {};
+  out.customExercises = Array.isArray(out.customExercises) ? out.customExercises : [];
+  out.waterLog = out.waterLog && typeof out.waterLog === 'object' ? out.waterLog : {};
+  out.winsLog = Array.isArray(out.winsLog) ? out.winsLog : [];
+  out.groceryList = Array.isArray(out.groceryList) ? out.groceryList : [];
   out.prayerLog = out.prayerLog && typeof out.prayerLog === 'object' ? out.prayerLog : {};
   out.weeklyReflections = out.weeklyReflections && typeof out.weeklyReflections === 'object' ? out.weeklyReflections : {};
   out.weightLog = Array.isArray(out.weightLog) ? out.weightLog : [];

@@ -545,8 +545,27 @@ function repeatLastWorkout(wcId) {
 function _refreshExerciseDatalist() {
   const dl = eid('exerciseNameList');
   if (!dl) return;
-  const names = Object.keys(S.exerciseHistory || {}).filter(n => n && n.trim());
-  dl.innerHTML = names.map(n => `<option value="${escapeAttr(n)}">`).join('');
+  // All DB names + custom exercise names + any legacy history keys not in DB
+  const dbNames = (typeof EXERCISE_DB !== 'undefined' ? EXERCISE_DB : []).map(e => e.name);
+  const customNames = (S.customExercises || []).map(e => e.name);
+  const histNames = Object.keys(S.exerciseHistory || {}).filter(n => n && n.trim());
+  const allNames = [...new Set([...dbNames, ...customNames, ...histNames])].sort();
+  dl.innerHTML = allNames.map(n => `<option value="${escapeAttr(n)}">`).join('');
+}
+
+/* Migrate name-keyed exerciseHistory entries to canonical names from EXERCISE_DB.
+   Called once on boot. Unmatched entries kept as-is (custom exercises). */
+function migrateExerciseHistory() {
+  if (typeof EXERCISE_DB === 'undefined') return;
+  if (!S.exerciseHistory) return;
+  const newHist = {};
+  for (const [key, entries] of Object.entries(S.exerciseHistory)) {
+    const match = EXERCISE_DB.find(e => e.name.toLowerCase() === key.toLowerCase());
+    const canonicalKey = match ? match.name.toLowerCase() : key;
+    if (!newHist[canonicalKey]) newHist[canonicalKey] = [];
+    newHist[canonicalKey] = [...newHist[canonicalKey], ...entries];
+  }
+  S.exerciseHistory = newHist;
 }
 
 function addWorkoutCard(){

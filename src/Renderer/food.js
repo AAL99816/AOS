@@ -1665,10 +1665,27 @@ function renderMyFoodsTab() {
         </div>
         ${cf._shared ? `<div style="font-size:0.56rem;color:var(--blush);margin-top:2px">\u2713 Shared with community</div>` : ''}
       </div>
-      ${isLoggedIn ? `<button onclick="shareToCommunity('${cf.id}')" style="background:none;border:none;color:${cf._shared ? 'var(--blush)' : 'var(--muted)'};cursor:pointer;font-size:0.7rem;padding:4px 6px;flex-shrink:0" title="${cf._shared ? 'Already shared' : 'Share with community'}">\u2191</button>` : ''}
+      ${isLoggedIn ? `<button onclick="${cf._shared ? `unshareCommunityFood('${cf.id}')` : `shareToCommunity('${cf.id}')`}" style="background:none;border:none;color:${cf._shared ? 'var(--blush)' : 'var(--muted)'};cursor:pointer;font-size:0.7rem;padding:4px 6px;flex-shrink:0" title="${cf._shared ? 'Unshare from community' : 'Share with community'}">${cf._shared ? '\u2193' : '\u2191'}</button>` : ''}
       <button onclick="editCustomFood('${cf.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.72rem;padding:4px 6px;flex-shrink:0" title="Edit">\u270e</button>
       <button onclick="deleteCustomFood('${cf.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.76rem;padding:4px 6px;flex-shrink:0">\u2715</button>
     </div>`).join('');
+}
+
+async function unshareCommunityFood(id) {
+  if (typeof sb === 'undefined' || !currentUser) { toast('Sign in to manage shared foods'); return; }
+  const cf = (S.customFoods || []).find(c => String(c.id) === String(id));
+  if (!cf || !cf._shared) return;
+  if (!confirm(`Remove "${cf.name}" from the community database?`)) return;
+  // Delete by matching name + user_id (community_foods has no app_id)
+  const { error } = await sb.from('community_foods')
+    .delete()
+    .eq('user_id', currentUser.id)
+    .eq('name', cf.name);
+  if (error) { toast('Unshare failed — ' + (error.message || 'try again')); return; }
+  cf._shared = false;
+  scheduleSave();
+  renderMyFoodsTab();
+  toast(`"${cf.name}" removed from community`);
 }
 
 async function shareToCommunity(id) {
