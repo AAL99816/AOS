@@ -476,8 +476,9 @@ function copyMealTo(sourceMeal) {
     otherMeals.map((m, i) => `${i + 1}. ${MEAL_LABELS[m]}`).join('\n') +
     '\n\nEnter number:'
   );
+  if (choice === null) return; // user cancelled
   const idx = parseInt(choice) - 1;
-  if (idx < 0 || idx >= otherMeals.length) return;
+  if (!Number.isInteger(idx) || idx < 0 || idx >= otherMeals.length) return;
   const targetMeal = otherMeals[idx];
   const d = _foodEffectiveDate();
   if (!S.foodLog[d]) S.foodLog[d] = [];

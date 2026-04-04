@@ -414,7 +414,7 @@ function renderWinsLog() {
   // Group by month
   const grouped = {};
   wins.forEach(w => {
-    const month = (w.date || '').slice(0, 7);
+    const month = (w.date || today()).slice(0, 7);
     if (!grouped[month]) grouped[month] = [];
     grouped[month].push(w);
   });

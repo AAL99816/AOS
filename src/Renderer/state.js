@@ -135,6 +135,7 @@ function makeMedia(m={}){
     currentPage: Number.isFinite(+m.currentPage) ? +m.currentPage : 0,
     totalPages:  Number.isFinite(+m.totalPages)  ? +m.totalPages  : 0,
     chapterNotes: Array.isArray(m.chapterNotes) ? m.chapterNotes : [],
+    highlights:   Array.isArray(m.highlights)   ? m.highlights   : [],
     // Shows / Anime
     currentSeason:  Number.isFinite(+m.currentSeason)  ? +m.currentSeason  : 1,
     currentEpisode: Number.isFinite(+m.currentEpisode) ? +m.currentEpisode : 0,

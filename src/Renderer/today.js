@@ -325,9 +325,10 @@ function openAddHabitModal() {
   const name = prompt('Habit name:');
   if (!name || !name.trim()) return;
   if (!Array.isArray(S.habits)) S.habits = [];
-  const { makeHabit } = (typeof window !== 'undefined' && typeof makeHabit === 'function')
-    ? { makeHabit } : { makeHabit: h => ({ id: uid(), name: h.name || '', days: {} }) };
-  S.habits.push(typeof makeHabit === 'function' ? makeHabit({ id: uid(), name: name.trim() }) : { id: uid(), name: name.trim(), days: {} });
+  const _mkHabit = typeof makeHabit === 'function'
+    ? makeHabit
+    : h => ({ id: uid(), name: h.name || '', days: {} });
+  S.habits.push(_mkHabit({ id: uid(), name: name.trim() }));
   scheduleSave();
   renderToday();
   if (typeof renderHabits === 'function') renderHabits();

@@ -139,7 +139,7 @@ function openHabitHistory(id) {
   openModal('mHabitHistory');
 }
 
-let _habitHistWeeks = 52; // toggled between 12 and 52
+let _habitHistWeeks = 12; // toggled between 12 and 52
 
 function _renderHabitHistGrid(h) {
   const c = eid('habitHistGrid');

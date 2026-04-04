@@ -102,7 +102,8 @@ function _renderTab(name) {
   if (name === 'today') {
     renderHabits();
     renderPrayer();
-    renderTodaySummary();
+    if (typeof renderToday === 'function') renderToday();
+    else renderTodaySummary(); // fallback if today.js not loaded
     if (typeof renderMoodSection === 'function') renderMoodSection();
   }
   if (name === 'fitness') {
@@ -220,56 +221,11 @@ function calmInsight(todayStr, habitsDone, habitsTotal, gymDone, cardioMins){
   return t('evening_msg');
 }
 
-function renderTodaySummary(){
-  const c = eid('todaySummary');
-  if(!c) return;
-
-  const todayStr = today();
-  const habitsDone  = (S.habits||[]).filter(h=>h.days&&h.days[todayStr]).length;
-  const habitsTotal = (S.habits||[]).length;
-  const gymDone     = !!(S.gymLog&&S.gymLog[todayStr]);
-  const cardioMins  = (S.cardioLog&&S.cardioLog[todayStr]) || 0;
-  const activeMediaItems = (S.media||[]).filter(m=>m.status==='reading');
-  const activeProjs = (S.projects||[]).filter(p=>p.status==='Active').length;
-  const insight     = calmInsight(todayStr, habitsDone, habitsTotal, gymDone, cardioMins);
-
-  const stats = [
-    {label:t('habits'),  val: habitsTotal ? `${habitsDone} / ${habitsTotal}` : '—'},
-    {label:t('gym'),     val: gymDone ? `✓ ${t('done')}` : t('not_logged')},
-    ...(cardioMins>0 ? [{label:t('cardio'), val:`${cardioMins} ${t('min')}`}] : []),
-    ...(activeProjs>0 ? [{label:t('projects'), val:`${activeProjs} ${t('active')}`}] : []),
-  ];
-
-  // M4: In-progress media widget
-  const mediaHtml = activeMediaItems.length ? `
-    <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
-      <div style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;font-family:'DM Mono',monospace;margin-bottom:6px">In Progress</div>
-      ${activeMediaItems.slice(0,3).map(m => {
-        const pct = typeof getBookPct === 'function' ? getBookPct(m) : 0;
-        return `<div style="margin-bottom:6px;cursor:pointer" onclick="go('media');setMediaTypeF('${m.mediaType}')">
-          <div style="display:flex;justify-content:space-between;margin-bottom:2px">
-            <span style="font-size:0.76rem;color:var(--mist);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:75%">${escapeHtml(m.title)}</span>
-            ${pct > 0 ? `<span style="font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace">${pct}%</span>` : ''}
-          </div>
-          ${pct > 0 ? `<div style="height:2px;background:var(--mid);border-radius:2px"><div style="height:2px;width:${pct}%;background:var(--blush);border-radius:2px"></div></div>` : ''}
-        </div>`;
-      }).join('')}
-    </div>` : '';
-
-  c.innerHTML = `
-    <div class="card" style="padding:14px 20px">
-      <div style="font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--blush);font-family:'DM Mono',monospace;margin-bottom:12px">${t('today_glance')}</div>
-      <div style="display:flex;gap:28px;flex-wrap:wrap">
-        ${stats.map(s=>`
-          <div>
-            <div style="font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;font-family:'DM Mono',monospace;margin-bottom:3px">${s.label}</div>
-            <div style="font-size:0.82rem;color:var(--mist)">${escapeHtml(String(s.val))}</div>
-          </div>`).join('')}
-      </div>
-      ${mediaHtml}
-      <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:0.8rem;color:var(--muted-lt);font-style:italic;font-family:'Cormorant Garamond',serif;">${escapeHtml(insight)}</div>
-    </div>
-  `;
+// renderTodaySummary() is defined in today.js — see renderTodaySummary shim there.
+// This stub is kept so renderAll() line 286 doesn't crash if today.js loads after app.js
+// (script order in index.html: today.js before app.js, so today.js wins in practice).
+function renderTodaySummary() {
+  if (typeof renderToday === 'function') renderToday();
 }
 
 /* ══ RENDER ALL ══ */

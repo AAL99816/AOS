@@ -1322,12 +1322,13 @@ function epRender() {
       const pr = Math.max(...vals);
       const recent = vals[vals.length - 1];
       const prev   = vals.length >= 2 ? vals[vals.length - 2] : null;
-      const trend  = prev != null ? ((recent - prev) / prev * 100) : null;
+      const trend  = (prev != null && prev !== 0) ? ((recent - prev) / prev * 100) : null;
       const trendStr = trend != null ? fmtPct(trend) : '—';
       const trendColor = trend > 0 ? 'var(--gold)' : trend < 0 ? 'var(--petal)' : 'var(--muted)';
+      const unit = metric === 'totalVolume' ? '' : ' kg';
       statsEl.innerHTML = [
-        { label: 'PR', value: Math.round(pr * 10) / 10 + ' kg' },
-        { label: 'Last', value: Math.round(recent * 10) / 10 + ' kg' },
+        { label: 'PR', value: Math.round(pr * 10) / 10 + unit },
+        { label: 'Last', value: Math.round(recent * 10) / 10 + unit },
         { label: 'Trend', value: trendStr, color: trendColor },
       ].map(s => `<div class="card" style="padding:8px 10px;text-align:center">
         <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${s.label}</div>
