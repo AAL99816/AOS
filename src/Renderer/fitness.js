@@ -1021,3 +1021,257 @@ function renderTrainingFullList(query) {
     });
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXERCISE PROGRESSION + 1RM CALCULATOR
+// ─────────────────────────────────────────────────────────────────────────────
+
+/* Epley formula: 1RM = weight × (1 + reps/30) */
+function epley1RM(weight, reps) {
+  const w = parseFloat(weight);
+  const r = parseInt(reps);
+  if (!w || !r || w <= 0 || r <= 0) return null;
+  if (r === 1) return w;
+  return w * (1 + r / 30);
+}
+
+/* Best set 1RM from a loggedSets array */
+function bestE1RM(loggedSets) {
+  let best = 0;
+  (loggedSets || []).forEach(s => {
+    const count = parseInt(s.sets) || 1;
+    for (let i = 0; i < count; i++) {
+      const v = epley1RM(s.weight, s.reps) || 0;
+      if (v > best) best = v;
+    }
+  });
+  return best || null;
+}
+
+/* Build time-series for a given exercise key + metric */
+function epBuildSeries(key, metricId, rangeDays) {
+  const hist = getExerciseHistory(key); // sorted oldest-first by push order
+  const cutoff = rangeDays > 0
+    ? new Date(Date.now() - rangeDays * 86400000).toISOString().slice(0, 10)
+    : '0000-00-00';
+
+  // Group by date (keep best value per day)
+  const byDate = {};
+  hist.forEach(entry => {
+    if (!entry.date || entry.date < cutoff) return;
+    const loggedSets = Array.isArray(entry.loggedSets) ? entry.loggedSets
+      : (entry.weight != null ? [{ weight: entry.weight, reps: entry.reps, sets: entry.sets || 1 }] : []);
+
+    let val;
+    if (metricId === 'e1rm') {
+      val = bestE1RM(loggedSets);
+    } else if (metricId === 'maxWeight') {
+      val = loggedSets.reduce((m, s) => Math.max(m, parseFloat(s.weight) || 0), 0) || null;
+    } else { // totalVolume
+      val = loggedSets.reduce((sum, s) => {
+        const count = parseInt(s.sets) || 1;
+        return sum + (parseFloat(s.weight) || 0) * (parseInt(s.reps) || 0) * count;
+      }, 0) || null;
+    }
+
+    if (val == null) return;
+    if (!byDate[entry.date] || val > byDate[entry.date]) byDate[entry.date] = val;
+  });
+
+  return Object.keys(byDate).sort().map(d => ({ date: d, value: byDate[d] }));
+}
+
+/* Inline SVG line chart — no external library needed */
+function epDrawChart(points, metricLabel) {
+  const el = eid('epChart');
+  if (!el) return;
+  if (points.length < 2) {
+    el.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:0.72rem;color:var(--muted)">Not enough data to chart (need 2+ sessions)</div>`;
+    return;
+  }
+  const W = el.clientWidth || 520;
+  const H = 180;
+  const PAD = { top: 14, right: 12, bottom: 28, left: 44 };
+  const iW = W - PAD.left - PAD.right;
+  const iH = H - PAD.top - PAD.bottom;
+
+  const vals = points.map(p => p.value);
+  const minV = Math.min(...vals);
+  const maxV = Math.max(...vals);
+  const range = maxV - minV || 1;
+
+  const xScale = i => PAD.left + (i / (points.length - 1)) * iW;
+  const yScale = v => PAD.top + iH - ((v - minV) / range) * iH;
+
+  // Path
+  const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${xScale(i).toFixed(1)},${yScale(p.value).toFixed(1)}`).join(' ');
+
+  // X axis labels (max 6)
+  const step = Math.max(1, Math.floor(points.length / 6));
+  const xLabels = points
+    .filter((_, i) => i % step === 0 || i === points.length - 1)
+    .map((p, _) => {
+      const origIdx = points.indexOf(p);
+      const x = xScale(origIdx);
+      const label = p.date.slice(5); // MM-DD
+      return `<text x="${x.toFixed(1)}" y="${(H - 4).toFixed(1)}" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="DM Mono,monospace">${label}</text>`;
+    }).join('');
+
+  // Y axis labels
+  const yTicks = [minV, minV + range * 0.5, maxV];
+  const yLabels = yTicks.map(v => {
+    const y = yScale(v);
+    return `<text x="${(PAD.left - 5).toFixed(1)}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="var(--muted)" font-family="DM Mono,monospace">${Math.round(v)}</text>`;
+  }).join('');
+
+  // Dots
+  const dots = points.map((p, i) => {
+    const x = xScale(i).toFixed(1);
+    const y = yScale(p.value).toFixed(1);
+    const tip = `${p.date}: ${Math.round(p.value * 10) / 10}${metricLabel === 'Volume' ? 'kg' : 'kg'}`;
+    return `<circle cx="${x}" cy="${y}" r="3" fill="var(--blush)" stroke="var(--cream)" stroke-width="1.2"><title>${tip}</title></circle>`;
+  }).join('');
+
+  // PR marker (last point that equals max)
+  const prIdx = points.reduce((best, p, i) => p.value >= points[best].value ? i : best, 0);
+  const prX = xScale(prIdx).toFixed(1);
+  const prY = (yScale(points[prIdx].value) - 10).toFixed(1);
+  const prMarker = `<text x="${prX}" y="${prY}" text-anchor="middle" font-size="9" fill="var(--gold)" font-family="DM Mono,monospace">PR</text>`;
+
+  el.innerHTML = `<svg width="100%" height="${H}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <path d="${path}" fill="none" stroke="var(--blush)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}${prMarker}${xLabels}${yLabels}
+  </svg>`;
+}
+
+let _epCurrentKey = '';
+let _epFilterTimer = null;
+
+function openExerciseProgress(exerciseName) {
+  // Populate search box
+  if (exerciseName) {
+    eid('epSearch').value = exerciseName;
+    _epCurrentKey = normExerciseKey(exerciseName);
+  } else {
+    // Default: first exercise with any history
+    const keys = Object.keys(S.exerciseHistory || {}).filter(k => (S.exerciseHistory[k] || []).length > 0);
+    _epCurrentKey = keys[0] || '';
+    eid('epSearch').value = _epCurrentKey
+      ? (_epCurrentKey.charAt(0).toUpperCase() + _epCurrentKey.slice(1))
+      : '';
+  }
+  eid('epSearchResults').style.display = 'none';
+  eid('ep1RMCalc').style.display = 'none';
+  epRender();
+  openModal('mExerciseProgress');
+}
+
+function epFilterExercise(query) {
+  clearTimeout(_epFilterTimer);
+  _epFilterTimer = setTimeout(() => {
+    const q = query.trim().toLowerCase();
+    const res = eid('epSearchResults');
+    if (!q) { res.style.display = 'none'; return; }
+
+    const dbNames = (typeof EXERCISE_DB !== 'undefined' ? EXERCISE_DB : []).map(e => e.name);
+    const customNames = (S.customExercises || []).map(e => e.name);
+    const histNames = Object.keys(S.exerciseHistory || {})
+      .filter(k => (S.exerciseHistory[k] || []).length > 0)
+      .map(k => k.charAt(0).toUpperCase() + k.slice(1));
+    const allNames = [...new Set([...dbNames, ...customNames, ...histNames])];
+    const matches = allNames.filter(n => n.toLowerCase().includes(q)).slice(0, 12);
+
+    if (!matches.length) { res.style.display = 'none'; return; }
+    res.style.display = '';
+    res.innerHTML = matches.map(n => {
+      const hasData = !!(S.exerciseHistory || {})[normExerciseKey(n)]?.length;
+      return `<div onclick="epSelectExercise('${escapeAttr(n)}')" style="padding:8px 12px;cursor:pointer;font-size:0.8rem;color:var(--mist);display:flex;justify-content:space-between;border-bottom:1px solid var(--border)">
+        <span>${escapeHtml(n)}</span>
+        ${hasData ? `<span style="font-size:0.6rem;color:var(--blush);font-family:'DM Mono',monospace">data</span>` : ''}
+      </div>`;
+    }).join('');
+  }, 150);
+}
+
+function epSelectExercise(name) {
+  _epCurrentKey = normExerciseKey(name);
+  eid('epSearch').value = name;
+  eid('epSearchResults').style.display = 'none';
+  epRender();
+}
+
+function epRender() {
+  if (!_epCurrentKey) return;
+  const metric = (eid('epMetric') && eid('epMetric').value) || 'e1rm';
+  const range  = parseInt((eid('epRange') && eid('epRange').value) || '90');
+  const metricLabel = metric === 'totalVolume' ? 'Volume' : 'kg';
+
+  const points = epBuildSeries(_epCurrentKey, metric, range);
+  epDrawChart(points, metricLabel);
+
+  // Stats
+  const statsEl = eid('epStats');
+  if (statsEl) {
+    if (points.length) {
+      const vals = points.map(p => p.value);
+      const pr = Math.max(...vals);
+      const recent = vals[vals.length - 1];
+      const prev   = vals.length >= 2 ? vals[vals.length - 2] : null;
+      const trend  = prev != null ? ((recent - prev) / prev * 100) : null;
+      const trendStr = trend != null ? fmtPct(trend) : '—';
+      const trendColor = trend > 0 ? 'var(--gold)' : trend < 0 ? 'var(--petal)' : 'var(--muted)';
+      statsEl.innerHTML = [
+        { label: 'PR', value: Math.round(pr * 10) / 10 + ' kg' },
+        { label: 'Last', value: Math.round(recent * 10) / 10 + ' kg' },
+        { label: 'Trend', value: trendStr, color: trendColor },
+      ].map(s => `<div class="card" style="padding:8px 10px;text-align:center">
+        <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${s.label}</div>
+        <div style="font-size:0.88rem;color:${s.color || 'var(--mist)'};font-family:'DM Mono',monospace">${s.value}</div>
+      </div>`).join('');
+    } else {
+      statsEl.innerHTML = '';
+    }
+  }
+
+  // Session log list
+  const logEl = eid('epLog');
+  if (logEl) {
+    const hist = [...(getExerciseHistory(_epCurrentKey))].reverse().slice(0, 40);
+    if (!hist.length) {
+      logEl.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted)">No sessions logged yet for this exercise.</div>`;
+      return;
+    }
+    logEl.innerHTML = hist.map(entry => {
+      const loggedSets = Array.isArray(entry.loggedSets) ? entry.loggedSets
+        : (entry.weight != null ? [{ weight: entry.weight, reps: entry.reps, sets: entry.sets || 1 }] : []);
+      const setsExpanded = loggedSets.flatMap(s => {
+        const count = parseInt(s.sets) || 1;
+        return Array.from({ length: count }, () => s);
+      });
+      const setsStr = setsExpanded.map(s =>
+        [s.weight != null ? s.weight + 'kg' : null, s.reps != null ? s.reps + ' reps' : null].filter(Boolean).join(' × ')
+      ).join(' | ');
+      const e1rm = bestE1RM(loggedSets);
+      return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border-lt)">
+        <span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:0.68rem;flex-shrink:0;margin-right:8px">${entry.date || ''}</span>
+        <span style="flex:1;color:var(--muted-lt);font-size:0.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(setsStr)}</span>
+        ${e1rm ? `<span style="font-size:0.66rem;color:var(--blush);font-family:'DM Mono',monospace;flex-shrink:0;margin-left:6px" title="Est. 1RM">${Math.round(e1rm)}kg</span>` : ''}
+      </div>`;
+    }).join('');
+  }
+}
+
+/* 1RM Calculator (standalone, not tied to a specific exercise) */
+function calc1RM() {
+  const w = parseFloat(eid('c1rmWeight').value);
+  const r = parseInt(eid('c1rmReps').value);
+  const res = eid('c1rmResult');
+  if (!w || !r || w <= 0 || r <= 0) { res.textContent = 'Enter weight and reps'; return; }
+  const e = epley1RM(w, r);
+  // Common percentages table
+  const pcts = [100, 95, 90, 85, 80, 75, 70];
+  res.innerHTML = `<span style="color:var(--gold)">Est. 1RM: ${Math.round(e * 10) / 10} kg</span>
+    <div style="margin-top:6px;display:flex;gap:10px;flex-wrap:wrap">
+      ${pcts.map(p => `<span style="font-size:0.62rem;color:var(--muted)">${p}% → <b style="color:var(--mist)">${Math.round(e * p / 100 * 10) / 10}kg</b></span>`).join('')}
+    </div>`;
+}
