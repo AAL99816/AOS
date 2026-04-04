@@ -750,7 +750,112 @@ function logWorkoutSession(wcId) {
   renderTrainingLog();
   if (typeof renderHabits === 'function') renderHabits();
 
+  if (typeof renderMuscleHeatmap === 'function') renderMuscleHeatmap();
   toast(`${wc.title || t('workout')} ${t('workout_saved')}`);
+}
+
+/* ══ MUSCLE VOLUME HEATMAP ══ */
+
+// Canonical muscle groups for the heatmap grid
+const MUSCLE_GROUPS = [
+  { key: 'chest',       label: 'Chest' },
+  { key: 'back',        label: 'Back' },
+  { key: 'lats',        label: 'Lats' },
+  { key: 'shoulders',   label: 'Shoulders' },
+  { key: 'traps',       label: 'Traps' },
+  { key: 'biceps',      label: 'Biceps' },
+  { key: 'triceps',     label: 'Triceps' },
+  { key: 'forearms',    label: 'Forearms' },
+  { key: 'core',        label: 'Core' },
+  { key: 'glutes',      label: 'Glutes' },
+  { key: 'quads',       label: 'Quads' },
+  { key: 'hamstrings',  label: 'Hamstrings' },
+  { key: 'calves',      label: 'Calves' },
+  { key: 'neck',        label: 'Neck' },
+];
+
+function _getMuscleInfo(exerciseName) {
+  if (typeof EXERCISE_DB === 'undefined') return null;
+  const key = normExerciseKey(exerciseName);
+  return EXERCISE_DB.find(e => e.name.toLowerCase() === key) || null;
+}
+
+/* Compute sets volume per muscle group for the past N days from workoutHistory */
+function _muscleWeeklyVolume(days) {
+  const cutoff = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+  const vol = {}; // muscleKey → total sets (primary = 1, secondary = 0.33)
+
+  (S.workoutHistory || []).forEach(session => {
+    if (!session.date || session.date < cutoff) return;
+    (session.exercises || []).forEach(ex => {
+      const info = _getMuscleInfo(ex.name || '');
+      if (!info) return;
+
+      // Count total sets logged in this exercise entry
+      const loggedSets = Array.isArray(ex.loggedSets) ? ex.loggedSets
+        : (ex.weight != null ? [{ weight: ex.weight, reps: ex.reps, sets: ex.sets || 1 }] : []);
+      const totalSets = loggedSets.reduce((s, e) => s + (parseInt(e.sets) || 1), 0);
+      if (!totalSets) return;
+
+      (info.muscles || []).forEach(m => {
+        vol[m] = (vol[m] || 0) + totalSets;
+      });
+      (info.secondary || []).forEach(m => {
+        vol[m] = (vol[m] || 0) + totalSets * 0.33;
+      });
+    });
+  });
+  return vol;
+}
+
+function renderMuscleHeatmap() {
+  const el = eid('muscleHeatmap');
+  if (!el) return;
+
+  const vol = _muscleWeeklyVolume(7);
+  const allVals = MUSCLE_GROUPS.map(g => vol[g.key] || 0);
+  const maxVol = Math.max(...allVals, 1);
+
+  // Intensity buckets: 0 = untrained, 1-4 = light → high
+  function intensityClass(v) {
+    if (!v) return 0;
+    const pct = v / maxVol;
+    if (pct < 0.25) return 1;
+    if (pct < 0.5)  return 2;
+    if (pct < 0.75) return 3;
+    return 4;
+  }
+
+  const COLORS = ['var(--mid)', 'var(--border)', '#a07060', 'var(--blush)', 'var(--petal)'];
+  const totalSets = Object.values(vol).reduce((s, v) => s + v, 0);
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div class="sec" style="margin:0;font-size:0.66rem">Weekly Muscle Volume</div>
+      <span style="font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace">${totalSets ? 'This week' : 'No data this week'}</span>
+    </div>
+    <div class="card" style="padding:12px 14px">
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px">
+        ${MUSCLE_GROUPS.map(g => {
+          const v = vol[g.key] || 0;
+          const ic = intensityClass(v);
+          const sets = Math.round(v * 10) / 10;
+          return `<div title="${g.label}: ${sets} sets" style="text-align:center">
+            <div style="width:100%;padding-bottom:100%;background:${COLORS[ic]};border-radius:5px;position:relative;transition:background 0.2s">
+              <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+                ${ic >= 3 ? `<span style="font-size:0.5rem;color:var(--cream);font-family:'DM Mono',monospace">${Math.round(sets)}</span>` : ''}
+              </div>
+            </div>
+            <div style="font-size:0.5rem;color:var(--muted);margin-top:3px;letter-spacing:0.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${g.label}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:10px;justify-content:flex-end">
+        <span style="font-size:0.52rem;color:var(--muted)">Low</span>
+        ${COLORS.map(c => `<div style="width:10px;height:10px;border-radius:2px;background:${c}"></div>`).join('')}
+        <span style="font-size:0.52rem;color:var(--muted)">High</span>
+      </div>
+    </div>`;
 }
 
 /* ══ CARDIO ══ */
