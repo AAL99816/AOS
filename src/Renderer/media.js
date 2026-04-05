@@ -334,6 +334,9 @@ function setMediaSort(val) {
 function setMediaTypeF(f, btn) {
   mediaTypeF = f;
   bookF = 'all'; // reset status filter when switching type
+  _mediaSort = 'added'; // reset sort
+  const sortSel = eid('mediaSortSel');
+  if (sortSel) sortSel.value = 'added';
   document.querySelectorAll('.book-type-filters .fpill').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   // Reset status filter active state

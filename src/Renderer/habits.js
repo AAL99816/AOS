@@ -278,6 +278,7 @@ function toggleH(id, date) {
 
   scheduleSave();
   renderHabits();
+  if (typeof renderTodaySummary === 'function') renderTodaySummary();
 }
 
 function delHabit(id) {
@@ -287,11 +288,13 @@ function delHabit(id) {
   S.habits = (S.habits || []).filter(h => String(h.id) !== String(id));
   scheduleSave();
   renderHabits();
+  if (typeof renderTodaySummary === 'function') renderTodaySummary();
   toastUndo(`"${h.name}" removed`, () => {
     if (!Array.isArray(S.habits)) S.habits = [];
     S.habits.push(backup);
     scheduleSave();
     renderHabits();
+    if (typeof renderTodaySummary === 'function') renderTodaySummary();
   });
 }
 
@@ -303,6 +306,7 @@ function addHabit() {
   eid('newHabitName').value = '';
   scheduleSave();
   renderHabits();
+  if (typeof renderTodaySummary === 'function') renderTodaySummary();
   toast(`"${name}" ${t('added')}`);
 }
 

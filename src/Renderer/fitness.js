@@ -99,7 +99,7 @@ function _weightSparklineSVG(ascEntries) {
   const hi = mn === mx ? mx + 0.5 : mx;
   const range = hi - lo;
 
-  const xOf = i => PAD.left + (ascEntries.length === 1 ? iW / 2 : (i / (ascEntries.length - 1)) * iW);
+  const xOf = i => PAD.left + (i / (ascEntries.length - 1)) * iW;
   const yOf = v => PAD.top + iH - ((v - lo) / range) * iH;
 
   const pts = ascEntries.map((e, i) => `${xOf(i).toFixed(1)},${yOf(+e.weight).toFixed(1)}`);
