@@ -56,10 +56,14 @@ if (window.updater) {
     }
 
     if (msg.event === 'downloaded') {
-      title.textContent = `Update ${msg.version} ready`;
-      sub.textContent = 'Restart now to install the latest version.';
+      title.textContent = `Update ${msg.version} ready — restarting…`;
+      sub.textContent = 'Installing update now. AOS will restart in 3 seconds.';
       wrap.classList.add('hidden');
-      actions.classList.remove('hidden');
+      actions.classList.add('hidden');
+      // Auto-install immediately — no user action required
+      setTimeout(async () => {
+        if (window.updater) await window.updater.install();
+      }, 3000);
     }
 
     if (msg.event === 'not-available') {

@@ -114,7 +114,8 @@ function _renderTab(name) {
     if (typeof renderWeightLog         === 'function') renderWeightLog();
     if (typeof renderBodyWeightSection === 'function') renderBodyWeightSection();
     if (typeof renderExercisePbs       === 'function') renderExercisePbs();
-    if (typeof renderMuscleHeatmap     === 'function') renderMuscleHeatmap();
+    // Heatmap hidden — code preserved for future use
+    // if (typeof renderMuscleHeatmap  === 'function') renderMuscleHeatmap();
   }
   if (name === 'food'     && typeof renderFoodTab     === 'function') renderFoodTab();
   if (name === 'projects' && typeof renderProjects    === 'function') renderProjects();

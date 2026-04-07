@@ -1051,10 +1051,11 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
     </div>
     <div class="gym-week" id="gymWeek"></div>
     <div class="g3" id="workoutCards"></div>
-    <div id="muscleHeatmap" style="margin-top:16px"></div>
+    <!-- Muscle heatmap: code kept, UI hidden until fully designed -->
+    <div id="muscleHeatmap" style="margin-top:16px;display:none"></div>
     <div id="trainingLog" style="margin-top:16px"></div>
     <!-- FEATURE: Exercise PBs — remove this block to disable -->
-    <div id="exercisePbsSection" class="card" style="margin-top:20px;display:none">
+    <div id="exercisePbsSection" class="card" style="margin-top:20px">
       <div style="font-size:0.7rem;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:10px">Personal Bests</div>
       <div id="exercisePbsList"></div>
     </div>
@@ -1481,43 +1482,82 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   <div class="modal-acts"><button class="btn btn-p" onclick="closeModal('mPastNotes')" data-i18n="close">Close</button></div>
 </div></div>
 
+<!-- Workout Preset Picker Modal -->
+<div class="modal-bg" id="mWorkoutPreset" onclick="if(event.target===this)closeModal('mWorkoutPreset')"><div class="modal" style="max-width:560px;width:94vw;max-height:86vh;display:flex;flex-direction:column">
+  <h2 style="margin-bottom:4px">Choose Workout Type</h2>
+  <p style="font-size:0.68rem;color:var(--muted);margin-bottom:14px;font-family:'DM Mono',monospace">Select a preset to name your workout block</p>
+  <div style="overflow-y:auto;flex:1" id="workoutPresetList"></div>
+  <div class="modal-acts"><button class="btn btn-g" onclick="closeModal('mWorkoutPreset')">Cancel</button></div>
+</div></div>
+
 <!-- Exercise Progression Modal -->
-<div class="modal-bg" id="mExerciseProgress" onclick="if(event.target===this)closeModal('mExerciseProgress')"><div class="modal" style="max-width:580px;width:94vw">
-  <h2 id="epTitle" style="margin-bottom:4px">Exercise Progress</h2>
-  <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
-    <input class="add-inp" id="epSearch" placeholder="Search exercise…" oninput="epFilterExercise(this.value)" style="flex:2;min-width:140px">
-    <select id="epMetric" onchange="epRender()" style="flex:1;min-width:100px;background:var(--mid);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--mist);font-size:0.76rem;font-family:'Jost',sans-serif">
-      <option value="e1rm">Est. 1RM</option>
-      <option value="maxWeight">Max Weight</option>
-      <option value="totalVolume">Volume (kg×reps)</option>
-    </select>
-    <select id="epRange" onchange="epRender()" style="flex:1;min-width:90px;background:var(--mid);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--mist);font-size:0.76rem;font-family:'Jost',sans-serif">
-      <option value="30">30 days</option>
-      <option value="90" selected>90 days</option>
-      <option value="180">6 months</option>
-      <option value="365">1 year</option>
-      <option value="0">All time</option>
-    </select>
+<div class="modal-bg" id="mExerciseProgress" onclick="if(event.target===this)closeModal('mExerciseProgress')"><div class="modal" style="max-width:600px;width:94vw">
+  <h2 id="epTitle" style="margin-bottom:10px">Exercise Progress</h2>
+  <!-- Mode toggle: Single / Compare -->
+  <div style="display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px">
+    <button id="epModeSingle"  onclick="epSetMode('single')"  style="flex:1;padding:7px 12px;background:var(--blush);color:var(--cream);border:none;cursor:pointer;font-size:0.74rem;font-family:'DM Mono',monospace;letter-spacing:0.06em">Single Exercise</button>
+    <button id="epModeCompare" onclick="epSetMode('compare')" style="flex:1;padding:7px 12px;background:none;color:var(--muted);border:none;cursor:pointer;font-size:0.74rem;font-family:'DM Mono',monospace;letter-spacing:0.06em">Compare ⇌</button>
   </div>
-  <div id="epSearchResults" style="display:none;max-height:160px;overflow-y:auto;margin-bottom:10px;border:1px solid var(--border);border-radius:8px"></div>
-  <!-- 1RM Calculator strip -->
-  <div id="ep1RMCalc" class="card" style="margin-bottom:14px;padding:10px 14px;display:none">
-    <div style="font-size:0.52rem;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:8px">1RM Calculator</div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <input id="c1rmWeight" type="number" min="0" step="0.5" class="add-inp" placeholder="Weight (kg)" style="flex:1;min-width:90px">
-      <input id="c1rmReps"   type="number" min="1" max="30"   class="add-inp" placeholder="Reps" style="flex:1;min-width:70px">
-      <button class="btn btn-g" onclick="calc1RM()" style="font-size:0.72rem">Calc</button>
+
+  <!-- ── SINGLE EXERCISE PANEL ── -->
+  <div id="epSinglePanel">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+      <input class="add-inp" id="epSearch" placeholder="Search exercise…" oninput="epFilterExercise(this.value)" style="flex:2;min-width:140px">
+      <select id="epMetric" onchange="epRender()" style="flex:1;min-width:100px;background:var(--mid);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--mist);font-size:0.76rem;font-family:'Jost',sans-serif">
+        <option value="e1rm">Est. 1RM</option>
+        <option value="maxWeight">Max Weight</option>
+        <option value="totalVolume">Volume (kg×reps)</option>
+      </select>
+      <select id="epRange" onchange="epRender()" style="flex:1;min-width:90px;background:var(--mid);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--mist);font-size:0.76rem;font-family:'Jost',sans-serif">
+        <option value="30">30 days</option>
+        <option value="90" selected>90 days</option>
+        <option value="180">6 months</option>
+        <option value="365">1 year</option>
+        <option value="0">All time</option>
+      </select>
     </div>
-    <div id="c1rmResult" style="font-size:0.82rem;color:var(--gold-lt);font-family:'DM Mono',monospace;margin-top:8px;min-height:20px"></div>
+    <div id="epSearchResults" style="display:none;max-height:160px;overflow-y:auto;margin-bottom:10px;border:1px solid var(--border);border-radius:8px"></div>
+    <!-- 1RM Calculator strip -->
+    <div id="ep1RMCalc" class="card" style="margin-bottom:14px;padding:10px 14px;display:none">
+      <div style="font-size:0.52rem;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:8px">1RM Calculator</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input id="c1rmWeight" type="number" min="0" step="0.5" class="add-inp" placeholder="Weight (kg)" style="flex:1;min-width:90px">
+        <input id="c1rmReps"   type="number" min="1" max="30"   class="add-inp" placeholder="Reps" style="flex:1;min-width:70px">
+        <button class="btn btn-g" onclick="calc1RM()" style="font-size:0.72rem">Calc</button>
+      </div>
+      <div id="c1rmResult" style="font-size:0.82rem;color:var(--gold-lt);font-family:'DM Mono',monospace;margin-top:8px;min-height:20px"></div>
+    </div>
   </div>
-  <!-- Chart area -->
+
+  <!-- ── COMPARE PANEL ── -->
+  <div id="epComparePanelWrap" style="display:none">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+      <select onchange="epRenderCompare()" id="epMetricC" style="flex:1;min-width:100px;background:var(--mid);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--mist);font-size:0.76rem;font-family:'Jost',sans-serif">
+        <option value="e1rm">Est. 1RM</option>
+        <option value="maxWeight">Max Weight</option>
+        <option value="totalVolume">Volume (kg×reps)</option>
+      </select>
+      <select onchange="epRenderCompare()" id="epRangeC" style="flex:1;min-width:90px;background:var(--mid);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--mist);font-size:0.76rem;font-family:'Jost',sans-serif">
+        <option value="30">30 days</option>
+        <option value="90" selected>90 days</option>
+        <option value="180">6 months</option>
+        <option value="365">1 year</option>
+        <option value="0">All time</option>
+      </select>
+    </div>
+    <div style="font-size:0.58rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:6px">Select exercises to compare</div>
+    <div id="epCompareList" style="max-height:170px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:4px 10px;margin-bottom:10px"></div>
+  </div>
+
+  <!-- Chart area (shared) -->
   <div id="epChart" style="width:100%;height:200px;position:relative;margin-bottom:16px"></div>
-  <!-- Stats row -->
-  <div id="epStats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px"></div>
-  <!-- Session list -->
-  <div id="epLog" style="max-height:200px;overflow-y:auto;font-size:0.74rem;color:var(--muted-lt)"></div>
+  <!-- Stats row (shared) -->
+  <div id="epStats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-bottom:14px"></div>
+  <!-- Session list (single mode only) -->
+  <div id="epLog" style="max-height:180px;overflow-y:auto;font-size:0.74rem;color:var(--muted-lt)"></div>
+
   <div class="modal-acts" style="gap:8px">
-    <button class="btn btn-g" onclick="eid('ep1RMCalc').style.display=eid('ep1RMCalc').style.display==='none'?'':'none'" style="font-size:0.72rem">1RM Calc</button>
+    <button class="btn btn-g" onclick="eid('ep1RMCalc').style.display=eid('ep1RMCalc').style.display==='none'?'':'none'" id="ep1RMCalcBtn" style="font-size:0.72rem">1RM Calc</button>
     <button class="btn btn-p" onclick="closeModal('mExerciseProgress')">Close</button>
   </div>
 </div></div>

@@ -502,18 +502,24 @@ function renderExercisePbs() {
     const orm = e.best.weight && e.best.reps > 1
       ? Math.round(parseFloat(e.best.weight) * (1 + parseInt(e.best.reps) / 30))
       : null;
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:0.78rem">
+    return `<div onclick="openExerciseProgress('${escapeAttr(e.name)}')" style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:0.78rem;cursor:pointer" title="View progress chart">
       <span style="color:var(--cream)">${escapeHtml(e.name)}</span>
-      <div style="text-align:right">
-        <div style="color:var(--gold-lt);font-family:'DM Mono',monospace">${w}${sep}${r}</div>
-        ${orm ? `<div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace">~${orm}kg 1RM</div>` : ''}
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="text-align:right">
+          <div style="color:var(--gold-lt);font-family:'DM Mono',monospace">${w}${sep}${r}</div>
+          ${orm ? `<div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace">~${orm}kg 1RM</div>` : ''}
+        </div>
+        <span style="font-size:0.6rem;color:var(--blush);opacity:0.7">▸</span>
       </div>
     </div>`;
   };
 
   const header = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
     <span style="font-size:0.65rem;color:var(--muted);font-family:'DM Mono',monospace">${pbs.length} exercise${pbs.length!==1?'s':''} tracked</span>
-    <button onclick="_pbExpanded=!_pbExpanded;renderExercisePbs()" style="background:none;border:none;color:var(--blush);cursor:pointer;font-size:0.72rem;padding:0">${_pbExpanded ? 'Collapse ▴' : 'View all ▾'}</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button onclick="epSetMode('compare');openModal('mExerciseProgress')" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--blush);cursor:pointer;font-size:0.62rem;padding:2px 8px;font-family:'DM Mono',monospace">Compare ⇌</button>
+      <button onclick="_pbExpanded=!_pbExpanded;renderExercisePbs()" style="background:none;border:none;color:var(--blush);cursor:pointer;font-size:0.72rem;padding:0">${_pbExpanded ? 'Collapse ▴' : 'View all ▾'}</button>
+    </div>
   </div>`;
 
   if (_pbExpanded) {

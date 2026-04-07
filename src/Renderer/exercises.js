@@ -374,3 +374,124 @@ const MUSCLE_LABELS = {
   forearms:'Forearms', core:'Core', glutes:'Glutes',
   quads:'Quads', hamstrings:'Hamstrings', calves:'Calves', neck:'Neck'
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WORKOUT PRESETS — categorized preset list for naming workout cards.
+// focus: muscle group keys this session primarily targets (for future heatmap use).
+// ─────────────────────────────────────────────────────────────────────────────
+const WORKOUT_PRESETS = [
+  {
+    category: 'Push / Pull / Legs',
+    workouts: [
+      { name: 'Push Day',   focus: ['chest','shoulders','triceps'] },
+      { name: 'Push A',     focus: ['chest','shoulders','triceps'] },
+      { name: 'Push B',     focus: ['chest','triceps'] },
+      { name: 'Pull Day',   focus: ['back','lats','biceps'] },
+      { name: 'Pull A',     focus: ['back','lats','biceps'] },
+      { name: 'Pull B',     focus: ['lats','biceps','traps'] },
+      { name: 'Leg Day',    focus: ['quads','hamstrings','glutes','calves'] },
+      { name: 'Leg A',      focus: ['quads','glutes'] },
+      { name: 'Leg B',      focus: ['hamstrings','glutes','calves'] },
+    ]
+  },
+  {
+    category: 'Upper / Lower',
+    workouts: [
+      { name: 'Upper Body A', focus: ['chest','back','shoulders','biceps','triceps'] },
+      { name: 'Upper Body B', focus: ['chest','back','shoulders','biceps','triceps'] },
+      { name: 'Lower Body A', focus: ['quads','hamstrings','glutes','calves'] },
+      { name: 'Lower Body B', focus: ['quads','hamstrings','glutes','calves'] },
+    ]
+  },
+  {
+    category: 'Body Part Split',
+    workouts: [
+      { name: 'Chest Day',        focus: ['chest','triceps'] },
+      { name: 'Back Day',         focus: ['back','lats','biceps'] },
+      { name: 'Shoulder Day',     focus: ['shoulders','traps'] },
+      { name: 'Arm Day',          focus: ['biceps','triceps','forearms'] },
+      { name: 'Leg Day',          focus: ['quads','hamstrings','glutes','calves'] },
+      { name: 'Core Day',         focus: ['core'] },
+      { name: 'Chest & Triceps',  focus: ['chest','triceps'] },
+      { name: 'Back & Biceps',    focus: ['back','lats','biceps'] },
+      { name: 'Shoulders & Traps',focus: ['shoulders','traps'] },
+    ]
+  },
+  {
+    category: 'Full Body',
+    workouts: [
+      { name: 'Full Body A',           focus: ['chest','back','quads','hamstrings'] },
+      { name: 'Full Body B',           focus: ['chest','back','quads','hamstrings'] },
+      { name: 'Full Body C',           focus: ['shoulders','lats','glutes','core'] },
+      { name: 'Full Body Strength',    focus: ['chest','back','quads','hamstrings'] },
+      { name: 'Full Body Hypertrophy', focus: ['chest','back','legs','shoulders'] },
+    ]
+  },
+  {
+    category: 'Strength / Powerlifting',
+    workouts: [
+      { name: 'Squat Day',          focus: ['quads','glutes','core'] },
+      { name: 'Bench Day',          focus: ['chest','triceps','shoulders'] },
+      { name: 'Deadlift Day',       focus: ['back','hamstrings','glutes'] },
+      { name: 'Overhead Press Day', focus: ['shoulders','triceps'] },
+      { name: 'Power Day',          focus: ['back','legs','shoulders'] },
+      { name: 'Strength A',         focus: ['chest','back','quads'] },
+      { name: 'Strength B',         focus: ['chest','back','quads'] },
+    ]
+  },
+  {
+    category: 'Olympic Lifting',
+    workouts: [
+      { name: 'Clean & Jerk Day',  focus: ['back','quads','shoulders','traps'] },
+      { name: 'Snatch Day',        focus: ['back','quads','shoulders'] },
+      { name: 'Olympic Technique', focus: ['back','quads','shoulders'] },
+      { name: 'Clean Pulls',       focus: ['back','hamstrings','traps'] },
+    ]
+  },
+  {
+    category: 'Calisthenics',
+    workouts: [
+      { name: 'Push Calisthenics',      focus: ['chest','shoulders','triceps'] },
+      { name: 'Pull Calisthenics',      focus: ['back','lats','biceps'] },
+      { name: 'Leg Calisthenics',       focus: ['quads','hamstrings','glutes'] },
+      { name: 'Core Calisthenics',      focus: ['core'] },
+      { name: 'Skill Work',             focus: [] },
+      { name: 'Planche / Front Lever',  focus: ['chest','shoulders','core'] },
+    ]
+  },
+  {
+    category: 'Cardio & Conditioning',
+    workouts: [
+      { name: 'Cardio Session',      focus: [] },
+      { name: 'HIIT',                focus: [] },
+      { name: 'Steady State Cardio', focus: [] },
+      { name: 'Conditioning',        focus: [] },
+      { name: 'Running',             focus: ['quads','calves'] },
+      { name: 'Cycling',             focus: ['quads','hamstrings'] },
+      { name: 'Swimming',            focus: ['lats','shoulders'] },
+      { name: 'Boxing',              focus: ['shoulders','core'] },
+      { name: 'MMA / Combat',        focus: [] },
+    ]
+  },
+  {
+    category: 'Recovery & Mobility',
+    workouts: [
+      { name: 'Active Recovery', focus: [] },
+      { name: 'Mobility',        focus: [] },
+      { name: 'Deload Day',      focus: [] },
+      { name: 'Stretching',      focus: [] },
+      { name: 'Yoga',            focus: [] },
+      { name: 'Foam Rolling',    focus: [] },
+    ]
+  },
+  {
+    category: 'Sport Specific',
+    workouts: [
+      { name: 'Basketball Conditioning', focus: [] },
+      { name: 'Football Training',       focus: [] },
+      { name: 'Athletic Speed Work',     focus: ['quads','glutes','calves'] },
+      { name: 'Jump Training',           focus: ['quads','glutes','calves'] },
+      { name: 'Agility',                 focus: [] },
+    ]
+  },
+];

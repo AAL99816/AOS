@@ -320,6 +320,7 @@ function toggleWorkoutCard(id) {
 
 function renderWorkoutCards() {
   ensureFitnessState();
+  migrateWorkoutCardNamesOnce();
 
   const c = eid('workoutCards');
   c.innerHTML = '';
@@ -619,10 +620,72 @@ function migrateExerciseHistory() {
 }
 
 function addWorkoutCard(){
+  _renderWorkoutPresetPicker();
+  openModal('mWorkoutPreset');
+}
+
+function _renderWorkoutPresetPicker() {
+  const el = eid('workoutPresetList');
+  if (!el || typeof WORKOUT_PRESETS === 'undefined') return;
+  el.innerHTML = WORKOUT_PRESETS.map(group => `
+    <div style="margin-bottom:16px">
+      <div style="font-size:0.58rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--blush);font-family:'DM Mono',monospace;padding:6px 0 8px;border-bottom:1px solid var(--border);margin-bottom:6px">${escapeHtml(group.category)}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${group.workouts.map(w => `
+          <button onclick="addWorkoutCardFromPreset('${escapeAttr(w.name)}')"
+            style="background:var(--mid);border:1px solid var(--border);border-radius:8px;padding:7px 14px;color:var(--mist);font-size:0.76rem;cursor:pointer;font-family:'Jost',sans-serif;transition:border-color 0.15s"
+            onmouseover="this.style.borderColor='var(--blush)'"
+            onmouseout="this.style.borderColor='var(--border)'"
+          >${escapeHtml(w.name)}</button>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function addWorkoutCardFromPreset(name) {
   ensureFitnessState();
-  S.workoutCards.push({id:uid(),title:t('new_block'),subtitle:'',exercises:[]});
+  const allPresets = typeof WORKOUT_PRESETS !== 'undefined'
+    ? WORKOUT_PRESETS.flatMap(g => g.workouts) : [];
+  const preset = allPresets.find(w => w.name === name);
+  S.workoutCards.push({
+    id: uid(),
+    title: name,
+    subtitle: '',
+    exercises: [],
+    presetFocus: preset ? preset.focus : []
+  });
+  closeModal('mWorkoutPreset');
   scheduleSave();
   renderWorkoutCards();
+}
+
+/* Try to normalize existing card titles to canonical preset names.
+   Called once on fitness tab mount. Cards that already have presetFocus are skipped. */
+function migrateWorkoutCardNamesOnce() {
+  if (!Array.isArray(S.workoutCards) || !S.workoutCards.length) return;
+  if (typeof WORKOUT_PRESETS === 'undefined') return;
+  const allPresets = WORKOUT_PRESETS.flatMap(g => g.workouts);
+  let changed = false;
+  S.workoutCards.forEach(wc => {
+    if (wc.presetFocus !== undefined) return; // already processed
+    const titleLower = (wc.title || '').trim().toLowerCase();
+    let match = allPresets.find(p => p.name.toLowerCase() === titleLower);
+    if (!match) {
+      match = allPresets.find(p => {
+        const pL = p.name.toLowerCase();
+        return titleLower.includes(pL) || pL.includes(titleLower);
+      });
+    }
+    if (match) {
+      wc.title = match.name;
+      wc.presetFocus = match.focus;
+    } else {
+      wc.presetFocus = [];
+    }
+    changed = true;
+  });
+  if (changed) scheduleSave();
 }
 
 function delWorkoutCard(id){
@@ -800,7 +863,7 @@ function logWorkoutSession(wcId) {
   renderTrainingLog();
   if (typeof renderHabits === 'function') renderHabits();
 
-  if (typeof renderMuscleHeatmap === 'function') renderMuscleHeatmap();
+  // Heatmap hidden — code preserved: if (typeof renderMuscleHeatmap === 'function') renderMuscleHeatmap();
   toast(`${wc.title || t('workout')} ${t('workout_saved')}`);
 }
 
@@ -1305,6 +1368,18 @@ let _epCurrentKey = '';
 let _epFilterTimer = null;
 
 function openExerciseProgress(exerciseName) {
+  // Always start in single mode
+  _epMode = 'single';
+  const sPanel = eid('epSinglePanel');
+  const cPanel = eid('epComparePanelWrap');
+  const sBtn   = eid('epModeSingle');
+  const cBtn   = eid('epModeCompare');
+  if (sPanel) sPanel.style.display = '';
+  if (cPanel) cPanel.style.display = 'none';
+  if (sBtn) { sBtn.style.background = 'var(--blush)'; sBtn.style.color = 'var(--cream)'; }
+  if (cBtn) { cBtn.style.background = 'none'; cBtn.style.color = 'var(--muted)'; }
+  if (eid('epTitle')) eid('epTitle').textContent = 'Exercise Progress';
+
   // Populate search box
   if (exerciseName) {
     eid('epSearch').value = exerciseName;
@@ -1417,6 +1492,184 @@ function epRender() {
       </div>`;
     }).join('');
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MULTI-EXERCISE COMPARE CHART
+// ─────────────────────────────────────────────────────────────────────────────
+
+const COMPARE_COLORS = ['#e87ea1','#f4d03f','#4fc3f7','#a5d6a7','#ce93d8','#ffb74d','#ef9a9a'];
+
+let _compareSelected = new Set();
+let _epMode = 'single'; // 'single' | 'compare'
+
+function epSetMode(mode) {
+  _epMode = mode;
+  const sBtn   = eid('epModeSingle');
+  const cBtn   = eid('epModeCompare');
+  const sPanel = eid('epSinglePanel');
+  const cPanel = eid('epComparePanelWrap');
+
+  if (mode === 'compare') {
+    if (sBtn) { sBtn.style.background = 'none'; sBtn.style.color = 'var(--muted)'; }
+    if (cBtn) { cBtn.style.background = 'var(--blush)'; cBtn.style.color = 'var(--cream)'; }
+    if (sPanel) sPanel.style.display = 'none';
+    if (cPanel) cPanel.style.display = '';
+    if (eid('epTitle')) eid('epTitle').textContent = 'Compare Exercises';
+    _renderComparePanel();
+    epRenderCompare();
+  } else {
+    if (sBtn) { sBtn.style.background = 'var(--blush)'; sBtn.style.color = 'var(--cream)'; }
+    if (cBtn) { cBtn.style.background = 'none'; cBtn.style.color = 'var(--muted)'; }
+    if (sPanel) sPanel.style.display = '';
+    if (cPanel) cPanel.style.display = 'none';
+    if (eid('epTitle')) eid('epTitle').textContent = 'Exercise Progress';
+    epRender();
+  }
+}
+
+function _renderComparePanel() {
+  const container = eid('epCompareList');
+  if (!container) return;
+  const hist = S.exerciseHistory || {};
+  const exercises = Object.keys(hist).filter(k => (hist[k] || []).length > 0).sort();
+  if (!exercises.length) {
+    container.innerHTML = `<div style="color:var(--muted);font-size:0.72rem;padding:16px;text-align:center">Log some sessions first to compare exercises.</div>`;
+    return;
+  }
+  container.innerHTML = exercises.map((key, i) => {
+    const displayName = key.charAt(0).toUpperCase() + key.slice(1);
+    const color = COMPARE_COLORS[i % COMPARE_COLORS.length];
+    const checked = _compareSelected.has(key);
+    return `<label style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;border-bottom:1px solid var(--border-lt)">
+      <input type="checkbox" onchange="epCompareToggle('${escapeAttr(key)}',this.checked)" ${checked?'checked':''} style="accent-color:${color};width:14px;height:14px;flex-shrink:0">
+      <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0"></span>
+      <span style="flex:1;font-size:0.8rem;color:var(--mist)">${escapeHtml(displayName)}</span>
+      <span style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace">${(hist[key]||[]).length} sessions</span>
+    </label>`;
+  }).join('');
+}
+
+function epCompareToggle(key, checked) {
+  if (checked) _compareSelected.add(key);
+  else _compareSelected.delete(key);
+  epRenderCompare();
+}
+
+function epRenderCompare() {
+  const chartEl  = eid('epChart');
+  const statsEl  = eid('epStats');
+  const logEl    = eid('epLog');
+  if (logEl) logEl.innerHTML = '';
+
+  if (!_compareSelected.size) {
+    if (chartEl) chartEl.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:0.72rem;color:var(--muted)">Select exercises above to compare</div>`;
+    if (statsEl) statsEl.innerHTML = '';
+    return;
+  }
+
+  const metric = (eid('epMetricC') && eid('epMetricC').value) || 'e1rm';
+  const range  = parseInt((eid('epRangeC') && eid('epRangeC').value) || '90');
+
+  const keys = [..._compareSelected];
+  const allSeries = keys.map((key, i) => ({
+    key,
+    label: key.charAt(0).toUpperCase() + key.slice(1),
+    color: COMPARE_COLORS[i % COMPARE_COLORS.length],
+    points: epBuildSeries(key, metric, range)
+  })).filter(s => s.points.length >= 1);
+
+  epDrawCompareChart(allSeries);
+
+  if (statsEl) {
+    statsEl.innerHTML = allSeries.map(s => {
+      if (!s.points.length) return '';
+      const pr = Math.max(...s.points.map(p => p.value));
+      const unit = metric === 'totalVolume' ? '' : 'kg';
+      return `<div class="card" style="padding:8px 10px;text-align:center;border-left:3px solid ${s.color}">
+        <div style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeAttr(s.label)}">${escapeHtml(s.label.length > 14 ? s.label.slice(0,13)+'…' : s.label)}</div>
+        <div style="font-size:0.82rem;color:var(--mist);font-family:'DM Mono',monospace">PR ${Math.round(pr*10)/10}${unit}</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function epDrawCompareChart(series) {
+  const el = eid('epChart');
+  if (!el) return;
+
+  const withData = series.filter(s => s.points.length >= 2);
+  if (!withData.length) {
+    el.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:0.72rem;color:var(--muted)">Need at least 2 sessions per exercise to draw a chart</div>`;
+    return;
+  }
+
+  const W = el.clientWidth || 520;
+  const H = 200;
+  const PAD = { top: 16, right: 12, bottom: 36, left: 44 };
+  const iW = W - PAD.left - PAD.right;
+  const iH = H - PAD.top - PAD.bottom;
+
+  const allDates = [...new Set(withData.flatMap(s => s.points.map(p => p.date)))].sort();
+  if (allDates.length < 2) {
+    el.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:0.72rem;color:var(--muted)">Need data on 2+ different dates</div>`;
+    return;
+  }
+
+  const allVals = withData.flatMap(s => s.points.map(p => p.value));
+  const minV = Math.min(...allVals);
+  const maxV = Math.max(...allVals);
+  const vRange = maxV - minV || 1;
+
+  const xOf = date => PAD.left + (allDates.indexOf(date) / (allDates.length - 1)) * iW;
+  const yOf = v    => PAD.top + iH - ((v - minV) / vRange) * iH;
+
+  // Gridlines
+  const yTicks = [minV, minV + vRange * 0.5, maxV];
+  const grids = yTicks.map(v =>
+    `<line x1="${PAD.left}" y1="${yOf(v).toFixed(1)}" x2="${(PAD.left+iW).toFixed(1)}" y2="${yOf(v).toFixed(1)}" stroke="#2a2a2a" stroke-width="1"/>`
+  ).join('');
+
+  // Y labels
+  const yLabels = yTicks.map(v =>
+    `<text x="${(PAD.left-5).toFixed(1)}" y="${(yOf(v)+3).toFixed(1)}" text-anchor="end" font-size="9" fill="var(--muted)" font-family="DM Mono,monospace">${Math.round(v)}</text>`
+  ).join('');
+
+  // X labels (max 5)
+  const step = Math.max(1, Math.floor(allDates.length / 5));
+  const xLabels = allDates
+    .filter((_, i) => i % step === 0 || i === allDates.length - 1)
+    .map(d => `<text x="${xOf(d).toFixed(1)}" y="${(H-4).toFixed(1)}" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="DM Mono,monospace">${d.slice(5)}</text>`)
+    .join('');
+
+  // Series paths + dots
+  const paths = withData.map(s => {
+    const line = s.points.map((p, i) => `${i===0?'M':'L'}${xOf(p.date).toFixed(1)},${yOf(p.value).toFixed(1)}`).join(' ');
+    const dots = s.points.map(p => {
+      const tip = `${p.date}: ${Math.round(p.value*10)/10}kg — ${s.label}`;
+      return `<circle cx="${xOf(p.date).toFixed(1)}" cy="${yOf(p.value).toFixed(1)}" r="3" fill="${s.color}" stroke="var(--bg)" stroke-width="1"><title>${tip}</title></circle>`;
+    }).join('');
+    return `<path d="${line}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="0.9"/>${dots}`;
+  }).join('');
+
+  // Legend
+  const legend = withData.map(s =>
+    `<span style="display:flex;align-items:center;gap:4px">
+      <span style="width:14px;height:3px;background:${s.color};border-radius:2px;display:inline-block"></span>
+      <span style="font-size:0.58rem;color:var(--muted-lt)">${escapeHtml(s.label.length>20?s.label.slice(0,19)+'…':s.label)}</span>
+    </span>`
+  ).join('');
+
+  el.innerHTML = `<svg width="100%" height="${H}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+    ${grids}${paths}${xLabels}${yLabels}
+  </svg>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;justify-content:center">${legend}</div>`;
+}
+
+// Also call migrateWorkoutCardNamesOnce when exercise progress opens (idempotent)
+function openExerciseProgressAndMigrate(name) {
+  migrateWorkoutCardNamesOnce();
+  openExerciseProgress(name);
 }
 
 /* 1RM Calculator (standalone, not tied to a specific exercise) */
