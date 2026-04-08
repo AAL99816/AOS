@@ -548,6 +548,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 .modal-bg.open{display:flex;}
 .modal{background:linear-gradient(150deg,var(--panel) 0%,var(--ink) 100%); border:1px solid var(--border-lt); border-radius:16px; padding:26px; width:430px; max-width:94vw; max-height:88vh; overflow-y:auto; box-shadow:0 30px 80px rgba(0,0,0,0.65); animation:mIn 0.2s ease both;}
 @keyframes mIn{from{opacity:0;transform:scale(0.96) translateY(8px);}to{opacity:1;transform:scale(1) translateY(0);}}
+@keyframes prPop{0%{transform:scale(0.6) translateY(-4px);opacity:0;}60%{transform:scale(1.18) translateY(-2px);opacity:1;}100%{transform:scale(1) translateY(0);opacity:1;}}
 .modal h2{font-family:'Cormorant Garamond',serif; font-size:1.25rem; font-weight:400; color:var(--cream); margin-bottom:16px;}
 .mf{margin-bottom:11px;}
 .mf label{display:block; font-size:0.61rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; font-family:'DM Mono',monospace;}
@@ -936,6 +937,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   <button class="tab" onclick="go('projects',this)" data-i18n="nav_projects">Projects</button>
   <button class="tab" onclick="go('media',this)" data-i18n="nav_media">Media</button>
   <button class="tab" onclick="go('focus',this)">Focus</button>
+  <button class="tab" onclick="go('notes',this)">Notes</button>
   <div class="nav-right">
     <div class="sync-dot" id="syncDot" title="Sync status"></div>
     <!-- FEATURE: Global Search button — remove to disable -->
@@ -1201,6 +1203,28 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 
     <!-- Focus items list -->
     <div id="focusItemsList"></div>
+  </div>
+
+  <!-- NOTES TAB -->
+  <div id="panel-notes" class="panel" style="padding:0">
+    <div style="display:flex;height:calc(100vh - 180px);min-height:400px;overflow:hidden">
+
+      <!-- Topic sidebar -->
+      <div id="notesTopicList"
+        style="width:200px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:14px 8px;background:var(--deep)">
+      </div>
+
+      <!-- Note list -->
+      <div id="notesNoteList"
+        style="width:240px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:14px 8px;background:var(--panel)">
+      </div>
+
+      <!-- Note editor -->
+      <div id="notesEditor"
+        style="flex:1;padding:20px 24px;overflow-y:auto;min-width:0">
+      </div>
+
+    </div>
   </div>
 
 </main>
@@ -1586,6 +1610,20 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   </div>
 </div></div>
 
+<!-- Habit Manager Modal -->
+<div class="modal-bg" id="mHabitManager" onclick="if(event.target===this)closeModal('mHabitManager')"><div class="modal" style="max-width:480px;width:94vw">
+  <h2 style="margin-bottom:4px">Manage Habits</h2>
+  <p style="font-size:0.68rem;color:var(--muted);margin-bottom:14px;font-family:'DM Mono',monospace">Rename, hide, or reorder your habits. Gym-linked habits sync with your training log.</p>
+  <div id="habitManagerList" style="max-height:55vh;overflow-y:auto"></div>
+  <div style="margin-top:14px;display:flex;gap:8px;align-items:center">
+    <input class="add-inp" id="habitManagerNewName" placeholder="New habit name…" style="flex:1" onkeydown="if(event.key==='Enter')habitManagerAdd()">
+    <button class="btn btn-g" onclick="habitManagerAdd()">+ Add</button>
+  </div>
+  <div class="modal-acts" style="margin-top:12px">
+    <button class="btn btn-p" onclick="closeModal('mHabitManager')">Done</button>
+  </div>
+</div></div>
+
 <!-- Habit History Modal -->
 <div class="modal-bg" id="mHabitHistory" onclick="if(event.target===this)closeModal('mHabitHistory')"><div class="modal" style="max-width:400px">
   <h2 id="habitHistTitle" style="margin-bottom:16px">Habit History</h2>
@@ -1607,6 +1645,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <button class="fpill"        id="stab-projects" onclick="switchSettingsTab('projects')">Projects</button>
       <button class="fpill"        id="stab-media"    onclick="switchSettingsTab('media')">Media</button>
       <button class="fpill"        id="stab-features" onclick="switchSettingsTab('features')">Features</button>
+      <button class="fpill"        id="stab-modules"  onclick="switchSettingsTab('modules')">Modules</button>
     </div>
 
     <!-- Profile tab -->
@@ -1682,6 +1721,19 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
         <div class="mf"><label><input type="checkbox" id="st-reflection" onchange="toggleReflection(this.checked)"> <span data-i18n="show_reflection">Daily Reflection</span></label></div>
         <div style="font-size:0.68rem;color:var(--muted);margin-top:4px;line-height:1.5">Show the daily reflection card on your Today page.</div>
       </div>
+      <div class="settings-section">
+        <div class="settings-kicker">Water Tracking</div>
+        <div class="mf">
+          <label style="display:block;margin-bottom:6px">Unit</label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-g" id="wuBtn-glasses" onclick="setWaterUnit('glasses')" style="font-size:0.7rem">Glasses (250ml)</button>
+            <button class="btn btn-g" id="wuBtn-litres"  onclick="setWaterUnit('litres')"  style="font-size:0.7rem">Litres</button>
+            <button class="btn btn-g" id="wuBtn-cups"    onclick="setWaterUnit('cups')"    style="font-size:0.7rem">Cups (240ml)</button>
+            <button class="btn btn-g" id="wuBtn-oz"      onclick="setWaterUnit('oz')"      style="font-size:0.7rem">Fl oz</button>
+          </div>
+          <div style="font-size:0.68rem;color:var(--muted);margin-top:6px;line-height:1.5">Changing unit resets today's log count display — raw ml data is always preserved.</div>
+        </div>
+      </div>
     </div>
 
     <!-- Fitness tab -->
@@ -1695,6 +1747,16 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
             <button id="calModeBtn-daily" class="btn btn-g"        onclick="setCalorieMode('daily')" style="font-size:0.7rem">Daily total</button>
           </div>
           <div style="font-size:0.68rem;color:var(--muted);margin-top:6px;line-height:1.5">Meal mode logs individual meals. Daily total logs one number per day.</div>
+        </div>
+        <div class="mf" style="margin-top:14px">
+          <label>Rest Timer Duration</label>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+            <input type="range" min="30" max="300" step="15" id="restTimerRange"
+              oninput="if(!S.appPrefs)S.appPrefs={};S.appPrefs.restTimerSecs=parseInt(this.value);scheduleSave();eid('restTimerRangeVal').textContent=Math.floor(this.value/60)+'m '+(this.value%60?this.value%60+'s':'')"
+              style="flex:1;accent-color:var(--blush)">
+            <span id="restTimerRangeVal" style="font-size:0.7rem;color:var(--gold-lt);font-family:'DM Mono',monospace;min-width:36px">90s</span>
+          </div>
+          <div style="font-size:0.68rem;color:var(--muted);margin-top:4px">Countdown starts automatically after each logged set.</div>
         </div>
       </div>
     </div>
@@ -1718,6 +1780,9 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
     <!-- FEATURE: Features pane — remove this block to disable feature flags -->
     <div id="stPane-features" style="display:none"></div>
     <!-- END FEATURE: Features pane -->
+
+    <!-- Modules pane -->
+    <div id="stPane-modules" style="display:none"></div>
 
     <div class="modal-acts">
       <button class="btn btn-g" onclick="closeModal('mSettings')" data-i18n="cancel">Cancel</button>
@@ -1912,6 +1977,30 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 <datalist id="exerciseNameList"></datalist>
 <div id="toast"></div>
 
+<!-- Floating quick-add button -->
+<button id="fabBtn" onclick="fabOpen()" aria-label="Quick add"
+  style="position:fixed;bottom:72px;right:20px;z-index:280;width:50px;height:50px;border-radius:50%;background:var(--blush);border:none;color:var(--cream);font-size:1.5rem;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;transition:transform 0.15s">+</button>
+
+<!-- FAB quick-add sheet -->
+<div id="fabSheet" style="display:none;position:fixed;bottom:130px;right:16px;z-index:285;background:linear-gradient(150deg,var(--panel),var(--ink));border:1px solid var(--border-lt);border-radius:14px;padding:16px;min-width:220px;max-width:300px;box-shadow:0 12px 40px rgba(0,0,0,0.6)">
+  <div id="fabSheetContent"></div>
+</div>
+
+<!-- Rest Timer Bar -->
+<div id="restTimerBar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:290;background:linear-gradient(135deg,var(--panel),var(--ink));border-top:1px solid var(--border-lt);padding:10px 20px;display:none;align-items:center;gap:14px;box-shadow:0 -4px 24px rgba(0,0,0,0.4)">
+  <div style="flex:1">
+    <div style="font-size:0.56rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;font-family:'DM Mono',monospace;margin-bottom:2px">Rest Timer</div>
+    <div id="restTimerLabel" style="font-size:1.1rem;color:var(--gold-lt);font-family:'DM Mono',monospace;font-weight:700">—</div>
+  </div>
+  <div style="flex:2;background:var(--mid);border-radius:4px;height:6px;overflow:hidden">
+    <div id="restTimerFill" style="height:100%;background:var(--blush);border-radius:4px;transition:width 1s linear;width:100%"></div>
+  </div>
+  <div style="display:flex;gap:6px;flex-shrink:0">
+    <button onclick="restTimerSkip()" class="btn btn-g" style="font-size:0.68rem;padding:4px 10px">Skip</button>
+    <button onclick="restTimerStop()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.8rem;padding:4px 8px">✕</button>
+  </div>
+</div>
+
 <div id="updateCard" class="update-card hidden">
   <div class="update-kicker">System Update</div>
   <div id="updateTitle" class="update-title">Checking for updates…</div>
@@ -1950,6 +2039,8 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 <script src="./Renderer/features.js"></script>
 <script src="./Renderer/food.js"></script>
 <script src="./Renderer/today.js"></script>
+<script src="./Renderer/modules.js"></script>
+<script src="./Renderer/notes.js"></script>
 <script src="./Renderer/app.js"></script>
 <div id="updateBanner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--blush);color:var(--cream);padding:10px 22px;border-radius:20px;font-size:0.78rem;font-family:'Jost',sans-serif;letter-spacing:0.04em;z-index:9999;cursor:pointer;box-shadow:0 4px 24px rgba(0,0,0,0.5)" onclick="window.location.reload()">
   Update available — tap to reload

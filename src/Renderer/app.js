@@ -121,6 +121,9 @@ function _renderTab(name) {
   if (name === 'projects' && typeof renderProjects    === 'function') renderProjects();
   if (name === 'media'    && typeof renderBooks       === 'function') renderBooks();
   if (name === 'focus'    && typeof renderFocusTab    === 'function') renderFocusTab();
+  if (name === 'notes'    && typeof renderNotes       === 'function') renderNotes();
+  // Apply module visibility after the tab has rendered its DOM
+  if (typeof applyModules === 'function') applyModules();
 }
 
 /* ══ ONBOARDING ══ */
@@ -251,6 +254,7 @@ function renderAll(){
 
   // ── Active tab content only ──
   _renderTab(_activeTab);
+  // _renderTab already calls applyModules at its end
 }
 
 /* ══ INLINE TITLE EDITING ══ */
@@ -408,6 +412,124 @@ function setupMobileUX() {
       open.style.paddingBottom = offset > 50 ? `${offset}px` : '';
     });
   }
+}
+
+/* ══ FLOATING QUICK-ADD BUTTON ══ */
+let _fabOpen = false;
+
+function fabOpen() {
+  const sheet = eid('fabSheet');
+  const btn   = eid('fabBtn');
+  if (!sheet) return;
+
+  if (_fabOpen) {
+    fabClose();
+    return;
+  }
+  _fabOpen = true;
+  if (btn) { btn.textContent = '✕'; btn.style.transform = 'rotate(45deg)'; }
+
+  const content = eid('fabSheetContent');
+  if (!content) return;
+
+  // Context-aware content based on active tab
+  switch (_activeTab) {
+    case 'today':
+    case 'summary':
+      content.innerHTML = _fabContentToday();
+      break;
+    case 'fitness':
+      content.innerHTML = _fabContentFitness();
+      break;
+    case 'food':
+      content.innerHTML = _fabContentFood();
+      break;
+    case 'projects':
+      content.innerHTML = _fabContentProjects();
+      break;
+    case 'media':
+      content.innerHTML = _fabContentMedia();
+      break;
+    default:
+      content.innerHTML = _fabContentToday();
+  }
+
+  sheet.style.display = 'block';
+
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', _fabOutsideHandler);
+  }, 0);
+}
+
+function _fabOutsideHandler(e) {
+  if (!e.target.closest('#fabSheet') && !e.target.closest('#fabBtn')) fabClose();
+}
+
+function fabClose() {
+  _fabOpen = false;
+  const sheet = eid('fabSheet');
+  const btn   = eid('fabBtn');
+  if (sheet) sheet.style.display = 'none';
+  if (btn) { btn.textContent = '+'; btn.style.transform = ''; }
+  document.removeEventListener('click', _fabOutsideHandler);
+}
+
+function _fabContentToday() {
+  return `
+    <div style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:10px">Quick Add</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();if(typeof addWater==='function')addWater(1)">+ Water</button>
+      <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();if(typeof openHabitManager==='function')openHabitManager()">Manage Habits</button>
+      <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();go('fitness')">Log Workout</button>
+      <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();go('food')">Log Food</button>
+    </div>`;
+}
+
+function _fabContentFitness() {
+  const cards = (S.workoutCards || []).slice(0, 4);
+  const cardBtns = cards.length
+    ? cards.map(wc => `<button class="btn btn-g" style="text-align:left;font-size:0.74rem" onclick="fabClose();toggleWorkoutCard('${wc.id}')">${escapeHtml(wc.title||'Workout')}</button>`).join('')
+    : `<button class="btn btn-g" style="text-align:left;font-size:0.74rem" onclick="fabClose();addWorkoutCard()">+ New Card</button>`;
+  return `
+    <div style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:10px">Fitness</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${cardBtns}
+      <button class="btn btn-g" style="text-align:left;font-size:0.74rem" onclick="fabClose();addWater(1)">+ Water</button>
+      <button class="btn btn-g" style="text-align:left;font-size:0.74rem" onclick="fabClose();if(typeof openExerciseProgress==='function')openExerciseProgress()">Progress Chart</button>
+    </div>`;
+}
+
+function _fabContentFood() {
+  return `
+    <div style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:10px">Food</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();if(typeof openAddFoodModal==='function')openAddFoodModal()">+ Log Food</button>
+      <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();if(typeof logCalorieSession==='function'){eid('calorieAmount').focus()}">+ Calories</button>
+      <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();addWater(1)">+ Water</button>
+    </div>`;
+}
+
+function _fabContentProjects() {
+  const projs = (S.projects || []).filter(p => p.status !== 'Done').slice(0, 4);
+  const projBtns = projs.length
+    ? projs.map(p => `<button class="btn btn-g" style="text-align:left;font-size:0.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px" onclick="fabClose();if(typeof openProject==='function')openProject('${p.id}')">${escapeHtml(p.title||'Project')}</button>`).join('')
+    : '';
+  return `
+    <div style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:10px">Projects</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${projBtns}
+      <button class="btn btn-p" style="text-align:left;font-size:0.74rem" onclick="fabClose();if(typeof addProject==='function')addProject()">+ New Project</button>
+    </div>`;
+}
+
+function _fabContentMedia() {
+  return `
+    <div style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:10px">Media</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();if(typeof openAddBookModal==='function')openAddBookModal()">+ Add Book</button>
+      <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();if(typeof openAddShowModal==='function')openAddShowModal()">+ Add Show / Film</button>
+    </div>`;
 }
 
 // Booted by auth.js after session restore or login.

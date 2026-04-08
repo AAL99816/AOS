@@ -39,6 +39,8 @@ weightLog:[],
 moodLog:{},
 annualGoals:null,
 appPrefs:{ showReflection: true, calorieMode: 'meal' },
+modules:{},
+notesTopics:[],
 customStreaks:[],
 onboarded:false,
 focusItems:[],
@@ -158,6 +160,26 @@ function makeMedia(m={}){
   };
 }
 
+function makeNote(n={}) {
+  return {
+    id: n.id ?? uid(),
+    title: n.title ?? '',
+    body: n.body ?? '',
+    date: n.date ?? today(),
+    updatedAt: n.updatedAt ?? n.date ?? today()
+  };
+}
+
+function makeTopic(t={}) {
+  return {
+    id: t.id ?? uid(),
+    title: t.title ?? 'Untitled',
+    icon: t.icon ?? '',
+    linkedTab: t.linkedTab ?? '',
+    notes: Array.isArray(t.notes) ? t.notes.map(makeNote) : []
+  };
+}
+
 function makeHabit(h={}){
   return {
     id: h.id ?? uid(),
@@ -216,6 +238,8 @@ function normalizeAppState(raw={}){
   }
   out.features = deepMerge(DS.features, (src.features && typeof src.features === 'object') ? src.features : {});
   out.appPrefs = deepMerge(DS.appPrefs, out.appPrefs || {});
+  out.modules = (src.modules && typeof src.modules === 'object') ? src.modules : {};
+  out.notesTopics = Array.isArray(src.notesTopics) ? src.notesTopics.map(makeTopic) : [];
   out.onboarded = typeof src.onboarded === 'boolean' ? src.onboarded : false;
   out.customStreaks = (Array.isArray(src.customStreaks) ? src.customStreaks : []).map(cs => ({
     id: cs.id ?? uid(),

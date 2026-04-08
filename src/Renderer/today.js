@@ -6,24 +6,53 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 /* ══ WATER TRACKER ══ */
-const WATER_GLASS_ML = 250; // ml per glass
+// waterLog stores units (glasses/cups/litres/oz) — not raw ml —
+// because changing units also changes the target, so relative progress is preserved.
+
+const WATER_UNIT_LABELS = { glasses: 'glasses', litres: 'L', cups: 'cups', oz: 'fl oz' };
+const WATER_UNIT_DEFAULTS = { glasses: 8, litres: 2, cups: 8, oz: 64 };
+// ml equivalent per one unit (for display tooltip only)
+const WATER_UNIT_ML = { glasses: 250, litres: 1000, cups: 240, oz: 30 };
+
+function getWaterUnit() {
+  return (S.appPrefs && S.appPrefs.waterUnit) || 'glasses';
+}
+
+function setWaterUnit(unit) {
+  if (!S.appPrefs) S.appPrefs = {};
+  S.appPrefs.waterUnit = unit;
+  // Set a sensible default target for the new unit if not customised
+  const currentTarget = S.appPrefs.waterTarget;
+  const prevDefault = WATER_UNIT_DEFAULTS[(S.appPrefs._prevWaterUnit || 'glasses')];
+  if (!currentTarget || currentTarget === prevDefault) {
+    S.appPrefs.waterTarget = WATER_UNIT_DEFAULTS[unit];
+  }
+  S.appPrefs._prevWaterUnit = unit;
+  scheduleSave();
+  // Highlight the active button
+  Object.keys(WATER_UNIT_LABELS).forEach(u => {
+    const btn = eid('wuBtn-' + u);
+    if (btn) btn.classList.toggle('active', u === unit);
+  });
+  renderToday();
+}
 
 function getTodayWater() {
   const d = today();
   return (S.waterLog && S.waterLog[d]) || 0;
 }
 
-function addWater(glasses) {
+function addWater(units) {
   if (!S.waterLog) S.waterLog = {};
   const d = today();
-  S.waterLog[d] = Math.max(0, (S.waterLog[d] || 0) + glasses);
+  S.waterLog[d] = Math.max(0, (S.waterLog[d] || 0) + units);
   scheduleSave();
   renderToday();
 }
 
-function setWaterTarget(glasses) {
+function setWaterTarget(val) {
   if (!S.appPrefs) S.appPrefs = {};
-  S.appPrefs.waterTarget = Math.max(1, parseInt(glasses) || 8);
+  S.appPrefs.waterTarget = Math.max(1, parseFloat(val) || WATER_UNIT_DEFAULTS[getWaterUnit()]);
   scheduleSave();
   renderToday();
 }
@@ -38,7 +67,7 @@ function renderToday() {
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   // ── Data gathering ──
-  const habits      = S.habits || [];
+  const habits      = (S.habits || []).filter(h => !h.hidden);
   const habitsDone  = habits.filter(h => h.days && h.days[d]).length;
   const habitsTotal = habits.length;
 
@@ -54,9 +83,13 @@ function renderToday() {
   const foodTarget  = (S.foodTargets && S.foodTargets.kcal) || 2000;
   const foodPct     = Math.min(100, Math.round((foodKcal / foodTarget) * 100));
 
-  const waterGlasses = getTodayWater();
-  const waterTarget  = (S.appPrefs && S.appPrefs.waterTarget) || 8;
-  const waterPct     = Math.min(100, Math.round((waterGlasses / waterTarget) * 100));
+  const waterUnit    = getWaterUnit();
+  const waterUnitLbl = WATER_UNIT_LABELS[waterUnit] || 'glasses';
+  const waterCount   = getTodayWater();
+  const waterTarget  = (S.appPrefs && S.appPrefs.waterTarget) || WATER_UNIT_DEFAULTS[waterUnit] || 8;
+  const waterPct     = Math.min(100, Math.round((waterCount / waterTarget) * 100));
+  // Legacy alias used further down
+  const waterGlasses = waterCount;
 
   const focusItem   = (S.focusItems || []).find(f => !f.completed);
   const todayNote   = (S.notes && S.notes[d]) || '';
@@ -72,13 +105,25 @@ function renderToday() {
 
   const activeMedia = (S.media || []).filter(m => m.status === 'reading' || m.status === 'watching' || m.status === 'playing').slice(0, 3);
 
+  // Next up: first incomplete task across all active projects (by priority)
+  let nextUpTask = null;
+  let nextUpProject = null;
+  for (const proj of (S.projects || []).filter(p => p.status !== 'Done')) {
+    const tasks = (proj.tasks || []).filter(tk => !tk.done);
+    if (tasks.length) {
+      nextUpTask = tasks[0];
+      nextUpProject = proj;
+      break;
+    }
+  }
+
   // ── Day score (0-100) ──
   let score = 0;
   if (habitsTotal) score += Math.round((habitsDone / habitsTotal) * 40);
   if (prayersTotal) score += Math.round((prayersDone / prayersTotal) * 20);
   if (gymDone || cardioMins >= 20) score += 15;
   if (foodKcal > 0) score += 10;
-  if (waterGlasses >= waterTarget) score += 15;
+  if (waterCount >= waterTarget) score += 15;
   const scoreColor = score >= 80 ? 'var(--gold-lt)' : score >= 50 ? 'var(--blush)' : 'var(--muted-lt)';
 
   // ── Ring helper ──
@@ -114,17 +159,23 @@ function renderToday() {
     </button>`;
   }).join('') : '';
 
-  // ── Water bubbles ──
-  const waterBubbles = Array.from({length: waterTarget}, (_, i) => {
-    const filled = i < waterGlasses;
-    return `<div onclick="addWater(${filled ? -1 : 1})" style="width:28px;height:28px;border-radius:50%;background:${filled ? 'var(--blush)' : 'var(--mid)'};border:1.5px solid ${filled ? 'var(--blush)' : 'var(--border)'};cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center" title="${filled ? 'Remove glass' : 'Add glass'}">
-      ${filled ? `<svg width="10" height="13" viewBox="0 0 10 13"><path d="M5 1 C5 1 9 5 9 8 A4 4 0 0 1 1 8 C1 5 5 1 5 1Z" fill="var(--cream)" opacity="0.8"/></svg>` : ''}
-    </div>`;
-  }).join('');
+  // ── Water bubbles (cap at 20 bubbles; for litre/oz use numeric +/- only) ──
+  const maxBubbles = Math.min(waterTarget, 20);
+  const waterBubbles = waterUnit === 'litres' || waterUnit === 'oz'
+    ? '' // numeric-only for these units (bubbles impractical)
+    : Array.from({length: maxBubbles}, (_, i) => {
+        const filled = i < waterCount;
+        return `<div onclick="addWater(${filled ? -1 : 1})" style="width:28px;height:28px;border-radius:50%;background:${filled ? 'var(--blush)' : 'var(--mid)'};border:1.5px solid ${filled ? 'var(--blush)' : 'var(--border)'};cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center" title="${filled ? 'Remove' : 'Add'} 1 ${waterUnitLbl}">
+          ${filled ? `<svg width="10" height="13" viewBox="0 0 10 13"><path d="M5 1 C5 1 9 5 9 8 A4 4 0 0 1 1 8 C1 5 5 1 5 1Z" fill="var(--cream)" opacity="0.8"/></svg>` : ''}
+        </div>`;
+      }).join('');
+
+  // Helper: returns '' (hidden) or the html string based on module toggle
+  const mod = (id, html) => (typeof modOn === 'function' && !modOn(id)) ? '' : html;
 
   c.innerHTML = `
     <!-- Greeting + day score -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+    <div id="todayScoreSection" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
       <div>
         <div style="font-family:'Cormorant Garamond',serif;font-size:1.5rem;color:var(--cream);line-height:1.1">${greeting}</div>
         <div style="font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px">${new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</div>
@@ -136,7 +187,7 @@ function renderToday() {
     </div>
 
     <!-- Progress rings row -->
-    <div class="card" style="margin-bottom:16px;padding:14px 18px">
+    <div id="todayRingsRow" class="card" style="margin-bottom:16px;padding:14px 18px">
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center">
 
         <!-- Habits ring -->
@@ -161,7 +212,7 @@ function renderToday() {
         <div style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer" onclick="document.getElementById('todayWaterSection').scrollIntoView({behavior:'smooth'})">
           <div style="position:relative;width:54px;height:54px">
             ${ring(waterPct, 'var(--blush)', 54)}
-            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:0.72rem;color:var(--cream);font-family:'DM Mono',monospace">${waterGlasses}/${waterTarget}</div>
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:0.72rem;color:var(--cream);font-family:'DM Mono',monospace">${waterCount}/${waterTarget}</div>
           </div>
           <div style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em">Water</div>
         </div>
@@ -185,6 +236,17 @@ function renderToday() {
       <div style="font-size:0.88rem;color:var(--mist)">${escapeHtml(focusItem.label)}</div>
       ${focusItem.pomodorosDone ? `<div style="font-size:0.6rem;color:var(--muted);margin-top:3px;font-family:'DM Mono',monospace">${focusItem.pomodorosDone} pomodoro${focusItem.pomodorosDone !== 1 ? 's' : ''} done</div>` : ''}
     </div>` : ''}
+
+    ${nextUpTask ? mod('today.nextup', `
+    <!-- Next up task -->
+    <div id="todayNextUpSection" class="card" style="margin-bottom:16px;padding:12px 16px;border-left:3px solid var(--gold);cursor:pointer" onclick="go('projects')">
+      <div style="font-size:0.52rem;color:var(--gold);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:5px">Next Up · ${escapeHtml(nextUpProject.title || 'Project')}</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:16px;height:16px;border-radius:50%;border:2px solid var(--gold);flex-shrink:0"></div>
+        <span style="font-size:0.86rem;color:var(--mist);flex:1">${escapeHtml(nextUpTask.text || nextUpTask.label || '')}</span>
+        ${nextUpTask.timeEst ? `<span style="font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace">${nextUpTask.timeEst}m</span>` : ''}
+      </div>
+    </div>`) : ''}
 
     ${deadlines.length ? `
     <!-- Upcoming deadlines -->
@@ -215,20 +277,25 @@ function renderToday() {
     <!-- Water tracker -->
     <div id="todayWaterSection" class="card" style="margin-bottom:16px;padding:12px 16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace">Water · ${waterGlasses}/${waterTarget} glasses (${waterGlasses * WATER_GLASS_ML}ml)</div>
+        <div style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace">Water · ${waterCount}/${waterTarget} ${waterUnitLbl}</div>
         <div style="display:flex;align-items:center;gap:6px">
-          <button onclick="addWater(-1)" style="background:var(--mid);border:none;color:var(--muted);cursor:pointer;width:22px;height:22px;border-radius:50%;font-size:1rem;line-height:1;display:flex;align-items:center;justify-content:center">−</button>
-          <button onclick="addWater(1)" style="background:var(--blush);border:none;color:var(--cream);cursor:pointer;width:22px;height:22px;border-radius:50%;font-size:1rem;line-height:1;display:flex;align-items:center;justify-content:center">+</button>
+          <button onclick="addWater(-${waterUnit==='litres'?0.25:waterUnit==='oz'?8:1})" style="background:var(--mid);border:none;color:var(--muted);cursor:pointer;width:22px;height:22px;border-radius:50%;font-size:1rem;line-height:1;display:flex;align-items:center;justify-content:center">−</button>
+          <button onclick="addWater(${waterUnit==='litres'?0.25:waterUnit==='oz'?8:1})" style="background:var(--blush);border:none;color:var(--cream);cursor:pointer;width:22px;height:22px;border-radius:50%;font-size:1rem;line-height:1;display:flex;align-items:center;justify-content:center">+</button>
         </div>
       </div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap">
-        ${waterBubbles}
-      </div>
-      <div style="margin-top:8px;display:flex;align-items:center;gap:6px">
+      ${waterBubbles ? `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">${waterBubbles}</div>` : ''}
+      ${(waterUnit === 'litres' || waterUnit === 'oz') ? `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <input type="range" min="0" max="${waterTarget}" step="${waterUnit==='litres'?0.25:8}" value="${waterCount}"
+            oninput="addWater(parseFloat(this.value)-getTodayWater())"
+            style="flex:1;accent-color:var(--blush)">
+          <span style="font-size:0.7rem;color:var(--gold-lt);font-family:'DM Mono',monospace;min-width:32px;text-align:right">${waterCount}${waterUnit==='litres'?'L':'oz'}</span>
+        </div>` : ''}
+      <div style="margin-top:4px;display:flex;align-items:center;gap:6px">
         <span style="font-size:0.58rem;color:var(--muted)">Target:</span>
-        <input type="number" min="1" max="20" value="${waterTarget}" onchange="setWaterTarget(this.value)"
-          style="width:32px;background:var(--mid);border:1px solid var(--border);border-radius:4px;color:var(--gold-lt);font-size:0.62rem;text-align:center;padding:1px 3px;font-family:'DM Mono',monospace">
-        <span style="font-size:0.58rem;color:var(--muted)">glasses/day</span>
+        <input type="number" min="0.25" max="${waterUnit==='litres'?10:waterUnit==='oz'?200:30}" step="${waterUnit==='litres'?0.25:waterUnit==='oz'?8:1}" value="${waterTarget}" onchange="setWaterTarget(this.value)"
+          style="width:42px;background:var(--mid);border:1px solid var(--border);border-radius:4px;color:var(--gold-lt);font-size:0.62rem;text-align:center;padding:1px 3px;font-family:'DM Mono',monospace">
+        <span style="font-size:0.58rem;color:var(--muted)">${waterUnitLbl}/day</span>
       </div>
     </div>
 
@@ -238,7 +305,7 @@ function renderToday() {
         <div class="sec" style="margin:0;font-size:0.66rem">Habits</div>
         <div style="display:flex;gap:6px;align-items:center">
           <span style="font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace">${habitsDone}/${habitsTotal}</span>
-          <button class="btn btn-g" style="font-size:0.6rem;padding:2px 8px" onclick="openAddHabitModal()">+ Add</button>
+          <button class="btn btn-g" style="font-size:0.6rem;padding:2px 8px" onclick="openHabitManager()">Edit</button>
         </div>
       </div>
       <div class="card" style="padding:8px 14px">
@@ -246,9 +313,42 @@ function renderToday() {
       </div>
     </div>
 
+    <!-- Quick exercise log strip -->
+    ${(() => {
+      const hist = S.exerciseHistory || {};
+      // Top 4 exercises by most recent log date
+      const entries = Object.entries(hist)
+        .map(([key, logs]) => {
+          if (!logs.length) return null;
+          const last = logs[logs.length - 1];
+          return { key, last, name: key.charAt(0).toUpperCase() + key.slice(1) };
+        })
+        .filter(Boolean)
+        .sort((a, b) => (b.last.date || '').localeCompare(a.last.date || ''))
+        .slice(0, 4);
+      if (!entries.length) return '';
+      return `<div id="todayQuickLogSection" class="card" style="margin-bottom:16px;padding:12px 16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace">Quick Log</div>
+          <button onclick="go('fitness')" style="background:none;border:none;color:var(--blush);font-size:0.62rem;cursor:pointer;font-family:'DM Mono',monospace">All →</button>
+        </div>
+        ${entries.map(e => `
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:0.74rem;color:var(--mist);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escapeAttr(e.name)}">${escapeHtml(e.name.length>20?e.name.slice(0,19)+'…':e.name)}</span>
+            <input type="number" id="ql-w-${escapeAttr(e.key)}" step="0.5" placeholder="kg" value="${e.last.weight||''}"
+              style="width:58px;background:var(--mid);border:1px solid var(--border);border-radius:6px;color:var(--gold-lt);font-size:0.7rem;text-align:center;padding:4px;font-family:'DM Mono',monospace;outline:none">
+            <input type="number" id="ql-r-${escapeAttr(e.key)}" placeholder="reps" value="${e.last.reps||''}"
+              style="width:48px;background:var(--mid);border:1px solid var(--border);border-radius:6px;color:var(--mist);font-size:0.7rem;text-align:center;padding:4px;font-family:'DM Mono',monospace;outline:none">
+            <button onclick="quickLogExercise('${escapeAttr(e.key)}')"
+              style="background:var(--blush);border:none;border-radius:6px;color:var(--cream);font-size:0.62rem;padding:4px 9px;cursor:pointer;font-family:'DM Mono',monospace;flex-shrink:0">Log</button>
+          </div>
+        `).join('')}
+      </div>`;
+    })()}
+
     ${activeMedia.length ? `
     <!-- In progress media -->
-    <div class="card" style="margin-bottom:16px;padding:12px 16px">
+    <div id="todayMediaSection" class="card" style="margin-bottom:16px;padding:12px 16px">
       <div style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:8px">In Progress</div>
       ${activeMedia.map(m => {
         const pct = typeof getBookPct === 'function' ? getBookPct(m) : 0;
@@ -263,7 +363,7 @@ function renderToday() {
     </div>` : ''}
 
     <!-- Daily note -->
-    <div style="margin-bottom:16px">
+    <div id="todayNoteSection" style="margin-bottom:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div class="sec" style="margin:0;font-size:0.66rem">Daily Note</div>
         <button class="btn btn-g" style="font-size:0.6rem;padding:2px 8px" onclick="openPastNotes()">Past</button>
@@ -317,6 +417,42 @@ function toggleHabit(id, dateStr) {
   if (!h.days[dateStr]) delete h.days[dateStr];
   scheduleSave();
   if (typeof renderHabits === 'function') renderHabits(); // keep habit list in sync
+  renderToday();
+}
+
+/* ── Quick log exercise from Today ──────────────────────────── */
+function quickLogExercise(key) {
+  const wEl = eid('ql-w-' + key);
+  const rEl = eid('ql-r-' + key);
+  if (!wEl || !rEl) return;
+  const weight = parseFloat(wEl.value);
+  const reps   = parseInt(rEl.value);
+  if (!weight || weight <= 0) { toast('Enter weight'); return; }
+  if (!reps    || reps   <= 0) { toast('Enter reps');   return; }
+
+  if (!S.exerciseHistory) S.exerciseHistory = {};
+  if (!S.exerciseHistory[key]) S.exerciseHistory[key] = [];
+
+  // PR check
+  const hist = S.exerciseHistory[key];
+  const prevBest = hist.length
+    ? Math.max(...hist.map(e => {
+        const sets = Array.isArray(e.loggedSets) ? e.loggedSets
+          : (e.weight != null ? [{ weight: e.weight, reps: e.reps }] : []);
+        return (typeof epley1RM === 'function' ? epley1RM(sets[0]?.weight, sets[0]?.reps) : 0) || 0;
+      }))
+    : 0;
+  const newE1RM = typeof epley1RM === 'function' ? (epley1RM(weight, reps) || 0) : 0;
+  const isPR = newE1RM > 0 && newE1RM > prevBest;
+
+  hist.push({ date: today(), weight, reps, sets: 1 });
+  scheduleSave();
+
+  const displayName = key.charAt(0).toUpperCase() + key.slice(1);
+  if (isPR) toast(`🏅 PR! ${displayName} — ${Math.round(newE1RM)}kg est. 1RM`);
+  else toast(`${displayName} logged`);
+
+  if (typeof startRestTimer === 'function') startRestTimer();
   renderToday();
 }
 

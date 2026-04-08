@@ -106,7 +106,7 @@ function renderHabits() {
   ).join('')}<div></div><div></div>`;
   c.appendChild(dayRow);
 
-  (S.habits || []).forEach(h => {
+  (S.habits || []).filter(h => !h.hidden).forEach(h => {
     const row = document.createElement('div');
     row.style.cssText = 'display:grid;grid-template-columns:1fr repeat(7,26px) 28px 24px;gap:4px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)';
     row.innerHTML = `
@@ -322,6 +322,104 @@ function markAllHabitsDone() {
   scheduleSave();
   renderHabits();
   toast(allDone ? 'All habits unmarked' : 'All habits marked done');
+}
+
+/* ══ HABIT MANAGER ══ */
+// "interconnected" habits: gym/prayer sync with other systems — toggle only (no rename impact)
+function _isInterconnected(h) {
+  return hmatch(h, 'gym','lift','workout','training','weights','prayer','salah','salat','صلاة','صلاه');
+}
+
+function openHabitManager() {
+  renderHabitManagerList();
+  openModal('mHabitManager');
+}
+
+function renderHabitManagerList() {
+  const el = eid('habitManagerList');
+  if (!el) return;
+  const habits = S.habits || [];
+  if (!habits.length) {
+    el.innerHTML = `<div style="color:var(--muted);font-size:0.74rem;padding:16px;text-align:center">No habits yet.</div>`;
+    return;
+  }
+  el.innerHTML = habits.map(h => {
+    const linked = _isInterconnected(h);
+    const hidden  = !!h.hidden;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
+      <!-- Visibility toggle -->
+      <button onclick="habitManagerToggleHidden('${h.id}')"
+        title="${hidden ? 'Show habit' : 'Hide habit'}"
+        style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:0.62rem;color:${hidden ? 'var(--muted)' : 'var(--blush)'};flex-shrink:0;font-family:'DM Mono',monospace">
+        ${hidden ? 'Hidden' : 'Visible'}
+      </button>
+
+      ${linked
+        /* Interconnected habits: name is read-only, just show label */
+        ? `<span style="flex:1;font-size:0.8rem;color:${hidden ? 'var(--muted)' : 'var(--mist)'}">${escapeHtml(h.name)}</span>
+           <span style="font-size:0.55rem;color:var(--gold);font-family:'DM Mono',monospace;border:1px solid var(--gold);border-radius:4px;padding:1px 5px;flex-shrink:0">linked</span>`
+        /* Regular habits: editable name */
+        : `<input class="editable" value="${escapeAttr(h.name)}"
+             onchange="habitManagerRename('${h.id}',this.value)"
+             style="flex:1;background:none;border:none;color:${hidden ? 'var(--muted)' : 'var(--mist)'};font-size:0.8rem;padding:0;min-width:0">`
+      }
+
+      <!-- Delete -->
+      <button onclick="habitManagerDelete('${h.id}')" class="habit-del" style="opacity:0.5;flex-shrink:0">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function habitManagerToggleHidden(id) {
+  const h = (S.habits || []).find(h => String(h.id) === String(id));
+  if (!h) return;
+  h.hidden = !h.hidden;
+  scheduleSave();
+  renderHabitManagerList();
+  renderHabits();
+  if (typeof renderTodaySummary === 'function') renderTodaySummary();
+}
+
+function habitManagerRename(id, val) {
+  const h = (S.habits || []).find(h => String(h.id) === String(id));
+  if (!h || _isInterconnected(h)) return;
+  const trimmed = val.trim().slice(0, 80);
+  if (!trimmed) return;
+  h.name = trimmed;
+  scheduleSave();
+}
+
+function habitManagerDelete(id) {
+  const h = (S.habits || []).find(h => String(h.id) === String(id));
+  if (!h) return;
+  const backup = JSON.parse(JSON.stringify(h));
+  S.habits = (S.habits || []).filter(h => String(h.id) !== String(id));
+  scheduleSave();
+  renderHabitManagerList();
+  renderHabits();
+  if (typeof renderTodaySummary === 'function') renderTodaySummary();
+  toastUndo(`"${backup.name}" removed`, () => {
+    if (!Array.isArray(S.habits)) S.habits = [];
+    S.habits.push(backup);
+    scheduleSave();
+    renderHabitManagerList();
+    renderHabits();
+    if (typeof renderTodaySummary === 'function') renderTodaySummary();
+  });
+}
+
+function habitManagerAdd() {
+  const inp = eid('habitManagerNewName');
+  if (!inp) return;
+  const name = inp.value.trim().slice(0, 80);
+  if (!name) return;
+  if (!Array.isArray(S.habits)) S.habits = [];
+  S.habits.push(makeHabit({ name }));
+  inp.value = '';
+  scheduleSave();
+  renderHabitManagerList();
+  renderHabits();
+  if (typeof renderTodaySummary === 'function') renderTodaySummary();
 }
 
 /* ══ HELPERS (used by weekly summary, fitness, etc.) ══ */

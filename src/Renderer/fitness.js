@@ -47,6 +47,59 @@ function fmtPct(pct) {
   return `${sign}${pct.toFixed(1)}%`;
 }
 
+/* ══ REST TIMER ══ */
+let _restTimerInterval = null;
+let _restTimerRemaining = 0;
+let _restTimerTotal = 0;
+
+function getRestTimerSecs() {
+  return parseInt((S.appPrefs && S.appPrefs.restTimerSecs) || 90);
+}
+
+function startRestTimer(secs) {
+  secs = secs || getRestTimerSecs();
+  _restTimerTotal = secs;
+  _restTimerRemaining = secs;
+  clearInterval(_restTimerInterval);
+  const bar = eid('restTimerBar');
+  if (bar) { bar.style.display = 'flex'; }
+  _renderRestTimer();
+  _restTimerInterval = setInterval(() => {
+    _restTimerRemaining--;
+    _renderRestTimer();
+    if (_restTimerRemaining <= 0) {
+      clearInterval(_restTimerInterval);
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      toast('Rest done — next set!');
+      setTimeout(restTimerStop, 1500);
+    }
+  }, 1000);
+}
+
+function _renderRestTimer() {
+  const label = eid('restTimerLabel');
+  const fill  = eid('restTimerFill');
+  if (!label || !fill) return;
+  const m = Math.floor(_restTimerRemaining / 60);
+  const s = _restTimerRemaining % 60;
+  label.textContent = `${m}:${String(s).padStart(2, '0')}`;
+  const pct = _restTimerTotal > 0 ? Math.max(0, (_restTimerRemaining / _restTimerTotal) * 100) : 0;
+  fill.style.width = pct + '%';
+  fill.style.background = pct < 20 ? 'var(--petal)' : pct < 50 ? 'var(--gold)' : 'var(--blush)';
+}
+
+function restTimerSkip() {
+  clearInterval(_restTimerInterval);
+  restTimerStop();
+  toast('Rest skipped');
+}
+
+function restTimerStop() {
+  clearInterval(_restTimerInterval);
+  const bar = eid('restTimerBar');
+  if (bar) bar.style.display = 'none';
+}
+
 /* ══ BODY WEIGHT ══ */
 function logWeightEntry() {
   ensureFitnessState();
@@ -391,6 +444,13 @@ function renderWorkoutCards() {
         </div>
 
         <textarea id="sessionNote-${wc.id}" placeholder="Session notes…" style="display:block;width:100%;box-sizing:border-box;margin-top:10px;background:var(--mid);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:0.7rem;font-family:'DM Mono',monospace;resize:none;padding:7px 10px;min-height:44px;outline:none;line-height:1.5"></textarea>
+
+        <div style="margin-top:8px;display:flex;align-items:center;gap:6px">
+          <span style="font-size:0.58rem;color:var(--muted)">Date:</span>
+          <input type="date" id="sessionDate-${wc.id}" value="${today()}"
+            style="background:var(--mid);border:1px solid var(--border);border-radius:6px;color:var(--gold-lt);font-size:0.66rem;padding:3px 7px;font-family:'DM Mono',monospace;outline:none;cursor:pointer">
+          <span style="font-size:0.56rem;color:var(--muted)">Log past sessions here</span>
+        </div>
 
         <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:8px">
           <button class="btn btn-d" style="font-size:0.66rem;padding:4px 9px" onclick="delWorkoutCard('${wc.id}')">${t('remove')}</button>
@@ -785,22 +845,52 @@ function logExercise(wcId, exId) {
   };
 
   const hist = getExerciseHistory(ex.name);
+
+  // Check for PR BEFORE pushing new entry
+  const prevBestE1RM = hist.length
+    ? Math.max(...hist.map(e => {
+        const sets = Array.isArray(e.loggedSets) ? e.loggedSets
+          : (e.weight != null ? [{ weight: e.weight, reps: e.reps, sets: e.sets || 1 }] : []);
+        return bestE1RM(sets) || 0;
+      }))
+    : 0;
+  const newE1RM = epley1RM(weight, reps) || 0;
+  const isPR = newE1RM > 0 && newE1RM > prevBestE1RM;
+
   hist.push(entry);
 
   // Keep current input values — do NOT reset so other exercise inputs are preserved
   if (setsEl) setsEl.value = setsCount;
+
+  // PR badge flash on the exercise row
+  if (isPR) {
+    const exRow = document.querySelector(`#logW-${exId}`)?.closest('.ex-item');
+    if (exRow) {
+      const badge = document.createElement('div');
+      badge.textContent = '🏅 PR';
+      badge.style.cssText = 'position:absolute;top:-8px;right:4px;background:var(--gold);color:var(--ink);font-size:0.58rem;font-family:"DM Mono",monospace;font-weight:700;padding:2px 7px;border-radius:10px;letter-spacing:0.06em;pointer-events:none;z-index:10;animation:prPop 0.35s ease';
+      exRow.style.position = 'relative';
+      exRow.appendChild(badge);
+      setTimeout(() => badge.remove(), 3500);
+    }
+  }
 
   // Update only the last-log display for this exercise (no full re-render)
   const lastLogDiv = eid(`lastLog-${exId}`);
   if (lastLogDiv) {
     const prev = hist.length >= 2 ? hist[hist.length - 2] : null;
     const pct = prev ? calcPctIncrease(prev.weight, entry.weight) : null;
-    lastLogDiv.innerHTML = `${t('last_colon')} ${setsCount > 1 ? setsCount + ' × ' : ''}${weight}kg × ${reps || 0}${pct !== null ? ` <span style="color:var(--gold-lt)">${fmtPct(pct)}</span>` : ''}`;
-    const pctVal = hist.length >= 2 ? calcPctIncrease(hist[hist.length - 2].weight, weight) : null;
-    if (pctVal !== null && pctVal > 0) toast(`${ex.name}: ${fmtPct(pctVal)} ${t('from_last_log')}`);
-    else toast(`${ex.name} ${t('exercise_logged')}`);
+    const prBadge = isPR ? ` <span style="background:var(--gold);color:var(--ink);font-size:0.52rem;font-family:'DM Mono',monospace;padding:1px 5px;border-radius:6px;margin-left:4px;letter-spacing:0.05em">PR</span>` : '';
+    lastLogDiv.innerHTML = `${t('last_colon')} ${setsCount > 1 ? setsCount + ' × ' : ''}${weight}kg × ${reps || 0}${pct !== null ? ` <span style="color:var(--gold-lt)">${fmtPct(pct)}</span>` : ''}${prBadge}`;
+    if (isPR) toast(`🏅 PR! ${ex.name} — Est. 1RM ${Math.round(newE1RM)}kg`);
+    else {
+      const pctVal = hist.length >= 2 ? calcPctIncrease(hist[hist.length - 2].weight, weight) : null;
+      if (pctVal !== null && pctVal > 0) toast(`${ex.name}: ${fmtPct(pctVal)} ${t('from_last_log')}`);
+      else toast(`${ex.name} ${t('exercise_logged')}`);
+    }
   }
 
+  startRestTimer();
   scheduleSave();
 }
 
@@ -810,7 +900,10 @@ function logWorkoutSession(wcId) {
   const wc = S.workoutCards.find(w => String(w.id) === String(wcId));
   if (!wc) return;
 
-  const todayStr = today();
+  // Use date picker if present, fall back to today
+  const datePickerEl = eid(`sessionDate-${wc.id}`);
+  const sessionDate  = (datePickerEl && datePickerEl.value) || today();
+  const todayStr = sessionDate;
   const exercises = (wc.exercises||[]).map(ex => {
     const key = normExerciseKey(ex.name);
     const todaySets = (S.exerciseHistory[key] || []).filter(e => e.date === todayStr);
@@ -837,19 +930,19 @@ function logWorkoutSession(wcId) {
     id: uid(),
     cardId: wc.id,
     title: wc.title || 'Workout',
-    date: today(),
+    date: sessionDate,
     summary: summary || 'Session completed',
     notes: sessionNote,
     exercises
   });
 
   const gh = hfind('gym','lift','workout','training','weights');
-  if (gh) gh.days[today()] = true;
-  S.gymLog[today()] = true;
+  if (gh) { if (!gh.days) gh.days = {}; gh.days[sessionDate] = true; }
+  S.gymLog[sessionDate] = true;
 
-  // Auto-link this card to today in the training week
+  // Auto-link this card to the session date in the training week (only if it's this week)
   const week = weekDays();
-  const todayIdx = week.indexOf(today());
+  const todayIdx = week.indexOf(sessionDate);
   if (todayIdx >= 0) {
     if (!S.workout[todayIdx]) S.workout[todayIdx] = {};
     S.workout[todayIdx].cardId = wc.id;
@@ -862,6 +955,8 @@ function logWorkoutSession(wcId) {
   renderGymWeek();
   renderTrainingLog();
   if (typeof renderHabits === 'function') renderHabits();
+  // Reset date picker to today after logging
+  setTimeout(() => { const dp = eid(`sessionDate-${wc.id}`); if (dp) dp.value = today(); }, 50);
 
   // Heatmap hidden — code preserved: if (typeof renderMuscleHeatmap === 'function') renderMuscleHeatmap();
   toast(`${wc.title || t('workout')} ${t('workout_saved')}`);

@@ -203,7 +203,7 @@ function applyReflectionVisibility() {
 }
 
 /* ══ SETTINGS SUB-TABS ══ */
-const SETTINGS_TABS = ['profile','summary','today','fitness','projects','media','features'];
+const SETTINGS_TABS = ['profile','summary','today','fitness','projects','media','features','modules'];
 
 function switchSettingsTab(tab) {
   SETTINGS_TABS.forEach(t2 => {
@@ -217,6 +217,7 @@ function switchSettingsTab(tab) {
   if (tab === 'today')   { const stRef = eid('st-reflection'); if (stRef) stRef.checked = S.appPrefs?.showReflection !== false; }
   if (tab === 'summary') { const swRef = eid('st-weekly-reflection'); if (swRef) swRef.checked = S.appPrefs?.showWeeklyReflection !== false; }
   if (tab === 'features') renderFeaturesPane();
+  if (tab === 'modules')  { if (typeof renderModulesPane === 'function') renderModulesPane(); }
 }
 
 function renderFeaturesPane() {
