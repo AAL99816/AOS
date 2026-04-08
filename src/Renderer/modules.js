@@ -94,20 +94,12 @@ const MODULE_REGISTRY = [
   },
 
   // ── Fitness sections ──────────────────────────────────────────
-  {
-    id: 'fitness.pbs',     group: 'Fitness', label: 'Personal Bests',
-    desc: 'Auto-tracked personal records per exercise',
-    type: 'section', sectionId: 'exercisePbsSection', default: true
-  },
+  // Note: Personal Bests visibility is controlled by Settings → Features (exercisePbs flag)
+  // to avoid double-controlling the same element. Do not add fitness.pbs here.
   {
     id: 'fitness.cardio',  group: 'Fitness', label: 'Cardio Log',
     desc: 'Log runs, cycles, and other cardio sessions',
     type: 'section', sectionId: 'cardioSection', default: true
-  },
-  {
-    id: 'fitness.calories',group: 'Fitness', label: 'Calorie Tracker',
-    desc: 'Track calories burned / consumed in the Fitness tab',
-    type: 'section', sectionId: 'calorieSection', default: true
   },
   {
     id: 'fitness.weight',  group: 'Fitness', label: 'Body Weight Log',
@@ -134,11 +126,11 @@ function applyModules() {
 
     if (mod.type === 'tab') {
       // Hide/show the nav tab button
-      const btn = document.querySelector(`.tab[onclick*="go('${mod.tabName}'"]`);
+      const btn = document.querySelector(`.tab[onclick*="go('${mod.tabName}')"]`);
       if (btn) btn.style.display = on ? '' : 'none';
       // If we just hid the active tab, fall back to 'today'
-      if (!on && _activeTab === mod.tabName) {
-        const fallback = document.querySelector(".tab[onclick*=\"go('today'\"]") ||
+      if (!on && (typeof _activeTab !== 'undefined') && _activeTab === mod.tabName) {
+        const fallback = document.querySelector(".tab[onclick*=\"go('today')\"]") ||
                          document.querySelector('.tab:not([style*="none"])');
         if (fallback) fallback.click();
       }

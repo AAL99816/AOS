@@ -504,8 +504,8 @@ function _fabContentFood() {
   return `
     <div style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:10px">Food</div>
     <div style="display:flex;flex-direction:column;gap:8px">
-      <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();if(typeof openAddFoodModal==='function')openAddFoodModal()">+ Log Food</button>
-      <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();if(typeof logCalorieSession==='function'){eid('calorieAmount').focus()}">+ Calories</button>
+      <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();go('food');if(typeof openFoodSearch==='function')openFoodSearch('other')">+ Log Food</button>
+      <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();go('food')">Open Food</button>
       <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();addWater(1)">+ Water</button>
     </div>`;
 }
@@ -513,13 +513,13 @@ function _fabContentFood() {
 function _fabContentProjects() {
   const projs = (S.projects || []).filter(p => p.status !== 'Done').slice(0, 4);
   const projBtns = projs.length
-    ? projs.map(p => `<button class="btn btn-g" style="text-align:left;font-size:0.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px" onclick="fabClose();if(typeof openProject==='function')openProject('${p.id}')">${escapeHtml(p.title||'Project')}</button>`).join('')
+    ? projs.map(p => `<button class="btn btn-g" style="text-align:left;font-size:0.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px" onclick="fabClose();openProjectDetail('${p.id}')">${escapeHtml(p.title||'Project')}</button>`).join('')
     : '';
   return `
     <div style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:10px">Projects</div>
     <div style="display:flex;flex-direction:column;gap:8px">
       ${projBtns}
-      <button class="btn btn-p" style="text-align:left;font-size:0.74rem" onclick="fabClose();if(typeof addProject==='function')addProject()">+ New Project</button>
+      <button class="btn btn-p" style="text-align:left;font-size:0.74rem" onclick="fabClose();openModal('mProject')">+ New Project</button>
     </div>`;
 }
 
@@ -527,8 +527,7 @@ function _fabContentMedia() {
   return `
     <div style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:10px">Media</div>
     <div style="display:flex;flex-direction:column;gap:8px">
-      <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();if(typeof openAddBookModal==='function')openAddBookModal()">+ Add Book</button>
-      <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();if(typeof openAddShowModal==='function')openAddShowModal()">+ Add Show / Film</button>
+      <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();openModal('mBook')">+ Add Book / Show</button>
     </div>`;
 }
 

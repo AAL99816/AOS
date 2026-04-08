@@ -1014,6 +1014,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   <!-- FITNESS -->
   <div id="panel-fitness" class="panel">
     <!-- Body Weight Log handled by the card below -->
+    <div id="cardioSection">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div class="sec" style="margin:0" data-i18n="cardio">Cardio</div>
     </div>
@@ -1027,6 +1028,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
         <button id="cardioLogBtn" class="btn btn-p" onclick="logCardioSession()" data-i18n="log">Log</button>
       </div>
       <div id="cardioHistory"></div>
+    </div>
     </div>
     <div class="card" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
       <span style="font-size:0.72rem;color:var(--muted-lt)">Track meals and macros in the Food tab.</span>
@@ -1987,7 +1989,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 </div>
 
 <!-- Rest Timer Bar -->
-<div id="restTimerBar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:290;background:linear-gradient(135deg,var(--panel),var(--ink));border-top:1px solid var(--border-lt);padding:10px 20px;display:none;align-items:center;gap:14px;box-shadow:0 -4px 24px rgba(0,0,0,0.4)">
+<div id="restTimerBar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:290;background:linear-gradient(135deg,var(--panel),var(--ink));border-top:1px solid var(--border-lt);padding:10px 20px;align-items:center;gap:14px;box-shadow:0 -4px 24px rgba(0,0,0,0.4)">
   <div style="flex:1">
     <div style="font-size:0.56rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;font-family:'DM Mono',monospace;margin-bottom:2px">Rest Timer</div>
     <div id="restTimerLabel" style="font-size:1.1rem;color:var(--gold-lt);font-family:'DM Mono',monospace;font-weight:700">—</div>

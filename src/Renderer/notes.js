@@ -220,8 +220,8 @@ function notesAddTopic() {
   if (!title) return;
   const icon  = (prompt('Icon (emoji, optional — press Cancel to skip):') || '').trim();
   const tabs  = Object.keys(LINKED_TAB_LABELS);
-  const linkChoice = prompt(`Link to tab? Type one of: ${tabs.join(', ')}\n(or press Cancel to skip)`);
-  const linkedTab = linkChoice && tabs.includes(linkChoice.trim().toLowerCase()) ? linkChoice.trim().toLowerCase() : '';
+  const linkChoice = (prompt(`Link to tab? Type one of: ${tabs.join(', ')}\n(or press Cancel to skip)`) || '').trim().toLowerCase();
+  const linkedTab = linkChoice && tabs.includes(linkChoice) ? linkChoice : '';
 
   const newTopic = makeTopic({ title, icon: icon || '', linkedTab });
   S.notesTopics.push(newTopic);

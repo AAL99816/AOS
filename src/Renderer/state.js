@@ -239,7 +239,7 @@ function normalizeAppState(raw={}){
   out.features = deepMerge(DS.features, (src.features && typeof src.features === 'object') ? src.features : {});
   out.appPrefs = deepMerge(DS.appPrefs, out.appPrefs || {});
   out.modules = (src.modules && typeof src.modules === 'object') ? src.modules : {};
-  out.notesTopics = Array.isArray(src.notesTopics) ? src.notesTopics.map(makeTopic) : [];
+  out.notesTopics = Array.isArray(out.notesTopics) ? out.notesTopics.map(makeTopic) : [];
   out.onboarded = typeof src.onboarded === 'boolean' ? src.onboarded : false;
   out.customStreaks = (Array.isArray(src.customStreaks) ? src.customStreaks : []).map(cs => ({
     id: cs.id ?? uid(),

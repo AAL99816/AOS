@@ -5,6 +5,12 @@
 // Renders to #todayDashboard
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Scroll to a section only if it's currently visible (not hidden by modules)
+function scrollToSection(id) {
+  const el = eid(id);
+  if (el && el.style.display !== 'none') el.scrollIntoView({ behavior: 'smooth' });
+}
+
 /* ══ WATER TRACKER ══ */
 // waterLog stores units (glasses/cups/litres/oz) — not raw ml —
 // because changing units also changes the target, so relative progress is preserved.
@@ -67,7 +73,7 @@ function renderToday() {
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   // ── Data gathering ──
-  const habits      = (S.habits || []).filter(h => !h.hidden);
+  const habits      = (S.habits || []).filter(h => h && !h.hidden);
   const habitsDone  = habits.filter(h => h.days && h.days[d]).length;
   const habitsTotal = habits.length;
 
@@ -191,7 +197,7 @@ function renderToday() {
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center">
 
         <!-- Habits ring -->
-        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer" onclick="document.getElementById('todayHabitsSection').scrollIntoView({behavior:'smooth'})">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer" onclick="scrollToSection('todayHabitsSection')">
           <div style="position:relative;width:54px;height:54px">
             ${ring(habitsTotal ? Math.round((habitsDone/habitsTotal)*100) : 0, 'var(--blush)', 54)}
             <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:0.72rem;color:var(--cream);font-family:'DM Mono',monospace">${habitsDone}/${habitsTotal}</div>
@@ -209,7 +215,7 @@ function renderToday() {
         </div>
 
         <!-- Water ring -->
-        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer" onclick="document.getElementById('todayWaterSection').scrollIntoView({behavior:'smooth'})">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer" onclick="scrollToSection('todayWaterSection')">
           <div style="position:relative;width:54px;height:54px">
             ${ring(waterPct, 'var(--blush)', 54)}
             <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:0.72rem;color:var(--cream);font-family:'DM Mono',monospace">${waterCount}/${waterTarget}</div>
@@ -218,7 +224,7 @@ function renderToday() {
         </div>
 
         <!-- Prayer ring -->
-        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer" onclick="document.getElementById('todayPrayerSection').scrollIntoView({behavior:'smooth'})">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer" onclick="scrollToSection('todayPrayerSection')">
           <div style="position:relative;width:54px;height:54px">
             ${ring(Math.round((prayersDone/prayersTotal)*100), 'var(--gold)', 54)}
             <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:0.72rem;color:var(--cream);font-family:'DM Mono',monospace">${prayersDone}/${prayersTotal}</div>
@@ -433,15 +439,14 @@ function quickLogExercise(key) {
   if (!S.exerciseHistory) S.exerciseHistory = {};
   if (!S.exerciseHistory[key]) S.exerciseHistory[key] = [];
 
-  // PR check
+  // PR check — use reduce so a single NaN entry doesn't corrupt the whole max
   const hist = S.exerciseHistory[key];
-  const prevBest = hist.length
-    ? Math.max(...hist.map(e => {
-        const sets = Array.isArray(e.loggedSets) ? e.loggedSets
-          : (e.weight != null ? [{ weight: e.weight, reps: e.reps }] : []);
-        return (typeof epley1RM === 'function' ? epley1RM(sets[0]?.weight, sets[0]?.reps) : 0) || 0;
-      }))
-    : 0;
+  const prevBest = hist.reduce((best, e) => {
+    const sets = Array.isArray(e.loggedSets) ? e.loggedSets
+      : (e.weight != null ? [{ weight: e.weight, reps: e.reps }] : []);
+    const rm = (typeof epley1RM === 'function' ? epley1RM(sets[0]?.weight, sets[0]?.reps) : 0) || 0;
+    return rm > best ? rm : best;
+  }, 0);
   const newE1RM = typeof epley1RM === 'function' ? (epley1RM(weight, reps) || 0) : 0;
   const isPR = newE1RM > 0 && newE1RM > prevBest;
 

@@ -159,6 +159,10 @@ function openSettings() {
 
   _refreshCalModeBtns();
 
+  // Pre-render dynamic panes so they're ready when the user clicks their tab
+  renderFeaturesPane();
+  if (typeof renderModulesPane === 'function') renderModulesPane();
+
   // Always open on Profile tab
   switchSettingsTab('profile');
 
