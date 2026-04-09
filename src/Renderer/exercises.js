@@ -344,6 +344,328 @@ const EXERCISE_DB = [
   { id:'e-band-pull-apart',        name:'Band Pull Apart',                  muscles:['traps'],          secondary:['shoulders','back'],             equipment:'band',        pattern:'pull',   category:'band' },
   { id:'e-face-pull-band',         name:'Band Face Pull',                   muscles:['traps'],          secondary:['shoulders'],                   equipment:'band',        pattern:'pull',   category:'band' },
 
+  // ══════════════════════════════════════════
+  // CHEST — additional
+  // ══════════════════════════════════════════
+  { id:'e-svend-press',            name:'Svend Press',                      muscles:['chest'],          secondary:[],                              equipment:'other',       pattern:'push',   category:'other' },
+  { id:'e-low-cable-fly',          name:'Low Cable Fly',                    muscles:['chest'],          secondary:['shoulders'],                   equipment:'cable',       pattern:'push',   category:'cable' },
+  { id:'e-incline-cable-fly',      name:'Incline Cable Fly',                muscles:['chest'],          secondary:['shoulders'],                   equipment:'cable',       pattern:'push',   category:'cable' },
+  { id:'e-single-arm-chest-press', name:'Single Arm DB Chest Press',        muscles:['chest'],          secondary:['triceps','core'],               equipment:'dumbbell',    pattern:'push',   category:'dumbbell' },
+  { id:'e-loaded-stretch-fly',     name:'Loaded Stretch Fly',               muscles:['chest'],          secondary:['shoulders'],                   equipment:'dumbbell',    pattern:'push',   category:'dumbbell' },
+  { id:'e-hs-chest-press',         name:'Hammer Strength Chest Press',      muscles:['chest'],          secondary:['shoulders','triceps'],          equipment:'machine',     pattern:'push',   category:'machine' },
+  { id:'e-incline-hs-press',       name:'Hammer Strength Incline Press',    muscles:['chest'],          secondary:['shoulders','triceps'],          equipment:'machine',     pattern:'push',   category:'machine' },
+  { id:'e-cable-chest-press',      name:'Standing Cable Chest Press',       muscles:['chest'],          secondary:['triceps','core'],               equipment:'cable',       pattern:'push',   category:'cable' },
+  { id:'e-smith-incline',          name:'Smith Machine Incline Press',      muscles:['chest'],          secondary:['shoulders','triceps'],          equipment:'machine',     pattern:'push',   category:'machine' },
+  { id:'e-db-pullover-chest',      name:'DB Pullover (Chest Focus)',        muscles:['chest'],          secondary:['lats'],                        equipment:'dumbbell',    pattern:'push',   category:'dumbbell' },
+  { id:'e-banded-pushup',          name:'Banded Push-Up',                   muscles:['chest'],          secondary:['triceps','shoulders'],          equipment:'band',        pattern:'push',   category:'band' },
+  { id:'e-decline-pushup',         name:'Decline Push-Up',                  muscles:['chest'],          secondary:['shoulders','triceps'],          equipment:'bodyweight',  pattern:'push',   category:'bodyweight' },
+  { id:'e-pike-pushup',            name:'Pike Push-Up',                     muscles:['shoulders'],      secondary:['triceps','chest'],              equipment:'bodyweight',  pattern:'push',   category:'bodyweight' },
+  { id:'e-plyometric-pushup',      name:'Plyometric Push-Up',               muscles:['chest'],          secondary:['triceps','shoulders'],          equipment:'bodyweight',  pattern:'push',   category:'calisthenics' },
+
+  // ══════════════════════════════════════════
+  // BACK — additional
+  // ══════════════════════════════════════════
+  { id:'e-db-pullover-back',       name:'DB Pullover (Back Focus)',         muscles:['lats'],           secondary:['chest'],                       equipment:'dumbbell',    pattern:'pull',   category:'dumbbell' },
+  { id:'e-rack-pull',              name:'Rack Pull',                        muscles:['back'],           secondary:['traps','glutes','hamstrings'],  equipment:'barbell',     pattern:'hinge',  category:'barbell' },
+  { id:'e-meadows-row',            name:'Meadows Row',                      muscles:['back'],           secondary:['lats','biceps'],                equipment:'barbell',     pattern:'pull',   category:'barbell' },
+  { id:'e-yates-row',              name:'Yates Row',                        muscles:['back'],           secondary:['biceps','lats'],                equipment:'barbell',     pattern:'pull',   category:'barbell' },
+  { id:'e-chest-supported-db-row', name:'Chest Supported DB Row',           muscles:['back'],           secondary:['lats','biceps'],                equipment:'dumbbell',    pattern:'pull',   category:'dumbbell' },
+  { id:'e-seated-cable-row-wide',  name:'Wide Grip Seated Cable Row',       muscles:['back'],           secondary:['lats'],                        equipment:'cable',       pattern:'pull',   category:'cable' },
+  { id:'e-cable-row-low',          name:'Low Cable Row',                    muscles:['back'],           secondary:['lats','biceps'],                equipment:'cable',       pattern:'pull',   category:'cable' },
+  { id:'e-neutral-grip-pulldown',  name:'Neutral Grip Lat Pulldown',        muscles:['lats'],           secondary:['biceps'],                      equipment:'cable',       pattern:'pull',   category:'cable' },
+  { id:'e-hs-row',                 name:'Hammer Strength Row',              muscles:['back'],           secondary:['lats','biceps'],                equipment:'machine',     pattern:'pull',   category:'machine' },
+  { id:'e-hs-pulldown',            name:'Hammer Strength Pulldown',         muscles:['lats'],           secondary:['biceps'],                      equipment:'machine',     pattern:'pull',   category:'machine' },
+  { id:'e-iso-row',                name:'Iso-Lateral Row',                  muscles:['back'],           secondary:['lats','biceps'],                equipment:'machine',     pattern:'pull',   category:'machine' },
+  { id:'e-cable-pullover',         name:'Cable Pullover',                   muscles:['lats'],           secondary:['chest','core'],                 equipment:'cable',       pattern:'pull',   category:'cable' },
+  { id:'e-band-row',               name:'Band Row',                         muscles:['back'],           secondary:['biceps'],                      equipment:'band',        pattern:'pull',   category:'band' },
+  { id:'e-ring-muscle-up',         name:'Ring Muscle-Up',                   muscles:['lats'],           secondary:['chest','triceps'],              equipment:'bodyweight',  pattern:'pull',   category:'calisthenics' },
+  { id:'e-straight-bar-pushdown',  name:'Straight Bar Lat Pushdown',        muscles:['lats'],           secondary:['core'],                        equipment:'cable',       pattern:'pull',   category:'cable' },
+  { id:'e-wide-grip-row',          name:'Wide Grip Cable Row',              muscles:['back'],           secondary:['lats'],                        equipment:'cable',       pattern:'pull',   category:'cable' },
+
+  // ══════════════════════════════════════════
+  // SHOULDERS — additional
+  // ══════════════════════════════════════════
+  { id:'e-arnold-press',           name:'Arnold Press',                     muscles:['shoulders'],      secondary:['triceps'],                     equipment:'dumbbell',    pattern:'push',   category:'dumbbell' },
+  { id:'e-z-press',                name:'Z Press',                          muscles:['shoulders'],      secondary:['triceps','core'],               equipment:'barbell',     pattern:'push',   category:'barbell' },
+  { id:'e-push-press',             name:'Push Press',                       muscles:['shoulders'],      secondary:['triceps','quads'],              equipment:'barbell',     pattern:'push',   category:'barbell' },
+  { id:'e-bradford-press',         name:'Bradford Press',                   muscles:['shoulders'],      secondary:['triceps','traps'],              equipment:'barbell',     pattern:'push',   category:'barbell' },
+  { id:'e-db-lat-raise-seated',    name:'Seated Lateral Raise',             muscles:['shoulders'],      secondary:[],                              equipment:'dumbbell',    pattern:'push',   category:'dumbbell' },
+  { id:'e-cable-lat-raise',        name:'Cable Lateral Raise',              muscles:['shoulders'],      secondary:[],                              equipment:'cable',       pattern:'push',   category:'cable' },
+  { id:'e-band-lat-raise',         name:'Band Lateral Raise',               muscles:['shoulders'],      secondary:[],                              equipment:'band',        pattern:'push',   category:'band' },
+  { id:'e-machine-lat-raise',      name:'Machine Lateral Raise',            muscles:['shoulders'],      secondary:[],                              equipment:'machine',     pattern:'push',   category:'machine' },
+  { id:'e-cable-front-raise',      name:'Cable Front Raise',                muscles:['shoulders'],      secondary:[],                              equipment:'cable',       pattern:'push',   category:'cable' },
+  { id:'e-plate-front-raise',      name:'Plate Front Raise',                muscles:['shoulders'],      secondary:[],                              equipment:'other',       pattern:'push',   category:'other' },
+  { id:'e-db-rear-delt',           name:'Dumbbell Rear Delt Fly',           muscles:['shoulders'],      secondary:['traps'],                       equipment:'dumbbell',    pattern:'pull',   category:'dumbbell' },
+  { id:'e-cable-rear-delt',        name:'Cable Rear Delt Fly',              muscles:['shoulders'],      secondary:['traps'],                       equipment:'cable',       pattern:'pull',   category:'cable' },
+  { id:'e-machine-rear-delt',      name:'Machine Rear Delt Fly',            muscles:['shoulders'],      secondary:['traps'],                       equipment:'machine',     pattern:'pull',   category:'machine' },
+  { id:'e-cuban-press',            name:'Cuban Press',                      muscles:['shoulders'],      secondary:['traps'],                       equipment:'dumbbell',    pattern:'push',   category:'dumbbell' },
+  { id:'e-incline-lat-raise',      name:'Incline Lateral Raise',            muscles:['shoulders'],      secondary:[],                              equipment:'dumbbell',    pattern:'push',   category:'dumbbell' },
+  { id:'e-landmine-press',         name:'Landmine Press',                   muscles:['shoulders'],      secondary:['chest','triceps'],              equipment:'barbell',     pattern:'push',   category:'barbell' },
+  { id:'e-single-arm-press',       name:'Single Arm DB Overhead Press',     muscles:['shoulders'],      secondary:['triceps','core'],               equipment:'dumbbell',    pattern:'push',   category:'dumbbell' },
+  { id:'e-hs-shoulder-press',      name:'Hammer Strength Shoulder Press',   muscles:['shoulders'],      secondary:['triceps'],                     equipment:'machine',     pattern:'push',   category:'machine' },
+  { id:'e-smith-ohp',              name:'Smith Machine OHP',                muscles:['shoulders'],      secondary:['triceps'],                     equipment:'machine',     pattern:'push',   category:'machine' },
+
+  // ══════════════════════════════════════════
+  // BICEPS — additional
+  // ══════════════════════════════════════════
+  { id:'e-ez-curl',                name:'EZ Bar Curl',                      muscles:['biceps'],         secondary:['forearms'],                    equipment:'barbell',     pattern:'pull',   category:'barbell' },
+  { id:'e-reverse-curl',           name:'Reverse Curl',                     muscles:['forearms'],       secondary:['biceps'],                      equipment:'barbell',     pattern:'pull',   category:'barbell' },
+  { id:'e-reverse-curl-db',        name:'Reverse Dumbbell Curl',            muscles:['forearms'],       secondary:['biceps'],                      equipment:'dumbbell',    pattern:'pull',   category:'dumbbell' },
+  { id:'e-spider-curl',            name:'Spider Curl',                      muscles:['biceps'],         secondary:[],                              equipment:'dumbbell',    pattern:'pull',   category:'dumbbell' },
+  { id:'e-drag-curl',              name:'Drag Curl',                        muscles:['biceps'],         secondary:[],                              equipment:'barbell',     pattern:'pull',   category:'barbell' },
+  { id:'e-zottman-curl',           name:'Zottman Curl',                     muscles:['biceps'],         secondary:['forearms'],                    equipment:'dumbbell',    pattern:'pull',   category:'dumbbell' },
+  { id:'e-machine-curl',           name:'Machine Curl',                     muscles:['biceps'],         secondary:[],                              equipment:'machine',     pattern:'pull',   category:'machine' },
+  { id:'e-cable-curl-rope',        name:'Cable Curl (Rope)',                muscles:['biceps'],         secondary:['forearms'],                    equipment:'cable',       pattern:'pull',   category:'cable' },
+  { id:'e-incline-db-curl',        name:'Incline DB Curl',                  muscles:['biceps'],         secondary:[],                              equipment:'dumbbell',    pattern:'pull',   category:'dumbbell' },
+  { id:'e-crossbody-curl',         name:'Cross-Body Hammer Curl',           muscles:['biceps'],         secondary:['forearms'],                    equipment:'dumbbell',    pattern:'pull',   category:'dumbbell' },
+  { id:'e-bayesian-curl',          name:'Bayesian Curl (Cable)',             muscles:['biceps'],         secondary:[],                              equipment:'cable',       pattern:'pull',   category:'cable' },
+  { id:'e-overhead-cable-curl',    name:'Overhead Cable Curl',              muscles:['biceps'],         secondary:[],                              equipment:'cable',       pattern:'pull',   category:'cable' },
+  { id:'e-band-curl',              name:'Band Curl',                        muscles:['biceps'],         secondary:[],                              equipment:'band',        pattern:'pull',   category:'band' },
+  { id:'e-chin-up-curl',           name:'Chin-Up (Curl Focus)',             muscles:['biceps'],         secondary:['lats'],                        equipment:'bodyweight',  pattern:'pull',   category:'calisthenics' },
+
+  // ══════════════════════════════════════════
+  // TRICEPS — additional
+  // ══════════════════════════════════════════
+  { id:'e-jm-press',               name:'JM Press',                         muscles:['triceps'],        secondary:['chest'],                       equipment:'barbell',     pattern:'push',   category:'barbell' },
+  { id:'e-tate-press',             name:'Tate Press',                       muscles:['triceps'],        secondary:[],                              equipment:'dumbbell',    pattern:'push',   category:'dumbbell' },
+  { id:'e-lying-tri-ext-ez',       name:'EZ Bar Lying Triceps Extension',   muscles:['triceps'],        secondary:[],                              equipment:'barbell',     pattern:'push',   category:'barbell' },
+  { id:'e-db-tri-kickback',        name:'Dumbbell Triceps Kickback',        muscles:['triceps'],        secondary:[],                              equipment:'dumbbell',    pattern:'push',   category:'dumbbell' },
+  { id:'e-cable-kickback',         name:'Cable Triceps Kickback',           muscles:['triceps'],        secondary:[],                              equipment:'cable',       pattern:'push',   category:'cable' },
+  { id:'e-overhead-db-ext',        name:'Overhead Dumbbell Extension',      muscles:['triceps'],        secondary:[],                              equipment:'dumbbell',    pattern:'push',   category:'dumbbell' },
+  { id:'e-overhead-cable-ext',     name:'Overhead Cable Extension',         muscles:['triceps'],        secondary:[],                              equipment:'cable',       pattern:'push',   category:'cable' },
+  { id:'e-rope-pushdown',          name:'Rope Pushdown',                    muscles:['triceps'],        secondary:[],                              equipment:'cable',       pattern:'push',   category:'cable' },
+  { id:'e-reverse-pushdown',       name:'Reverse Grip Pushdown',            muscles:['triceps'],        secondary:[],                              equipment:'cable',       pattern:'push',   category:'cable' },
+  { id:'e-single-arm-pushdown',    name:'Single Arm Pushdown',              muscles:['triceps'],        secondary:[],                              equipment:'cable',       pattern:'push',   category:'cable' },
+  { id:'e-tri-machine',            name:'Triceps Machine',                  muscles:['triceps'],        secondary:[],                              equipment:'machine',     pattern:'push',   category:'machine' },
+  { id:'e-band-pushdown',          name:'Band Pushdown',                    muscles:['triceps'],        secondary:[],                              equipment:'band',        pattern:'push',   category:'band' },
+  { id:'e-bench-dip',              name:'Bench Dip',                        muscles:['triceps'],        secondary:['chest','shoulders'],           equipment:'bodyweight',  pattern:'push',   category:'bodyweight' },
+  { id:'e-floor-tri-ext',          name:'Floor Triceps Extension',          muscles:['triceps'],        secondary:[],                              equipment:'dumbbell',    pattern:'push',   category:'dumbbell' },
+
+  // ══════════════════════════════════════════
+  // FOREARMS / GRIP
+  // ══════════════════════════════════════════
+  { id:'e-wrist-curl-bb',          name:'Barbell Wrist Curl',               muscles:['forearms'],       secondary:[],                              equipment:'barbell',     pattern:'other',  category:'barbell' },
+  { id:'e-wrist-curl-db',          name:'Dumbbell Wrist Curl',              muscles:['forearms'],       secondary:[],                              equipment:'dumbbell',    pattern:'other',  category:'dumbbell' },
+  { id:'e-reverse-wrist-curl',     name:'Reverse Wrist Curl',               muscles:['forearms'],       secondary:[],                              equipment:'barbell',     pattern:'other',  category:'barbell' },
+  { id:'e-farmers-walk',           name:'Farmer\'s Walk',                   muscles:['forearms'],       secondary:['traps','core','quads'],         equipment:'dumbbell',    pattern:'carry',  category:'dumbbell' },
+  { id:'e-pinch-grip',             name:'Pinch Grip Hold',                  muscles:['forearms'],       secondary:[],                              equipment:'other',       pattern:'other',  category:'other' },
+  { id:'e-plate-pinch',            name:'Plate Pinch',                      muscles:['forearms'],       secondary:[],                              equipment:'other',       pattern:'other',  category:'other' },
+  { id:'e-dead-hang',              name:'Dead Hang',                        muscles:['forearms'],       secondary:['lats','shoulders'],             equipment:'bodyweight',  pattern:'other',  category:'calisthenics' },
+  { id:'e-gripper',                name:'Hand Gripper',                     muscles:['forearms'],       secondary:[],                              equipment:'other',       pattern:'other',  category:'other' },
+  { id:'e-rice-bucket',            name:'Rice Bucket Training',             muscles:['forearms'],       secondary:[],                              equipment:'other',       pattern:'other',  category:'other' },
+  { id:'e-towel-pullup',           name:'Towel Pull-Up',                    muscles:['forearms'],       secondary:['lats','biceps'],                equipment:'bodyweight',  pattern:'pull',   category:'calisthenics' },
+
+  // ══════════════════════════════════════════
+  // LEGS — QUADS additional
+  // ══════════════════════════════════════════
+  { id:'e-hack-squat-bb',          name:'Barbell Hack Squat',               muscles:['quads'],          secondary:['glutes','hamstrings'],          equipment:'barbell',     pattern:'squat',  category:'barbell' },
+  { id:'e-pendulum-squat',         name:'Pendulum Squat',                   muscles:['quads'],          secondary:['glutes'],                      equipment:'machine',     pattern:'squat',  category:'machine' },
+  { id:'e-sissy-squat',            name:'Sissy Squat',                      muscles:['quads'],          secondary:[],                              equipment:'bodyweight',  pattern:'squat',  category:'bodyweight' },
+  { id:'e-wall-sit',               name:'Wall Sit',                         muscles:['quads'],          secondary:['glutes'],                      equipment:'bodyweight',  pattern:'squat',  category:'bodyweight' },
+  { id:'e-step-up',                name:'Step-Up',                          muscles:['quads'],          secondary:['glutes','hamstrings'],          equipment:'dumbbell',    pattern:'squat',  category:'dumbbell' },
+  { id:'e-step-up-bb',             name:'Barbell Step-Up',                  muscles:['quads'],          secondary:['glutes','hamstrings'],          equipment:'barbell',     pattern:'squat',  category:'barbell' },
+  { id:'e-cable-squat',            name:'Cable Squat',                      muscles:['quads'],          secondary:['glutes','core'],                equipment:'cable',       pattern:'squat',  category:'cable' },
+  { id:'e-paused-squat',           name:'Paused Squat',                     muscles:['quads'],          secondary:['glutes','hamstrings'],          equipment:'barbell',     pattern:'squat',  category:'barbell' },
+  { id:'e-tempo-squat',            name:'Tempo Squat',                      muscles:['quads'],          secondary:['glutes','hamstrings'],          equipment:'barbell',     pattern:'squat',  category:'barbell' },
+  { id:'e-split-squat',            name:'Split Squat',                      muscles:['quads'],          secondary:['glutes','hamstrings'],          equipment:'bodyweight',  pattern:'squat',  category:'bodyweight' },
+  { id:'e-zercher-squat',          name:'Zercher Squat',                    muscles:['quads'],          secondary:['glutes','core','back'],         equipment:'barbell',     pattern:'squat',  category:'barbell' },
+  { id:'e-belt-squat',             name:'Belt Squat',                       muscles:['quads'],          secondary:['glutes'],                      equipment:'machine',     pattern:'squat',  category:'machine' },
+  { id:'e-single-leg-press',       name:'Single Leg Press',                 muscles:['quads'],          secondary:['glutes','hamstrings'],          equipment:'machine',     pattern:'squat',  category:'machine' },
+  { id:'e-reverse-lunge',          name:'Reverse Lunge',                    muscles:['quads'],          secondary:['glutes','hamstrings'],          equipment:'bodyweight',  pattern:'squat',  category:'bodyweight' },
+  { id:'e-walking-lunge-bb',       name:'Barbell Walking Lunge',            muscles:['quads'],          secondary:['glutes','hamstrings'],          equipment:'barbell',     pattern:'squat',  category:'barbell' },
+  { id:'e-curtsy-lunge',           name:'Curtsy Lunge',                     muscles:['quads'],          secondary:['glutes'],                      equipment:'dumbbell',    pattern:'squat',  category:'dumbbell' },
+  { id:'e-pistol-squat',           name:'Pistol Squat',                     muscles:['quads'],          secondary:['glutes','core'],                equipment:'bodyweight',  pattern:'squat',  category:'calisthenics' },
+
+  // ══════════════════════════════════════════
+  // LEGS — HAMSTRINGS additional
+  // ══════════════════════════════════════════
+  { id:'e-nordic-curl',            name:'Nordic Hamstring Curl',            muscles:['hamstrings'],     secondary:['glutes'],                      equipment:'bodyweight',  pattern:'hinge',  category:'calisthenics' },
+  { id:'e-lying-leg-curl-single',  name:'Single Leg Lying Curl',            muscles:['hamstrings'],     secondary:['glutes'],                      equipment:'machine',     pattern:'hinge',  category:'machine' },
+  { id:'e-seated-leg-curl',        name:'Seated Leg Curl',                  muscles:['hamstrings'],     secondary:[],                              equipment:'machine',     pattern:'hinge',  category:'machine' },
+  { id:'e-cable-leg-curl',         name:'Cable Leg Curl',                   muscles:['hamstrings'],     secondary:[],                              equipment:'cable',       pattern:'hinge',  category:'cable' },
+  { id:'e-snatch-grip-rdl',        name:'Snatch Grip RDL',                  muscles:['hamstrings'],     secondary:['back','traps'],                 equipment:'barbell',     pattern:'hinge',  category:'barbell' },
+  { id:'e-single-leg-rdl-db',      name:'Single Leg RDL (DB)',              muscles:['hamstrings'],     secondary:['glutes','core'],                equipment:'dumbbell',    pattern:'hinge',  category:'dumbbell' },
+  { id:'e-single-leg-rdl-bb',      name:'Single Leg RDL (BB)',              muscles:['hamstrings'],     secondary:['glutes','core'],                equipment:'barbell',     pattern:'hinge',  category:'barbell' },
+  { id:'e-bb-good-morning',        name:'Barbell Good Morning',             muscles:['hamstrings'],     secondary:['back','glutes'],                equipment:'barbell',     pattern:'hinge',  category:'barbell' },
+  { id:'e-seated-good-morning',    name:'Seated Good Morning',              muscles:['hamstrings'],     secondary:['back'],                        equipment:'barbell',     pattern:'hinge',  category:'barbell' },
+  { id:'e-ball-leg-curl',          name:'Swiss Ball Leg Curl',              muscles:['hamstrings'],     secondary:['glutes','core'],                equipment:'other',       pattern:'hinge',  category:'other' },
+  { id:'e-band-leg-curl',          name:'Band Leg Curl',                    muscles:['hamstrings'],     secondary:[],                              equipment:'band',        pattern:'hinge',  category:'band' },
+  { id:'e-inverse-leg-curl',       name:'Inverse Leg Curl',                 muscles:['hamstrings'],     secondary:[],                              equipment:'machine',     pattern:'hinge',  category:'machine' },
+
+  // ══════════════════════════════════════════
+  // LEGS — GLUTES additional
+  // ══════════════════════════════════════════
+  { id:'e-hip-thrust-smith',       name:'Smith Machine Hip Thrust',         muscles:['glutes'],         secondary:['hamstrings'],                  equipment:'machine',     pattern:'hinge',  category:'machine' },
+  { id:'e-hip-thrust-single',      name:'Single Leg Hip Thrust',            muscles:['glutes'],         secondary:['hamstrings','core'],            equipment:'bodyweight',  pattern:'hinge',  category:'bodyweight' },
+  { id:'e-cable-pull-through',     name:'Cable Pull-Through',               muscles:['glutes'],         secondary:['hamstrings'],                  equipment:'cable',       pattern:'hinge',  category:'cable' },
+  { id:'e-glute-bridge',           name:'Glute Bridge',                     muscles:['glutes'],         secondary:['hamstrings'],                  equipment:'bodyweight',  pattern:'hinge',  category:'bodyweight' },
+  { id:'e-glute-bridge-weighted',  name:'Weighted Glute Bridge',            muscles:['glutes'],         secondary:['hamstrings'],                  equipment:'barbell',     pattern:'hinge',  category:'barbell' },
+  { id:'e-frog-pump',              name:'Frog Pump',                        muscles:['glutes'],         secondary:[],                              equipment:'bodyweight',  pattern:'hinge',  category:'bodyweight' },
+  { id:'e-cable-kickback',         name:'Cable Glute Kickback',             muscles:['glutes'],         secondary:['hamstrings'],                  equipment:'cable',       pattern:'hinge',  category:'cable' },
+  { id:'e-donkey-kick',            name:'Donkey Kick',                      muscles:['glutes'],         secondary:['hamstrings'],                  equipment:'bodyweight',  pattern:'hinge',  category:'bodyweight' },
+  { id:'e-fire-hydrant',           name:'Fire Hydrant',                     muscles:['glutes'],         secondary:[],                              equipment:'bodyweight',  pattern:'hinge',  category:'bodyweight' },
+  { id:'e-band-hip-abduction',     name:'Band Hip Abduction',               muscles:['glutes'],         secondary:[],                              equipment:'band',        pattern:'other',  category:'band' },
+  { id:'e-machine-abduction',      name:'Hip Abduction Machine',            muscles:['glutes'],         secondary:[],                              equipment:'machine',     pattern:'other',  category:'machine' },
+  { id:'e-machine-adduction',      name:'Hip Adduction Machine',            muscles:['quads'],          secondary:['glutes'],                      equipment:'machine',     pattern:'other',  category:'machine' },
+  { id:'e-clamshell',              name:'Clamshell',                        muscles:['glutes'],         secondary:[],                              equipment:'band',        pattern:'other',  category:'band' },
+  { id:'e-sumo-rdl',               name:'Sumo RDL',                         muscles:['glutes'],         secondary:['hamstrings','quads'],           equipment:'barbell',     pattern:'hinge',  category:'barbell' },
+
+  // ══════════════════════════════════════════
+  // LEGS — CALVES additional
+  // ══════════════════════════════════════════
+  { id:'e-seated-calf-raise',      name:'Seated Calf Raise',                muscles:['calves'],         secondary:[],                              equipment:'machine',     pattern:'push',   category:'machine' },
+  { id:'e-single-calf-raise',      name:'Single Leg Calf Raise',            muscles:['calves'],         secondary:[],                              equipment:'bodyweight',  pattern:'push',   category:'bodyweight' },
+  { id:'e-leg-press-calf',         name:'Leg Press Calf Raise',             muscles:['calves'],         secondary:[],                              equipment:'machine',     pattern:'push',   category:'machine' },
+  { id:'e-tibialis-raise',         name:'Tibialis Raise',                   muscles:['calves'],         secondary:[],                              equipment:'bodyweight',  pattern:'other',  category:'bodyweight' },
+  { id:'e-calf-raise-db',          name:'Dumbbell Calf Raise',              muscles:['calves'],         secondary:[],                              equipment:'dumbbell',    pattern:'push',   category:'dumbbell' },
+  { id:'e-jump-rope',              name:'Jump Rope',                        muscles:['calves'],         secondary:['core','shoulders'],             equipment:'other',       pattern:'cardio', category:'cardio' },
+
+  // ══════════════════════════════════════════
+  // TRAPS / UPPER BACK additional
+  // ══════════════════════════════════════════
+  { id:'e-trap-bar-shrug',         name:'Trap Bar Shrug',                   muscles:['traps'],          secondary:[],                              equipment:'barbell',     pattern:'pull',   category:'barbell' },
+  { id:'e-behind-back-shrug',      name:'Behind-The-Back Shrug',            muscles:['traps'],          secondary:[],                              equipment:'barbell',     pattern:'pull',   category:'barbell' },
+  { id:'e-db-upright-row',         name:'Dumbbell Upright Row',             muscles:['traps'],          secondary:['shoulders'],                   equipment:'dumbbell',    pattern:'pull',   category:'dumbbell' },
+  { id:'e-cable-upright-row',      name:'Cable Upright Row',                muscles:['traps'],          secondary:['shoulders'],                   equipment:'cable',       pattern:'pull',   category:'cable' },
+  { id:'e-snatch-grip-shrug',      name:'Snatch Grip Shrug',                muscles:['traps'],          secondary:[],                              equipment:'barbell',     pattern:'pull',   category:'barbell' },
+  { id:'e-kb-shrug',               name:'Kettlebell Shrug',                 muscles:['traps'],          secondary:[],                              equipment:'kettlebell',  pattern:'pull',   category:'kettlebell' },
+  { id:'e-y-raise',                name:'Y Raise',                          muscles:['traps'],          secondary:['shoulders','back'],             equipment:'dumbbell',    pattern:'pull',   category:'dumbbell' },
+  { id:'e-w-raise',                name:'W Raise',                          muscles:['traps'],          secondary:['shoulders'],                   equipment:'dumbbell',    pattern:'pull',   category:'dumbbell' },
+  { id:'e-seal-row',               name:'Seal Row',                         muscles:['back'],           secondary:['lats','biceps'],                equipment:'barbell',     pattern:'pull',   category:'barbell' },
+
+  // ══════════════════════════════════════════
+  // CORE — additional
+  // ══════════════════════════════════════════
+  { id:'e-weighted-crunch',        name:'Weighted Crunch',                  muscles:['core'],           secondary:[],                              equipment:'other',       pattern:'core',   category:'other' },
+  { id:'e-cable-crunch',           name:'Cable Crunch',                     muscles:['core'],           secondary:[],                              equipment:'cable',       pattern:'core',   category:'cable' },
+  { id:'e-reverse-crunch',         name:'Reverse Crunch',                   muscles:['core'],           secondary:[],                              equipment:'bodyweight',  pattern:'core',   category:'bodyweight' },
+  { id:'e-decline-crunch',         name:'Decline Crunch',                   muscles:['core'],           secondary:[],                              equipment:'other',       pattern:'core',   category:'other' },
+  { id:'e-plank-row',              name:'Plank Row',                        muscles:['core'],           secondary:['back','biceps'],                equipment:'dumbbell',    pattern:'core',   category:'dumbbell' },
+  { id:'e-plank-reach',            name:'Plank Reach',                      muscles:['core'],           secondary:['shoulders'],                   equipment:'bodyweight',  pattern:'core',   category:'bodyweight' },
+  { id:'e-side-plank-reach',       name:'Side Plank with Reach',            muscles:['core'],           secondary:['shoulders'],                   equipment:'bodyweight',  pattern:'core',   category:'bodyweight' },
+  { id:'e-weighted-sit-up',        name:'Weighted Sit-Up',                  muscles:['core'],           secondary:[],                              equipment:'other',       pattern:'core',   category:'other' },
+  { id:'e-garhammer-raise',        name:'Garhammer Raise',                  muscles:['core'],           secondary:[],                              equipment:'bodyweight',  pattern:'core',   category:'calisthenics' },
+  { id:'e-suitcase-carry',         name:'Suitcase Carry',                   muscles:['core'],           secondary:['traps','forearms'],             equipment:'dumbbell',    pattern:'carry',  category:'dumbbell' },
+  { id:'e-overhead-carry',         name:'Overhead Carry',                   muscles:['core'],           secondary:['shoulders','traps'],            equipment:'dumbbell',    pattern:'carry',  category:'dumbbell' },
+  { id:'e-stir-the-pot',           name:'Stir the Pot (Ball Plank)',        muscles:['core'],           secondary:['shoulders'],                   equipment:'other',       pattern:'core',   category:'other' },
+  { id:'e-landmine-rotation',      name:'Landmine Rotation',                muscles:['core'],           secondary:['shoulders','back'],             equipment:'barbell',     pattern:'core',   category:'barbell' },
+  { id:'e-band-pallof',            name:'Band Pallof Press',                muscles:['core'],           secondary:[],                              equipment:'band',        pattern:'core',   category:'band' },
+  { id:'e-ab-wheel',               name:'Ab Wheel Rollout',                 muscles:['core'],           secondary:['lats','shoulders'],             equipment:'other',       pattern:'core',   category:'other' },
+  { id:'e-med-ball-slam',          name:'Medicine Ball Slam',               muscles:['core'],           secondary:['shoulders','back'],             equipment:'other',       pattern:'core',   category:'other' },
+  { id:'e-med-ball-throw',         name:'Medicine Ball Rotational Throw',   muscles:['core'],           secondary:['shoulders'],                   equipment:'other',       pattern:'core',   category:'other' },
+  { id:'e-windshield-wiper',       name:'Windshield Wiper',                 muscles:['core'],           secondary:[],                              equipment:'bodyweight',  pattern:'core',   category:'calisthenics' },
+  { id:'e-seated-knee-raise',      name:'Seated Knee Raise',                muscles:['core'],           secondary:['quads'],                       equipment:'bodyweight',  pattern:'core',   category:'bodyweight' },
+  { id:'e-toe-touch-crunch',       name:'Toe Touch Crunch',                 muscles:['core'],           secondary:[],                              equipment:'bodyweight',  pattern:'core',   category:'bodyweight' },
+
+  // ══════════════════════════════════════════
+  // DEADLIFT VARIATIONS
+  // ══════════════════════════════════════════
+  { id:'e-stiff-leg-dl',           name:'Stiff Leg Deadlift',               muscles:['hamstrings'],     secondary:['back','glutes'],                equipment:'barbell',     pattern:'hinge',  category:'barbell' },
+  { id:'e-deficit-dl',             name:'Deficit Deadlift',                 muscles:['hamstrings'],     secondary:['back','glutes','quads'],        equipment:'barbell',     pattern:'hinge',  category:'barbell' },
+  { id:'e-paused-dl',              name:'Paused Deadlift',                  muscles:['back'],           secondary:['glutes','hamstrings','traps'],  equipment:'barbell',     pattern:'hinge',  category:'barbell' },
+  { id:'e-snatch-grip-dl',         name:'Snatch Grip Deadlift',             muscles:['back'],           secondary:['traps','glutes','hamstrings'],  equipment:'barbell',     pattern:'hinge',  category:'barbell' },
+  { id:'e-sumo-dl',                name:'Sumo Deadlift',                    muscles:['glutes'],         secondary:['hamstrings','quads','back'],    equipment:'barbell',     pattern:'hinge',  category:'barbell' },
+  { id:'e-dumbbell-dl',            name:'Dumbbell Deadlift',                muscles:['back'],           secondary:['glutes','hamstrings'],          equipment:'dumbbell',    pattern:'hinge',  category:'dumbbell' },
+  { id:'e-trap-bar-dl',            name:'Trap Bar Deadlift',                muscles:['quads'],          secondary:['glutes','hamstrings','back'],   equipment:'barbell',     pattern:'hinge',  category:'barbell' },
+  { id:'e-smith-dl',               name:'Smith Machine Deadlift',           muscles:['back'],           secondary:['glutes','hamstrings'],          equipment:'machine',     pattern:'hinge',  category:'machine' },
+
+  // ══════════════════════════════════════════
+  // BENCH PRESS VARIATIONS
+  // ══════════════════════════════════════════
+  { id:'e-paused-bench',           name:'Paused Bench Press',               muscles:['chest'],          secondary:['triceps','shoulders'],          equipment:'barbell',     pattern:'push',   category:'barbell' },
+  { id:'e-spoto-press',            name:'Spoto Press',                      muscles:['chest'],          secondary:['triceps','shoulders'],          equipment:'barbell',     pattern:'push',   category:'barbell' },
+  { id:'e-board-press',            name:'Board Press',                      muscles:['triceps'],        secondary:['chest','shoulders'],            equipment:'barbell',     pattern:'push',   category:'barbell' },
+  { id:'e-pin-press',              name:'Pin Press',                        muscles:['chest'],          secondary:['triceps','shoulders'],          equipment:'barbell',     pattern:'push',   category:'barbell' },
+  { id:'e-floor-press',            name:'Floor Press',                      muscles:['triceps'],        secondary:['chest'],                       equipment:'barbell',     pattern:'push',   category:'barbell' },
+  { id:'e-floor-press-db',         name:'Dumbbell Floor Press',             muscles:['triceps'],        secondary:['chest'],                       equipment:'dumbbell',    pattern:'push',   category:'dumbbell' },
+  { id:'e-slingshot-bench',        name:'Slingshot Bench Press',            muscles:['chest'],          secondary:['triceps','shoulders'],          equipment:'barbell',     pattern:'push',   category:'barbell' },
+
+  // ══════════════════════════════════════════
+  // POWERLIFTING / STRONGMAN
+  // ══════════════════════════════════════════
+  { id:'e-log-press',              name:'Log Press',                        muscles:['shoulders'],      secondary:['triceps','core'],               equipment:'other',       pattern:'push',   category:'other' },
+  { id:'e-axle-dl',                name:'Axle Bar Deadlift',                muscles:['back'],           secondary:['glutes','hamstrings','forearms'],equipment:'barbell',    pattern:'hinge',  category:'barbell' },
+  { id:'e-yoke-walk',              name:'Yoke Walk',                        muscles:['quads'],          secondary:['traps','core','glutes'],        equipment:'other',       pattern:'carry',  category:'other' },
+  { id:'e-atlas-stone',            name:'Atlas Stone Lift',                 muscles:['back'],           secondary:['glutes','core','biceps'],       equipment:'other',       pattern:'hinge',  category:'other' },
+  { id:'e-keg-carry',              name:'Keg Carry',                        muscles:['core'],           secondary:['shoulders','back'],             equipment:'other',       pattern:'carry',  category:'other' },
+  { id:'e-sandbag-carry',          name:'Sandbag Carry',                    muscles:['core'],           secondary:['back','shoulders'],             equipment:'other',       pattern:'carry',  category:'other' },
+  { id:'e-loaded-carries',         name:'Loaded Carries (General)',         muscles:['core'],           secondary:['traps','forearms','quads'],     equipment:'other',       pattern:'carry',  category:'other' },
+
+  // ══════════════════════════════════════════
+  // KETTLEBELL — additional
+  // ══════════════════════════════════════════
+  { id:'e-kb-deadlift',            name:'Kettlebell Deadlift',              muscles:['back'],           secondary:['glutes','hamstrings'],          equipment:'kettlebell',  pattern:'hinge',  category:'kettlebell' },
+  { id:'e-kb-sumo-dl',             name:'Kettlebell Sumo Deadlift',         muscles:['glutes'],         secondary:['hamstrings','quads'],           equipment:'kettlebell',  pattern:'hinge',  category:'kettlebell' },
+  { id:'e-kb-lunge',               name:'Kettlebell Lunge',                 muscles:['quads'],          secondary:['glutes','hamstrings'],          equipment:'kettlebell',  pattern:'squat',  category:'kettlebell' },
+  { id:'e-kb-push-press',          name:'Kettlebell Push Press',            muscles:['shoulders'],      secondary:['triceps','quads'],              equipment:'kettlebell',  pattern:'push',   category:'kettlebell' },
+  { id:'e-kb-jerk',                name:'Kettlebell Jerk',                  muscles:['shoulders'],      secondary:['triceps','quads','core'],       equipment:'kettlebell',  pattern:'push',   category:'kettlebell' },
+  { id:'e-kb-front-rack-squat',    name:'Kettlebell Front Rack Squat',      muscles:['quads'],          secondary:['core','glutes'],                equipment:'kettlebell',  pattern:'squat',  category:'kettlebell' },
+  { id:'e-kb-suitcase-dl',         name:'Kettlebell Suitcase Deadlift',     muscles:['back'],           secondary:['core','glutes'],                equipment:'kettlebell',  pattern:'hinge',  category:'kettlebell' },
+  { id:'e-kb-bottoms-up-press',    name:'Kettlebell Bottoms-Up Press',      muscles:['shoulders'],      secondary:['triceps','forearms'],            equipment:'kettlebell',  pattern:'push',   category:'kettlebell' },
+  { id:'e-kb-halo',                name:'Kettlebell Halo',                  muscles:['shoulders'],      secondary:['core','traps'],                 equipment:'kettlebell',  pattern:'other',  category:'kettlebell' },
+  { id:'e-kb-lateral-lunge',       name:'Kettlebell Lateral Lunge',         muscles:['quads'],          secondary:['glutes','hamstrings'],          equipment:'kettlebell',  pattern:'squat',  category:'kettlebell' },
+  { id:'e-kb-staggered-rdl',       name:'Kettlebell Staggered Stance RDL',  muscles:['hamstrings'],     secondary:['glutes'],                      equipment:'kettlebell',  pattern:'hinge',  category:'kettlebell' },
+
+  // ══════════════════════════════════════════
+  // CALISTHENICS — additional
+  // ══════════════════════════════════════════
+  { id:'e-wide-pullup',            name:'Wide Grip Pull-Up',                muscles:['lats'],           secondary:['biceps','back'],                equipment:'bodyweight',  pattern:'pull',   category:'calisthenics' },
+  { id:'e-narrow-pullup',          name:'Narrow Grip Pull-Up',              muscles:['lats'],           secondary:['biceps'],                      equipment:'bodyweight',  pattern:'pull',   category:'calisthenics' },
+  { id:'e-neutral-pullup',         name:'Neutral Grip Pull-Up',             muscles:['lats'],           secondary:['biceps'],                      equipment:'bodyweight',  pattern:'pull',   category:'calisthenics' },
+  { id:'e-band-assisted-pullup',   name:'Band Assisted Pull-Up',            muscles:['lats'],           secondary:['biceps'],                      equipment:'band',        pattern:'pull',   category:'band' },
+  { id:'e-negative-pullup',        name:'Negative Pull-Up',                 muscles:['lats'],           secondary:['biceps','traps'],               equipment:'bodyweight',  pattern:'pull',   category:'calisthenics' },
+  { id:'e-archer-pullup',          name:'Archer Pull-Up',                   muscles:['lats'],           secondary:['biceps'],                      equipment:'bodyweight',  pattern:'pull',   category:'calisthenics' },
+  { id:'e-pseudo-planche-pushup',  name:'Pseudo Planche Push-Up',           muscles:['chest'],          secondary:['shoulders','core'],             equipment:'bodyweight',  pattern:'push',   category:'calisthenics' },
+  { id:'e-handstand-pushup',       name:'Handstand Push-Up',                muscles:['shoulders'],      secondary:['triceps','traps'],              equipment:'bodyweight',  pattern:'push',   category:'calisthenics' },
+  { id:'e-wall-handstand-pushup',  name:'Wall Handstand Push-Up',           muscles:['shoulders'],      secondary:['triceps'],                     equipment:'bodyweight',  pattern:'push',   category:'calisthenics' },
+  { id:'e-single-arm-pushup',      name:'Single Arm Push-Up',               muscles:['chest'],          secondary:['triceps','core'],               equipment:'bodyweight',  pattern:'push',   category:'calisthenics' },
+  { id:'e-clap-pushup',            name:'Clap Push-Up',                     muscles:['chest'],          secondary:['triceps','shoulders'],          equipment:'bodyweight',  pattern:'push',   category:'calisthenics' },
+  { id:'e-bar-dip',                name:'Parallel Bar Dip',                 muscles:['chest'],          secondary:['triceps','shoulders'],          equipment:'bodyweight',  pattern:'push',   category:'calisthenics' },
+  { id:'e-weighted-dip',           name:'Weighted Dip',                     muscles:['chest'],          secondary:['triceps','shoulders'],          equipment:'bodyweight',  pattern:'push',   category:'calisthenics' },
+  { id:'e-weighted-pullup',        name:'Weighted Pull-Up',                 muscles:['lats'],           secondary:['biceps','traps'],               equipment:'bodyweight',  pattern:'pull',   category:'calisthenics' },
+  { id:'e-bw-squat',               name:'Bodyweight Squat',                 muscles:['quads'],          secondary:['glutes','hamstrings'],          equipment:'bodyweight',  pattern:'squat',  category:'bodyweight' },
+  { id:'e-jump-squat',             name:'Jump Squat',                       muscles:['quads'],          secondary:['glutes','calves'],              equipment:'bodyweight',  pattern:'squat',  category:'bodyweight' },
+  { id:'e-squat-hold',             name:'Squat Hold (Deep)',                muscles:['quads'],          secondary:['glutes','hamstrings'],          equipment:'bodyweight',  pattern:'squat',  category:'bodyweight' },
+
+  // ══════════════════════════════════════════
+  // CARDIO / CONDITIONING — additional
+  // ══════════════════════════════════════════
+  { id:'e-treadmill',              name:'Treadmill (Incline Walk)',          muscles:['quads'],          secondary:['hamstrings','calves','glutes'], equipment:'machine',     pattern:'cardio', category:'cardio' },
+  { id:'e-stationary-bike',        name:'Stationary Bike',                  muscles:['quads'],          secondary:['hamstrings','calves'],          equipment:'machine',     pattern:'cardio', category:'cardio' },
+  { id:'e-spin-bike',              name:'Spin Bike',                        muscles:['quads'],          secondary:['hamstrings','calves','glutes'], equipment:'machine',     pattern:'cardio', category:'cardio' },
+  { id:'e-hiit',                   name:'HIIT Circuit',                     muscles:['core'],           secondary:['quads','shoulders'],            equipment:'none',        pattern:'cardio', category:'cardio' },
+  { id:'e-tabata',                 name:'Tabata',                           muscles:['core'],           secondary:['quads','shoulders'],            equipment:'none',        pattern:'cardio', category:'cardio' },
+  { id:'e-emom',                   name:'EMOM',                             muscles:['core'],           secondary:[],                              equipment:'none',        pattern:'cardio', category:'cardio' },
+  { id:'e-amrap',                  name:'AMRAP',                            muscles:['core'],           secondary:[],                              equipment:'none',        pattern:'cardio', category:'cardio' },
+  { id:'e-sledgehammer',           name:'Sledgehammer Swing',               muscles:['core'],           secondary:['shoulders','back'],             equipment:'other',       pattern:'core',   category:'other' },
+  { id:'e-rope-climb',             name:'Rope Climb',                       muscles:['lats'],           secondary:['biceps','forearms'],            equipment:'bodyweight',  pattern:'pull',   category:'calisthenics' },
+  { id:'e-ski-erg',                name:'Ski Erg',                          muscles:['lats'],           secondary:['core','shoulders'],             equipment:'machine',     pattern:'cardio', category:'cardio' },
+  { id:'e-versa-climber',          name:'VersaClimber',                     muscles:['shoulders'],      secondary:['lats','quads','core'],          equipment:'machine',     pattern:'cardio', category:'cardio' },
+  { id:'e-stair-run',              name:'Stair Running',                    muscles:['quads'],          secondary:['glutes','calves'],              equipment:'none',        pattern:'cardio', category:'cardio' },
+  { id:'e-agility-ladder',         name:'Agility Ladder Drills',            muscles:['calves'],         secondary:['quads','core'],                 equipment:'other',       pattern:'cardio', category:'cardio' },
+
+  // ══════════════════════════════════════════
+  // MOBILITY / WARMUP — additional
+  // ══════════════════════════════════════════
+  { id:'e-leg-swing',              name:'Leg Swing',                        muscles:['glutes'],         secondary:['hamstrings'],                  equipment:'bodyweight',  pattern:'stretch',category:'stretch' },
+  { id:'e-arm-circle',             name:'Arm Circle',                       muscles:['shoulders'],      secondary:[],                              equipment:'bodyweight',  pattern:'stretch',category:'stretch' },
+  { id:'e-inchworm',               name:'Inchworm',                         muscles:['hamstrings'],     secondary:['core','shoulders'],             equipment:'bodyweight',  pattern:'stretch',category:'stretch' },
+  { id:'e-deep-squat-stretch',     name:'Deep Squat Stretch',               muscles:['glutes'],         secondary:['quads','hamstrings'],           equipment:'bodyweight',  pattern:'stretch',category:'stretch' },
+  { id:'e-90-90-stretch',          name:'90/90 Hip Stretch',                muscles:['glutes'],         secondary:['hamstrings'],                  equipment:'bodyweight',  pattern:'stretch',category:'stretch' },
+  { id:'e-cat-cow',                name:'Cat-Cow',                          muscles:['back'],           secondary:['core'],                        equipment:'bodyweight',  pattern:'stretch',category:'stretch' },
+  { id:'e-thread-needle',          name:'Thread the Needle',                muscles:['back'],           secondary:['shoulders'],                   equipment:'bodyweight',  pattern:'stretch',category:'stretch' },
+  { id:'e-pec-stretch-doorway',    name:'Doorway Pec Stretch',              muscles:['chest'],          secondary:['shoulders'],                   equipment:'bodyweight',  pattern:'stretch',category:'stretch' },
+  { id:'e-triceps-stretch',        name:'Overhead Triceps Stretch',         muscles:['triceps'],        secondary:[],                              equipment:'bodyweight',  pattern:'stretch',category:'stretch' },
+  { id:'e-figure4-stretch',        name:'Figure 4 Stretch',                 muscles:['glutes'],         secondary:[],                              equipment:'bodyweight',  pattern:'stretch',category:'stretch' },
+  { id:'e-couch-stretch',          name:'Couch Stretch',                    muscles:['quads'],          secondary:['glutes'],                      equipment:'bodyweight',  pattern:'stretch',category:'stretch' },
+  { id:'e-foam-roll-calves',       name:'Foam Roll — Calves',               muscles:['calves'],         secondary:[],                              equipment:'other',       pattern:'stretch',category:'stretch' },
+  { id:'e-foam-roll-hamstrings',   name:'Foam Roll — Hamstrings',           muscles:['hamstrings'],     secondary:[],                              equipment:'other',       pattern:'stretch',category:'stretch' },
+  { id:'e-foam-roll-glutes',       name:'Foam Roll — Glutes',               muscles:['glutes'],         secondary:[],                              equipment:'other',       pattern:'stretch',category:'stretch' },
+  { id:'e-foam-roll-lats',         name:'Foam Roll — Lats',                 muscles:['lats'],           secondary:[],                              equipment:'other',       pattern:'stretch',category:'stretch' },
+  { id:'e-foam-roll-chest',        name:'Foam Roll — Chest (Pec)',          muscles:['chest'],          secondary:[],                              equipment:'other',       pattern:'stretch',category:'stretch' },
+  { id:'e-lacrosse-ball-traps',    name:'Lacrosse Ball — Traps',            muscles:['traps'],          secondary:['shoulders'],                   equipment:'other',       pattern:'stretch',category:'stretch' },
+  { id:'e-lacrosse-ball-glutes',   name:'Lacrosse Ball — Glutes',           muscles:['glutes'],         secondary:[],                              equipment:'other',       pattern:'stretch',category:'stretch' },
+
 ];
 
 // Fast lookup by id
