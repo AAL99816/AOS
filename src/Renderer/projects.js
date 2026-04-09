@@ -55,7 +55,7 @@ function renderProjects() {
           <input class="editable prog-name-inp" value="${escapeAttr(p.type||'')}" onchange="updateProjectField('${p.id}','type',this.value)" placeholder="${t('type_ph')}">
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-          <button onclick="openEntityNote('project','${p.id}',${JSON.stringify(escapeHtml(p.title||'Project'))})"
+          <button onclick="openEntityNote('project','${p.id}',${escapeAttr(JSON.stringify(p.title||'Project'))})"
             style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.8rem;padding:0 2px;line-height:1" title="Open notes">📝</button>
           <span class="spill s-${status.toLowerCase()}" onclick="cycleProjectStatus('${p.id}')" title="Click to change status" style="cursor:pointer">${escapeHtml(status)}</span>
         </div>

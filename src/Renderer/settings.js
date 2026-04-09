@@ -159,8 +159,6 @@ function clearCustomColors() {
   toast('Custom colors cleared');
 }
 
-}
-
 async function saveSettings() {
   if (!currentUser) return;
   const username    = eid('stUsername').value.trim().replace(/[^a-zA-Z0-9_]/g,'').slice(0,30);

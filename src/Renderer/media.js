@@ -158,7 +158,7 @@ function buildBookCard(b, idx) {
       </div>
     </div>
     <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')">✕</button>
-    <button onclick="event.stopPropagation();openEntityNote('book','${b.id}',${JSON.stringify(escapeHtml(b.title||'Book'))})"
+    <button onclick="event.stopPropagation();openEntityNote('book','${b.id}',${escapeAttr(JSON.stringify(b.title||'Book'))})"
       style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.7rem;padding:3px 6px;line-height:1;backdrop-filter:blur(4px)" title="Open notes">📝</button>
   `;
   return div;
@@ -196,7 +196,7 @@ function buildFilmCard(b, idx) {
       ${b.watchCount > 1 ? `<div style="font-size:0.55rem;color:var(--muted);margin-top:3px;font-family:'DM Mono',monospace">${b.watchCount}× ${t('watched').toLowerCase()}</div>` : ''}
     </div>
     <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')">✕</button>
-    <button onclick="event.stopPropagation();openEntityNote('show','${b.id}',${JSON.stringify(escapeHtml(b.title||'Show'))})"
+    <button onclick="event.stopPropagation();openEntityNote('show','${b.id}',${escapeAttr(JSON.stringify(b.title||'Show'))})"
       style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.7rem;padding:3px 6px;line-height:1;backdrop-filter:blur(4px)" title="Open notes">📝</button>
   `;
   return div;

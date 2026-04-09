@@ -404,7 +404,7 @@ function renderWorkoutCards() {
           title="Edit title"
           style="flex:1;background:none;border:none;color:var(--mist);font-size:0.88rem"
         >
-        <button onclick="event.stopPropagation();openEntityNote('workout','${wc.id}',${JSON.stringify(escapeHtml(wc.title||'Workout'))})"
+        <button onclick="event.stopPropagation();openEntityNote('workout','${wc.id}',${escapeAttr(JSON.stringify(wc.title||'Workout'))})"
           style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.8rem;padding:0 3px;line-height:1;flex-shrink:0" title="Open notes">📝</button>
         <span style="font-size:0.55rem;color:var(--muted);font-family:'DM Mono',monospace;flex-shrink:0">${exCount} exercise${exCount!==1?'s':''}</span>
         <span style="font-size:0.75rem;color:var(--blush);flex-shrink:0">${expanded ? '▾' : '▸'}</span>
