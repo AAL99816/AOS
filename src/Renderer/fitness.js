@@ -418,31 +418,37 @@ function renderWorkoutCards() {
             const last = getLastExerciseLog(ex.name);
             const prev = getPrevExerciseLog(ex.name);
             const pct  = last && prev ? calcPctIncrease(prev.weight, last.weight) : null;
-            // Progressive overload: suggest last weight +2.5kg if previous session was clean
-            const overloadHint  = last && pct === null && prev === null ? '' :
-              (last && last.reps >= 8 && last.weight > 0 ? `<span style="color:var(--gold);margin-left:6px" title="Suggested increase">↑ try ${last.weight + 2.5}kg</span>` : '');
+            const overloadHint = (last && last.reps >= 8 && last.weight > 0)
+              ? `<span style="color:var(--gold);margin-left:6px" title="Suggested increase">↑ try ${last.weight + 2.5}kg</span>` : '';
+            // Look up muscle tags from DB
+            const dbEntry = (typeof EXERCISE_DB !== 'undefined' ? EXERCISE_DB : []).find(e => e.name.toLowerCase() === (ex.name||'').toLowerCase());
+            const muscleTags = dbEntry ? [...(dbEntry.muscles||[]),...(dbEntry.secondary||[])].slice(0,2)
+              .map(m => `<span style="font-size:0.52rem;color:var(--muted);background:var(--deep);
+                border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-family:'DM Mono',monospace">${m}</span>`).join('') : '';
             return `
-              <div class="ex-item" style="display:block;">
+              <div class="ex-item" style="display:block;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border-lt)">
                 <div style="display:flex;align-items:center;gap:7px;">
-                  <input class="editable ex-name-inp" value="${escapeHtml(ex.name||'')}" onchange="updateEx('${wc.id}','${ex.id}','name',this.value)" title="Edit exercise" list="exerciseNameList">
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:0.82rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(ex.name||'')}</div>
+                    ${muscleTags ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">${muscleTags}</div>` : ''}
+                  </div>
                   <button class="ex-del" onclick="delEx('${wc.id}','${ex.id}')">✕</button>
                 </div>
-                <div style="display:flex;align-items:center;gap:6px;margin-top:7px;padding-left:14px;">
+                <div style="display:flex;align-items:center;gap:6px;margin-top:8px;">
                   <input class="add-inp" id="logW-${ex.id}" type="number" step="0.5" placeholder="${t('weight_ph')}" style="width:68px;flex:none;" value="${last?.weight ?? ''}">
                   <input class="add-inp" id="logR-${ex.id}" type="number" placeholder="${t('reps_ph')}" style="width:68px;flex:none;" value="${last?.reps ?? ''}">
-                  <input class="add-inp" id="logSets-${ex.id}" type="number" min="1" placeholder="sets" style="width:58px;flex:none;padding-right:14px;" value="${last?.sets ?? 1}" title="Sets">
+                  <input class="add-inp" id="logSets-${ex.id}" type="number" min="1" placeholder="sets" style="width:52px;flex:none;" value="${last?.sets ?? 1}" title="Sets">
                   <button class="btn btn-g" style="font-size:0.66rem;padding:4px 9px" onclick="logExercise('${wc.id}','${ex.id}')">${t('log')}</button>
                 </div>
-                <div id="lastLog-${ex.id}" style="margin-top:6px;padding-left:14px;font-size:0.64rem;color:var(--muted-lt);font-family:'DM Mono',monospace;">
+                <div id="lastLog-${ex.id}" style="margin-top:5px;font-size:0.64rem;color:var(--muted-lt);font-family:'DM Mono',monospace;">
                   ${last ? `${t('last_colon')} ${last.sets>1?last.sets+' × ':''}${last.weight}kg × ${last.reps}${pct!==null?` <span style="color:${pct>0?'var(--gold-lt)':'var(--petal)'}">${fmtPct(pct)}</span>`:''}${overloadHint}` : t('no_log_yet')}
                 </div>
               </div>`;
           }).join('')}
         </div>
 
-        <div class="add-ex-row" style="margin-top:9px">
-          <input class="add-inp" id="exN-${wc.id}" placeholder="${t('exercise_ph')}" style="flex:1" list="exerciseNameList">
-          <button class="btn btn-g" style="font-size:0.68rem;padding:4px 9px" onclick="addEx('${wc.id}')">+ ${t('add')}</button>
+        <div style="margin-top:4px">
+          <button class="btn btn-g" style="width:100%;font-size:0.72rem;padding:7px" onclick="openExercisePicker('${wc.id}')">+ Add Exercise</button>
         </div>
 
         <textarea id="sessionNote-${wc.id}" placeholder="Session notes…" style="display:block;width:100%;box-sizing:border-box;margin-top:10px;background:var(--mid);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:0.7rem;font-family:'DM Mono',monospace;resize:none;padding:7px 10px;min-height:44px;outline:none;line-height:1.5"></textarea>
@@ -768,12 +774,202 @@ function repeatLastWorkout(wcId) {
 function _refreshExerciseDatalist() {
   const dl = eid('exerciseNameList');
   if (!dl) return;
-  // All DB names + custom exercise names + any legacy history keys not in DB
-  const dbNames = (typeof EXERCISE_DB !== 'undefined' ? EXERCISE_DB : []).map(e => e.name);
+  const dbNames     = (typeof EXERCISE_DB !== 'undefined' ? EXERCISE_DB : []).map(e => e.name);
   const customNames = (S.customExercises || []).map(e => e.name);
-  const histNames = Object.keys(S.exerciseHistory || {}).filter(n => n && n.trim());
-  const allNames = [...new Set([...dbNames, ...customNames, ...histNames])].sort();
+  const histNames   = Object.keys(S.exerciseHistory || {}).filter(n => n && n.trim());
+  const allNames    = [...new Set([...dbNames, ...customNames, ...histNames])].sort();
   dl.innerHTML = allNames.map(n => `<option value="${escapeAttr(n)}">`).join('');
+}
+
+// ── Exercise Picker Modal ──────────────────────────────────────────────────────
+let _pickerWcId       = null;  // which workout card we're adding to
+let _pickerQuery      = '';
+let _pickerMuscle     = '';    // '' = all
+let _pickerEquip      = '';    // '' = all
+
+const _MUSCLE_LABELS = {
+  chest:'Chest', back:'Back', lats:'Lats', traps:'Traps',
+  shoulders:'Shoulders', biceps:'Biceps', triceps:'Triceps', forearms:'Forearms',
+  core:'Core', glutes:'Glutes', quads:'Quads', hamstrings:'Hamstrings', calves:'Calves',
+};
+const _EQUIP_LABELS = {
+  barbell:'Barbell', dumbbell:'Dumbbell', cable:'Cable',
+  machine:'Machine', bodyweight:'Bodyweight', kettlebell:'Kettlebell',
+  band:'Band', cardio:'Cardio',
+};
+
+function openExercisePicker(wcId) {
+  _pickerWcId   = wcId;
+  _pickerQuery  = '';
+  _pickerMuscle = '';
+  _pickerEquip  = '';
+  _renderPickerFilters();
+  _renderPickerResults();
+  const inp = eid('exPickerSearch');
+  if (inp) inp.value = '';
+  openModal('mExercisePicker');
+  setTimeout(() => { const s = eid('exPickerSearch'); if (s) s.focus(); }, 120);
+}
+
+function setPickerQuery(q) {
+  _pickerQuery = (q || '').toLowerCase().trim();
+  _renderPickerResults();
+}
+
+function _setPickerMuscle(m) {
+  _pickerMuscle = _pickerMuscle === m ? '' : m;
+  _renderPickerFilters();
+  _renderPickerResults();
+}
+
+function _setPickerEquip(e) {
+  _pickerEquip = _pickerEquip === e ? '' : e;
+  _renderPickerFilters();
+  _renderPickerResults();
+}
+
+function _filterChip(label, active, onclick) {
+  return `<button onclick="${onclick}"
+    style="flex-shrink:0;padding:3px 10px;border-radius:20px;border:1px solid ${active ? 'var(--blush)' : 'var(--border)'};
+      background:${active ? 'var(--blush-dim)' : 'transparent'};color:${active ? 'var(--blush)' : 'var(--muted)'};
+      font-size:0.64rem;cursor:pointer;white-space:nowrap;font-family:'DM Mono',monospace;
+      transition:all 0.12s">${escapeHtml(label)}</button>`;
+}
+
+function _renderPickerFilters() {
+  const mEl = eid('exPickerMuscleFilters');
+  const eEl = eid('exPickerEquipFilters');
+  if (!mEl || !eEl) return;
+
+  mEl.innerHTML = Object.entries(_MUSCLE_LABELS).map(([k, v]) =>
+    _filterChip(v, _pickerMuscle === k, `_setPickerMuscle('${k}')`)
+  ).join('');
+
+  eEl.innerHTML = Object.entries(_EQUIP_LABELS).map(([k, v]) =>
+    _filterChip(v, _pickerEquip === k, `_setPickerEquip('${k}')`)
+  ).join('');
+}
+
+function _renderPickerResults() {
+  const el = eid('exPickerResults');
+  if (!el) return;
+
+  const db = typeof EXERCISE_DB !== 'undefined' ? EXERCISE_DB : [];
+  const custom = (S.customExercises || []).map(e => ({
+    id: 'custom-' + e.name, name: e.name, muscles: [], secondary: [], equipment: 'custom', category: 'custom', pattern: 'other'
+  }));
+  const all = [...db, ...custom];
+
+  let results = all;
+
+  // Filter by muscle group
+  if (_pickerMuscle) {
+    results = results.filter(e =>
+      (e.muscles || []).includes(_pickerMuscle) ||
+      (e.secondary || []).includes(_pickerMuscle)
+    );
+  }
+
+  // Filter by equipment
+  if (_pickerEquip) {
+    results = results.filter(e =>
+      (e.equipment || '').toLowerCase() === _pickerEquip ||
+      (e.category  || '').toLowerCase() === _pickerEquip
+    );
+  }
+
+  // Filter by search query
+  if (_pickerQuery) {
+    results = results.filter(e =>
+      e.name.toLowerCase().includes(_pickerQuery) ||
+      (e.muscles || []).some(m => m.includes(_pickerQuery)) ||
+      (e.category || '').includes(_pickerQuery) ||
+      (e.pattern  || '').includes(_pickerQuery)
+    );
+  }
+
+  if (!results.length) {
+    // Offer to add as custom
+    el.innerHTML = `
+      <div style="padding:24px 16px;text-align:center">
+        <div style="font-size:0.76rem;color:var(--muted);margin-bottom:14px">No exercises found</div>
+        ${_pickerQuery ? `<button class="btn btn-g" onclick="addCustomExerciseFromPicker()"
+          style="font-size:0.72rem">+ Add "${escapeHtml(_pickerQuery)}" as custom</button>` : ''}
+      </div>`;
+    return;
+  }
+
+  // Group by primary muscle (first muscle in array) if no query and no muscle filter
+  const grouped = !_pickerQuery && !_pickerMuscle;
+  if (grouped) {
+    const groups = {};
+    results.forEach(e => {
+      const key = (e.muscles && e.muscles[0]) || 'other';
+      const label = _MUSCLE_LABELS[key] || (key.charAt(0).toUpperCase() + key.slice(1));
+      if (!groups[label]) groups[label] = [];
+      groups[label].push(e);
+    });
+
+    el.innerHTML = Object.entries(groups).map(([groupLabel, items]) => `
+      <div style="margin-bottom:2px">
+        <div style="font-size:0.55rem;letter-spacing:0.14em;text-transform:uppercase;
+          color:var(--blush);font-family:'DM Mono',monospace;padding:10px 10px 6px;
+          position:sticky;top:0;background:var(--panel)">${escapeHtml(groupLabel)}</div>
+        ${items.map(e => _pickerExRow(e)).join('')}
+      </div>
+    `).join('');
+  } else {
+    el.innerHTML = results.slice(0, 80).map(e => _pickerExRow(e)).join('');
+  }
+}
+
+function _pickerExRow(e) {
+  const muscles = [...(e.muscles || []), ...(e.secondary || [])].slice(0, 3)
+    .map(m => _MUSCLE_LABELS[m] || m).join(', ');
+  const equip = _EQUIP_LABELS[e.equipment] || _EQUIP_LABELS[e.category] || (e.equipment || '');
+  return `<div onclick="pickExercise('${escapeAttr(e.name)}')"
+    style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;
+      cursor:pointer;transition:background 0.1s"
+    onmouseover="this.style.background='var(--mid)'"
+    onmouseout="this.style.background=''">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:0.8rem;color:var(--cream);white-space:nowrap;
+        overflow:hidden;text-overflow:ellipsis">${escapeHtml(e.name)}</div>
+      ${muscles ? `<div style="font-size:0.6rem;color:var(--muted);margin-top:1px">${escapeHtml(muscles)}</div>` : ''}
+    </div>
+    ${equip ? `<span style="font-size:0.58rem;color:var(--muted-lt);font-family:'DM Mono',monospace;
+      flex-shrink:0;background:var(--deep);border:1px solid var(--border);
+      border-radius:5px;padding:2px 7px">${escapeHtml(equip)}</span>` : ''}
+  </div>`;
+}
+
+function pickExercise(name) {
+  if (!_pickerWcId) return;
+  ensureFitnessState();
+  const wc = S.workoutCards.find(w => String(w.id) === String(_pickerWcId));
+  if (!wc) return;
+  if (!Array.isArray(wc.exercises)) wc.exercises = [];
+  // Don't add duplicates
+  if (wc.exercises.some(e => e.name.toLowerCase() === name.toLowerCase())) {
+    toast('Already in this workout');
+    closeModal('mExercisePicker');
+    return;
+  }
+  wc.exercises.push({ id: uid(), name });
+  scheduleSave();
+  closeModal('mExercisePicker');
+  renderWorkoutCards();
+}
+
+function addCustomExerciseFromPicker() {
+  const name = _pickerQuery.trim();
+  if (!name) return;
+  if (!Array.isArray(S.customExercises)) S.customExercises = [];
+  if (!S.customExercises.some(e => e.name.toLowerCase() === name.toLowerCase())) {
+    S.customExercises.push({ id: uid(), name });
+    scheduleSave();
+  }
+  pickExercise(name);
 }
 
 /* Migrate name-keyed exerciseHistory entries to canonical names from EXERCISE_DB.

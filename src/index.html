@@ -1602,6 +1602,32 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   </div>
 </div></div>
 
+<!-- Exercise Picker Modal -->
+<div class="modal-bg" id="mExercisePicker" onclick="if(event.target===this)closeModal('mExercisePicker')">
+  <div class="modal" style="max-width:520px;width:96vw;padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:88vh">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <span style="font-size:0.9rem;color:var(--cream);font-weight:500;flex:1" id="exPickerTitle">Choose Exercise</span>
+      <button onclick="closeModal('mExercisePicker')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:0 4px;line-height:1">✕</button>
+    </div>
+    <!-- Search -->
+    <div style="padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <input id="exPickerSearch" type="text" placeholder="Search exercises…"
+        oninput="setPickerQuery(this.value)"
+        autocomplete="off"
+        style="width:100%;box-sizing:border-box;background:var(--mid);border:1px solid var(--border);
+          border-radius:8px;color:var(--cream);padding:8px 12px;font-size:0.82rem;outline:none;
+          font-family:'Jost',sans-serif">
+    </div>
+    <!-- Muscle filters -->
+    <div id="exPickerMuscleFilters" style="display:flex;gap:5px;padding:8px 14px 6px;overflow-x:auto;flex-shrink:0;scrollbar-width:none"></div>
+    <!-- Equipment filters -->
+    <div id="exPickerEquipFilters" style="display:flex;gap:5px;padding:4px 14px 8px;overflow-x:auto;flex-shrink:0;border-bottom:1px solid var(--border);scrollbar-width:none"></div>
+    <!-- Results -->
+    <div id="exPickerResults" style="flex:1;overflow-y:auto;padding:6px 8px"></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="mTrainingFull" onclick="if(event.target===this)closeModal('mTrainingFull')"><div class="modal" style="max-width:600px;width:94vw">
   <h2 data-i18n="training_log">Training Log</h2>
   <div style="margin-bottom:12px">
