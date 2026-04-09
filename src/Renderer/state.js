@@ -176,6 +176,8 @@ function makeTopic(t={}) {
     title: t.title ?? 'Untitled',
     icon: t.icon ?? '',
     linkedTab: t.linkedTab ?? '',
+    linkedEntityId:   t.linkedEntityId   ?? null,
+    linkedEntityType: t.linkedEntityType ?? '',
     notes: Array.isArray(t.notes) ? t.notes.map(makeNote) : []
   };
 }

@@ -76,36 +76,48 @@ function _applyNotesView() {
 }
 
 // ── Topic list ───────────────────────────────────────────────────────────────
+function _topicRow(t) {
+  const active = t.id === _notesTopicId;
+  const linkLabel = t.linkedTab ? LINKED_TAB_LABELS[t.linkedTab] || t.linkedTab : '';
+  const count = (t.notes || []).length;
+  const isEntity = !!t.linkedEntityId;
+  return `<div onclick="notesSelectTopic('${t.id}')"
+    style="padding:9px 12px;cursor:pointer;border-radius:8px;margin-bottom:3px;
+      background:${active ? 'var(--mid)' : 'transparent'};
+      border-left:3px solid ${active ? 'var(--blush)' : 'transparent'};
+      transition:background 0.12s">
+    <div style="display:flex;align-items:center;gap:6px">
+      ${t.icon ? `<span style="font-size:0.9rem;flex-shrink:0">${escapeHtml(t.icon)}</span>` : ''}
+      <span style="font-size:0.82rem;color:${active ? 'var(--cream)' : 'var(--mist)'};flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(t.title)}</span>
+      <span style="font-size:0.54rem;color:var(--muted);font-family:'DM Mono',monospace;flex-shrink:0">${count}</span>
+    </div>
+    ${linkLabel ? `<div style="font-size:0.56rem;color:var(--blush);margin-top:2px;margin-left:${t.icon ? '20px' : '0'}">${escapeHtml(linkLabel)}</div>` : ''}
+  </div>`;
+}
+
 function renderNotesTopicList() {
   const el = eid('notesTopicList');
   if (!el) return;
-  const topics = S.notesTopics || [];
+  const all = S.notesTopics || [];
 
-  const rows = topics.map(t => {
-    const active = t.id === _notesTopicId;
-    const linkLabel = t.linkedTab ? LINKED_TAB_LABELS[t.linkedTab] || t.linkedTab : '';
-    const count = (t.notes || []).length;
-    return `<div onclick="notesSelectTopic('${t.id}')"
-      style="padding:10px 12px;cursor:pointer;border-radius:8px;margin-bottom:3px;
-        background:${active ? 'var(--mid)' : 'transparent'};
-        border-left:3px solid ${active ? 'var(--blush)' : 'transparent'};
-        transition:background 0.12s">
-      <div style="display:flex;align-items:center;gap:6px">
-        ${t.icon ? `<span style="font-size:1rem;flex-shrink:0">${escapeHtml(t.icon)}</span>` : ''}
-        <span style="font-size:0.84rem;color:${active ? 'var(--cream)' : 'var(--mist)'};flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(t.title)}</span>
-        <span style="font-size:0.56rem;color:var(--muted);font-family:'DM Mono',monospace;flex-shrink:0">${count}</span>
-      </div>
-      ${linkLabel ? `<div style="font-size:0.58rem;color:var(--blush);margin-top:2px;margin-left:${t.icon ? '22px' : '0'}">${escapeHtml(linkLabel)}</div>` : ''}
-    </div>`;
-  }).join('');
+  // Split: entity-linked topics (auto-managed) vs manual topics
+  const manual  = all.filter(t => !t.linkedEntityId);
+  const linked  = all.filter(t =>  t.linkedEntityId);
+
+  const manualRows = manual.map(_topicRow).join('');
+  const linkedRows = linked.map(_topicRow).join('');
 
   el.innerHTML = `
     <div style="padding:0 4px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 8px">
-        <div style="font-size:0.56rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">Topics</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:0 8px">
+        <div style="font-size:0.54rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">Topics</div>
         <button onclick="notesAddTopic()" style="background:none;border:none;color:var(--blush);cursor:pointer;font-size:1.1rem;line-height:1;padding:0 4px" title="New topic">+</button>
       </div>
-      ${rows || `<div style="font-size:0.72rem;color:var(--muted);padding:20px 8px;text-align:center;line-height:1.7">No topics yet.<br>Tap + to create one.</div>`}
+      ${manualRows || `<div style="font-size:0.7rem;color:var(--muted);padding:12px 8px;text-align:center;line-height:1.7">No topics yet.<br>Tap + to create one.</div>`}
+      ${linked.length ? `
+        <div style="font-size:0.54rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:14px;margin-bottom:8px;padding:0 8px;padding-top:10px;border-top:1px solid var(--border)">Linked</div>
+        ${linkedRows}
+      ` : ''}
     </div>
   `;
 }
@@ -244,7 +256,12 @@ function notesEditTopicMeta(id) {
 }
 
 function notesDeleteTopic(id) {
-  if (!confirm('Delete this topic and all its notes?')) return;
+  const topic = (S.notesTopics || []).find(t => t.id === id);
+  if (topic?.linkedEntityId) {
+    if (!confirm(`This topic is linked to "${topic.title}". Delete it and all its notes?`)) return;
+  } else {
+    if (!confirm('Delete this topic and all its notes?')) return;
+  }
   S.notesTopics = (S.notesTopics || []).filter(t => t.id !== id);
   if (_notesTopicId === id) { _notesTopicId = null; _notesNoteId = null; _notesView = 'topics'; }
   scheduleSave();
@@ -304,8 +321,59 @@ function notesDeleteNote(id) {
 
 // ── Convenience: open notes tab on a specific linked tab ─────────────────────
 function openNotesForTab(tabName) {
-  go('notes', document.querySelector(".tab[onclick*=\"go('notes'\"]"));
+  go('notes', document.querySelector(".tab[onclick*=\"go('notes')\"]"));
   // Find the first topic linked to this tab
   const linked = (S.notesTopics || []).find(t => t.linkedTab === tabName);
   if (linked) notesSelectTopic(linked.id);
+}
+
+// ── Entity notes — open/create a note thread for any entity ──────────────────
+// entityType: 'workout' | 'project' | 'book' | 'show' | 'album' | 'game'
+// entityId:   the entity's id field
+// entityTitle: display name for auto-created topic
+const ENTITY_ICONS = {
+  workout: '🏋️', project: '📋', book: '📖', show: '🎬', album: '🎵', game: '🎮'
+};
+
+function openEntityNote(entityType, entityId, entityTitle) {
+  ensureNotes();
+
+  // Find or create a topic for this entity
+  let topic = S.notesTopics.find(t => t.linkedEntityId === entityId);
+  if (!topic) {
+    topic = makeTopic({
+      title: entityTitle || entityType,
+      icon: ENTITY_ICONS[entityType] || '📝',
+      linkedEntityType: entityType,
+      linkedEntityId: entityId,
+      linkedTab: entityType === 'workout' ? 'fitness'
+               : entityType === 'project' ? 'projects'
+               : (entityType === 'book' || entityType === 'show' || entityType === 'album' || entityType === 'game') ? 'media'
+               : '',
+    });
+    S.notesTopics.push(topic);
+    scheduleSave();
+  }
+
+  // Auto-create a first note if empty
+  if (!topic.notes || topic.notes.length === 0) {
+    if (!Array.isArray(topic.notes)) topic.notes = [];
+    const n = makeNote({ title: 'Notes', body: '' });
+    topic.notes.push(n);
+    _notesNoteId = n.id;
+    _notesView   = 'editor';
+    scheduleSave();
+  } else {
+    // Select the most recently updated note
+    const sorted = [...topic.notes].sort((a, b) =>
+      (b.updatedAt || b.date || '').localeCompare(a.updatedAt || a.date || ''));
+    _notesNoteId = sorted[0].id;
+    _notesView   = 'editor';
+  }
+
+  _notesTopicId = topic.id;
+
+  // Navigate to notes tab
+  const notesBtn = document.querySelector(".tab[onclick*=\"go('notes')\"]");
+  go('notes', notesBtn);
 }

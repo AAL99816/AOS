@@ -308,12 +308,25 @@ function _foodStreak() {
 function initFoodTab() {
   if (!S.foodLog)     S.foodLog     = {};
   if (!S.foodTargets) S.foodTargets = { kcal: 2000, protein: 150, carbs: 200, fat: 65 };
+  // Always reset to today on cold init — user can pick a different date from the picker
   _foodDate = today();
+  _bindFoodDatePicker();
+  renderFoodTab();
+}
+
+function _bindFoodDatePicker() {
   const dateEl = eid('foodDate');
-  if (dateEl) {
-    dateEl.value = _foodDate;
-    dateEl.onchange = () => { _foodDate = dateEl.value || today(); renderFoodTab(); };
-  }
+  if (!dateEl) return;
+  // Snap to today if null or stale (new day since last visit)
+  if (!_foodDate) _foodDate = today();
+  dateEl.value = _foodDate;
+  // Re-bind each time so the handler always has a fresh closure
+  dateEl.onchange = () => { _foodDate = dateEl.value || today(); renderFoodTab(); };
+}
+
+function setFoodToday() {
+  _foodDate = today();
+  _bindFoodDatePicker();
   renderFoodTab();
 }
 

@@ -117,7 +117,7 @@ function _renderTab(name) {
     // Heatmap hidden — code preserved for future use
     // if (typeof renderMuscleHeatmap  === 'function') renderMuscleHeatmap();
   }
-  if (name === 'food'     && typeof renderFoodTab     === 'function') renderFoodTab();
+  if (name === 'food'     && typeof renderFoodTab     === 'function') { if (typeof _bindFoodDatePicker === 'function') _bindFoodDatePicker(); renderFoodTab(); }
   if (name === 'projects' && typeof renderProjects    === 'function') renderProjects();
   if (name === 'media'    && typeof renderBooks       === 'function') renderBooks();
   if (name === 'focus'    && typeof renderFocusTab    === 'function') renderFocusTab();

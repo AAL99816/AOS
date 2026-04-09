@@ -404,6 +404,8 @@ function renderWorkoutCards() {
           title="Edit title"
           style="flex:1;background:none;border:none;color:var(--mist);font-size:0.88rem"
         >
+        <button onclick="event.stopPropagation();openEntityNote('workout','${wc.id}',${JSON.stringify(escapeHtml(wc.title||'Workout'))})"
+          style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.8rem;padding:0 3px;line-height:1;flex-shrink:0" title="Open notes">📝</button>
         <span style="font-size:0.55rem;color:var(--muted);font-family:'DM Mono',monospace;flex-shrink:0">${exCount} exercise${exCount!==1?'s':''}</span>
         <span style="font-size:0.75rem;color:var(--blush);flex-shrink:0">${expanded ? '▾' : '▸'}</span>
       </div>`;
@@ -534,6 +536,7 @@ function renderTrainingLog(){
             <div style="font-size:0.8rem;color:var(--mist);flex-shrink:0">${escapeHtml(item.title||'Workout')}</div>
             <div style="font-size:0.68rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(item.summary||'')}</div>
           </div>
+          <button class="btn btn-g" style="font-size:0.6rem;padding:2px 8px;flex-shrink:0" onclick="openEditSession('${item.id}')">Edit</button>
           <button class="habit-del" style="opacity:0.4" onclick="deleteWorkoutSession('${item.id}')">✕</button>
         `;
         wrap.appendChild(row);
@@ -551,6 +554,115 @@ function renderTrainingLog(){
     more.onclick = () => { _trainingLogLimit += 30; renderTrainingLog(); };
     c.appendChild(more);
   }
+}
+
+// ── Edit session ─────────────────────────────────────────────────────────────
+let _editingSessionId = null;
+
+function openEditSession(id) {
+  const s = (S.workoutHistory || []).find(s => String(s.id) === String(id));
+  if (!s) return;
+  _editingSessionId = id;
+
+  eid('esTitle').value = s.title || 'Workout';
+  eid('esDate').value  = s.date  || today();
+
+  const listEl = eid('esExerciseList');
+  const exercises = (s.exercises || []);
+  listEl.innerHTML = exercises.length ? exercises.map((ex, i) => {
+    // Resolve best set for pre-fill
+    const setsArr = Array.isArray(ex.loggedSets) ? ex.loggedSets
+      : (ex.weight != null ? [{ weight: ex.weight, reps: ex.reps || 0, sets: ex.sets || 1 }] : []);
+    const best = setsArr.reduce((b, s) => (!b || (parseFloat(s.weight)||0) > (parseFloat(b.weight)||0)) ? s : b, setsArr[0] || {});
+    return `
+      <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:0.78rem;color:var(--mist);margin-bottom:8px">${escapeHtml(ex.name || '')}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:0.56rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:3px">Weight (kg)</div>
+            <input type="number" step="0.5" class="add-inp" id="es-w-${i}" value="${best.weight || ''}"
+              style="width:72px;font-size:0.76rem">
+          </div>
+          <div>
+            <div style="font-size:0.56rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:3px">Reps</div>
+            <input type="number" class="add-inp" id="es-r-${i}" value="${best.reps || ''}"
+              style="width:60px;font-size:0.76rem">
+          </div>
+          <div>
+            <div style="font-size:0.56rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:3px">Sets</div>
+            <input type="number" min="1" class="add-inp" id="es-s-${i}" value="${setsArr.length || best.sets || 1}"
+              style="width:52px;font-size:0.76rem">
+          </div>
+        </div>
+      </div>`;
+  }).join('') : `<div style="font-size:0.76rem;color:var(--muted);padding:16px 0">No exercises logged in this session.</div>`;
+
+  openModal('mEditSession');
+}
+
+function saveEditSession() {
+  const s = (S.workoutHistory || []).find(s => String(s.id) === String(_editingSessionId));
+  if (!s) { closeModal('mEditSession'); return; }
+
+  const oldDate = s.date;
+  const newDate = eid('esDate').value || oldDate;
+  const newTitle = eid('esTitle').value.trim() || s.title;
+
+  // Update session header
+  s.date  = newDate;
+  s.title = newTitle;
+
+  // Update exercises from inputs and rebuild exerciseHistory entries
+  const exercises = (s.exercises || []);
+  exercises.forEach((ex, i) => {
+    const w = parseFloat(eid(`es-w-${i}`)?.value) || 0;
+    const r = parseInt(eid(`es-r-${i}`)?.value, 10) || 0;
+    const sets = parseInt(eid(`es-s-${i}`)?.value, 10) || 1;
+
+    // Update the session record (flat format)
+    ex.weight = w;
+    ex.reps   = r;
+    ex.sets   = sets;
+    ex.loggedSets = [{ weight: w, reps: r, sets }];
+
+    // Re-sync exerciseHistory: remove old date entries for this exercise that came from this session
+    const key = normExerciseKey(ex.name);
+    if (!S.exerciseHistory) S.exerciseHistory = {};
+    if (!S.exerciseHistory[key]) S.exerciseHistory[key] = [];
+
+    // Remove entries on the OLD date that match this weight (best-effort; we can't tag by session)
+    // Strategy: if date changed, remove ALL entries on oldDate matching this exercise, re-add on newDate
+    if (oldDate !== newDate) {
+      S.exerciseHistory[key] = S.exerciseHistory[key].filter(e => e.date !== oldDate);
+    } else {
+      // Same date: remove and re-add to update weight/reps
+      S.exerciseHistory[key] = S.exerciseHistory[key].filter(e => e.date !== newDate);
+    }
+    if (w > 0) S.exerciseHistory[key].push({ date: newDate, weight: w, reps: r, sets });
+  });
+
+  // Rebuild summary string
+  s.summary = exercises
+    .map(ex => ex.weight > 0 ? `${ex.name} ${ex.weight}kg×${ex.reps}` : null)
+    .filter(Boolean).slice(0, 5).join(' · ') || 'Session edited';
+
+  // Update gymLog if date changed
+  if (oldDate !== newDate) {
+    if (S.gymLog[oldDate]) delete S.gymLog[oldDate];
+    S.gymLog[newDate] = true;
+    // Update habit day too
+    const gh = hfind('gym','lift','workout','training','weights');
+    if (gh) {
+      if (gh.days[oldDate]) delete gh.days[oldDate];
+      gh.days[newDate] = true;
+    }
+  }
+
+  scheduleSave();
+  closeModal('mEditSession');
+  renderTrainingLog();
+  renderGymWeek();
+  toast('Session updated');
 }
 
 function openSessionDetail(id){

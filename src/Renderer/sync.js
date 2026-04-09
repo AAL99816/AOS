@@ -35,7 +35,7 @@ async function loadUserSettings() {
 
 async function saveUserSettings() {
   if (!currentUser) return;
-  const boxTheme = localStorage.getItem('aos_box_theme') || 'obsidian';
+  const boxTheme = localStorage.getItem('aos_box_theme') || 'lavender';
   await sb.from('user_settings').upsert({
     user_id:                 currentUser.id,
     app_title:               S.appTitle              || 'AOS',

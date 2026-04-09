@@ -1497,6 +1497,20 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   <div class="modal-acts"><button class="btn btn-p" onclick="closeModal('mSessionDetail')">Done</button></div>
 </div></div>
 
+<!-- Edit Workout Session Modal -->
+<div class="modal-bg" id="mEditSession" onclick="if(event.target===this)closeModal('mEditSession')"><div class="modal" style="max-width:520px;width:95vw">
+  <h2 style="margin-bottom:4px">Edit Session</h2>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+    <input id="esTitle" class="auth-inp" placeholder="Session title" style="flex:1;min-width:140px">
+    <input id="esDate" type="date" class="auth-inp" style="width:auto;font-family:'DM Mono',monospace;font-size:0.78rem">
+  </div>
+  <div id="esExerciseList" style="max-height:50vh;overflow-y:auto"></div>
+  <div class="modal-acts">
+    <button class="btn btn-g" onclick="closeModal('mEditSession')">Cancel</button>
+    <button class="btn btn-p" onclick="saveEditSession()">Save</button>
+  </div>
+</div></div>
+
 <div class="modal-bg" id="mPastNotes" onclick="if(event.target===this)closeModal('mPastNotes')"><div class="modal" style="max-width:480px">
   <h2 data-i18n="past_notes">Past Notes</h2>
   <div id="pnList" style="max-height:55vh;overflow-y:auto"></div>
@@ -1680,21 +1694,52 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
         </div>
         <div class="mf">
           <label data-i18n="font">Font</label>
-          <div style="display:flex;gap:6px;margin-top:6px">
+          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
             <button class="font-opt active" data-font="elegant" onclick="applyFont('elegant')">Elegant</button>
             <button class="font-opt"        data-font="clean"   onclick="applyFont('clean')">Clean</button>
-            <button class="font-opt"        data-font="sharp"   onclick="applyFont('sharp')">Sharp</button>
+            <button class="font-opt"        data-font="sharp"   onclick="applyFont('sharp')">Mono</button>
+            <button class="font-opt"        data-font="serif"   onclick="applyFont('serif')">Serif</button>
+            <button class="font-opt"        data-font="rounded" onclick="applyFont('rounded')">Rounded</button>
           </div>
         </div>
         <div class="mf">
           <label data-i18n="app_theme">Background</label>
           <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;align-items:center">
-            <button class="box-theme-opt active" data-box-theme="obsidian" style="background:linear-gradient(135deg,#0d0408,#240e14)" onclick="applyBoxTheme('obsidian')" title="Obsidian"></button>
+            <button class="box-theme-opt active" data-box-theme="lavender" style="background:linear-gradient(135deg,#08050f,#1c1330)" onclick="applyBoxTheme('lavender')" title="Lavender (Default)"></button>
+            <button class="box-theme-opt"        data-box-theme="obsidian" style="background:linear-gradient(135deg,#0d0408,#240e14)" onclick="applyBoxTheme('obsidian')" title="Obsidian"></button>
+            <button class="box-theme-opt"        data-box-theme="rose"     style="background:linear-gradient(135deg,#100508,#2e1018)" onclick="applyBoxTheme('rose')"     title="Rose"></button>
+            <button class="box-theme-opt"        data-box-theme="dusk"     style="background:linear-gradient(135deg,#0c080f,#241530)" onclick="applyBoxTheme('dusk')"     title="Dusk"></button>
             <button class="box-theme-opt"        data-box-theme="slate"    style="background:linear-gradient(135deg,#060c18,#0f1e35)" onclick="applyBoxTheme('slate')"    title="Slate"></button>
             <button class="box-theme-opt"        data-box-theme="coffee"   style="background:linear-gradient(135deg,#0e0803,#261508)" onclick="applyBoxTheme('coffee')"   title="Coffee"></button>
             <button class="box-theme-opt"        data-box-theme="forest"   style="background:linear-gradient(135deg,#050d07,#0e2014)" onclick="applyBoxTheme('forest')"   title="Forest"></button>
             <button class="box-theme-opt"        data-box-theme="void"     style="background:linear-gradient(135deg,#070707,#141414)" onclick="applyBoxTheme('void')"     title="Void"></button>
           </div>
+        </div>
+        <div class="mf">
+          <label>Custom Colors <span style="font-size:0.6rem;color:var(--muted);margin-left:6px">override accent &amp; background</span></label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+            <div>
+              <div style="font-size:0.62rem;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace">Accent color</div>
+              <input type="color" data-custom-var="--blush" oninput="applyCustomColor('--blush',this.value)"
+                style="width:100%;height:34px;border:1px solid var(--border);border-radius:8px;background:var(--mid);cursor:pointer;padding:2px 4px">
+            </div>
+            <div>
+              <div style="font-size:0.62rem;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace">Background tint</div>
+              <input type="color" data-custom-var="--ink" oninput="applyCustomColor('--ink',this.value)"
+                style="width:100%;height:34px;border:1px solid var(--border);border-radius:8px;background:var(--mid);cursor:pointer;padding:2px 4px">
+            </div>
+            <div>
+              <div style="font-size:0.62rem;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace">Text color</div>
+              <input type="color" data-custom-var="--cream" oninput="applyCustomColor('--cream',this.value)"
+                style="width:100%;height:34px;border:1px solid var(--border);border-radius:8px;background:var(--mid);cursor:pointer;padding:2px 4px">
+            </div>
+            <div>
+              <div style="font-size:0.62rem;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace">Card surface</div>
+              <input type="color" data-custom-var="--panel" oninput="applyCustomColor('--panel',this.value)"
+                style="width:100%;height:34px;border:1px solid var(--border);border-radius:8px;background:var(--mid);cursor:pointer;padding:2px 4px">
+            </div>
+          </div>
+          <button class="btn btn-g" style="font-size:0.66rem;margin-top:10px" onclick="clearCustomColors()">Reset custom colors</button>
         </div>
       </div>
       <div class="settings-section">

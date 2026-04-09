@@ -54,7 +54,11 @@ function renderProjects() {
           <input class="editable prog-school-inp" value="${escapeAttr(p.title||'')}" onchange="updateProjectField('${p.id}','title',this.value)" placeholder="${t('project_title_ph')}">
           <input class="editable prog-name-inp" value="${escapeAttr(p.type||'')}" onchange="updateProjectField('${p.id}','type',this.value)" placeholder="${t('type_ph')}">
         </div>
-        <span class="spill s-${status.toLowerCase()}" onclick="cycleProjectStatus('${p.id}')" title="Click to change status" style="cursor:pointer">${escapeHtml(status)}</span>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <button onclick="openEntityNote('project','${p.id}',${JSON.stringify(escapeHtml(p.title||'Project'))})"
+            style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.8rem;padding:0 2px;line-height:1" title="Open notes">📝</button>
+          <span class="spill s-${status.toLowerCase()}" onclick="cycleProjectStatus('${p.id}')" title="Click to change status" style="cursor:pointer">${escapeHtml(status)}</span>
+        </div>
       </div>
 
       ${dlWarn ? `<div style="font-size:0.62rem;color:var(--petal);font-family:'DM Mono',monospace;margin-bottom:8px;padding:4px 8px;background:rgba(232,160,176,0.08);border-radius:6px;border:1px solid rgba(232,160,176,0.2)">
