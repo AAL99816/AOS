@@ -378,9 +378,9 @@ function renderSearchResults(q) {
   (S.media || []).forEach(m => {
     if (_matches(q, m.title, m.author, m.notes))
       results.push({ icon: _mediaIcon(m.mediaType), title: m.title || '(untitled)', sub: `${m.mediaType} · ${m.author || ''}`, click:`closeGlobalSearch();go('media',document.querySelector('[data-tab=media]'))` });
-    (m.chapterNotes || []).forEach(n => {
-      if (_matches(q, n.note, n.label))
-        results.push({ icon:'📝', title: n.label || 'Note', sub: `Note in ${m.title}`, click:`closeGlobalSearch();go('media',document.querySelector('[data-tab=media]'))` });
+    (Array.isArray(S.notesDB) ? S.notesDB : []).filter(n => n.entityId === m._uuid).forEach(n => {
+      if (_matches(q, n.body, n.title))
+        results.push({ icon: '&rarr;', title: n.title || 'Note', sub: `Note in ${m.title}`, click:`closeGlobalSearch();go('notes',document.querySelector('[data-tab=notes]'))` });
     });
   });
 

@@ -331,9 +331,9 @@ function renderDayDetail(dateStr) {
     (p.tasks || []).filter(t => t.done).forEach(t => {
       // We don't store completion date on tasks yet — skip for now
     });
-    (p.notesLog || []).filter(n => n.date === dateStr).forEach(n => {
-      tasksCompleted.push({ project: p.title, note: n.text });
-    });
+    (Array.isArray(S.notesDB) ? S.notesDB : [])
+      .filter(n => n.entityId === p._uuid && (n.updatedAt || '').slice(0, 10) === dateStr)
+      .forEach(n => { tasksCompleted.push({ project: p.title, note: n.body || n.title || '' }); });
   });
 
   const row = (label, content) => `

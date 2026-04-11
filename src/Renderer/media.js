@@ -158,8 +158,8 @@ function buildBookCard(b, idx) {
       </div>
     </div>
     <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')">✕</button>
-    <button onclick="event.stopPropagation();openEntityNote('book','${b.id}',${escapeAttr(JSON.stringify(b.title||'Book'))})"
-      style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.7rem;padding:3px 6px;line-height:1;backdrop-filter:blur(4px)" title="Open notes">📝</button>
+    <button onclick="event.stopPropagation();_mediaOpenNotes('${b.id}')"
+      style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.65rem;padding:3px 7px;line-height:1;backdrop-filter:blur(4px);font-family:'DM Mono',monospace" title="Open notes">&rarr;</button>
   `;
   return div;
 }
@@ -196,8 +196,8 @@ function buildFilmCard(b, idx) {
       ${b.watchCount > 1 ? `<div style="font-size:0.55rem;color:var(--muted);margin-top:3px;font-family:'DM Mono',monospace">${b.watchCount}× ${t('watched').toLowerCase()}</div>` : ''}
     </div>
     <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')">✕</button>
-    <button onclick="event.stopPropagation();openEntityNote('film','${b.id}',${escapeAttr(JSON.stringify(b.title||'Film'))})"
-      style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.7rem;padding:3px 6px;line-height:1;backdrop-filter:blur(4px)" title="Open notes">📝</button>
+    <button onclick="event.stopPropagation();_mediaOpenNotes('${b.id}')"
+      style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.65rem;padding:3px 7px;line-height:1;backdrop-filter:blur(4px);font-family:'DM Mono',monospace" title="Open notes">&rarr;</button>
   `;
   return div;
 }
@@ -239,8 +239,8 @@ function buildShowCard(b, idx) {
       ${stars ? `<div class="b-stars" style="margin-top:3px">${stars}</div>` : ''}
     </div>
     <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')">✕</button>
-    <button onclick="event.stopPropagation();openEntityNote('show','${b.id}',${escapeAttr(JSON.stringify(b.title||'Show'))})"
-      style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.7rem;padding:3px 6px;line-height:1;backdrop-filter:blur(4px)" title="Open notes">📝</button>
+    <button onclick="event.stopPropagation();_mediaOpenNotes('${b.id}')"
+      style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.65rem;padding:3px 7px;line-height:1;backdrop-filter:blur(4px);font-family:'DM Mono',monospace" title="Open notes">&rarr;</button>
   `;
   return div;
 }
@@ -505,7 +505,6 @@ function renderBookDetails() {
   const b = getActiveBook();
   if (!b) return;
 
-  if (!Array.isArray(b.chapterNotes)) b.chapterNotes = [];
   if (typeof b.notes !== 'string') b.notes = '';
   b.currentPage = parseInt(b.currentPage) || 0;
   b.totalPages  = parseInt(b.totalPages)  || 0;
@@ -583,27 +582,39 @@ function renderBookDetails() {
   for (let i = 0; i < opts.length; i++) opts[i].text = labels[i];
 }
 
+function _mediaOpenNotes(mediaAppId) {
+  const m = (S.media || []).find(x => String(x.id) === String(mediaAppId));
+  if (!m || !m._uuid) return;
+  if (typeof openNotesForEntity === 'function') openNotesForEntity('media_item', m._uuid);
+}
+
+function _mediaEntityNotes(b) {
+  if (!b || !b._uuid) return [];
+  return (Array.isArray(S.notesDB) ? S.notesDB : [])
+    .filter(n => n.entityId === b._uuid)
+    .sort((a, b) => (a.orderIndex - b.orderIndex) || a.createdAt.localeCompare(b.createdAt));
+}
+
 function renderChapterNotes() {
   const b = getActiveBook();
   if (!b) return;
   const wrap = eid('bdChapterNotes');
+  if (!wrap) return;
+  const notes = _mediaEntityNotes(b);
   wrap.innerHTML = '';
-  if (!b.chapterNotes.length) {
+  if (!notes.length) {
     wrap.innerHTML = `<div style="color:var(--muted);font-size:0.76rem">${t('no_notes_yet')}</div>`;
     return;
   }
-  b.chapterNotes.forEach(n => {
+  notes.forEach(n => {
     const card = document.createElement('div');
     card.className = 'chapter-note-card';
     card.innerHTML = `
       <div class="chapter-note-top">
-        <input class="editable" value="${escapeAttr(n.label||'')}" onchange="updateChapterLabel('${n.id}',this.value)">
-        <input type="date" value="${escapeAttr(n.date||today())}" onchange="updateChapterNoteDate('${n.id}',this.value)"
-          style="background:none;border:none;color:var(--muted);font-size:0.58rem;font-family:'DM Mono',monospace;cursor:pointer;padding:0;max-width:96px">
-        <button class="chapter-note-del" onclick="expandNote('${n.id}')" title="Expand" style="margin-right:2px;opacity:0.6">⤢</button>
-        <button class="chapter-note-del" onclick="deleteChapterNote('${n.id}')">✕</button>
+        <input class="editable" value="${escapeAttr(n.title||'')}" onchange="updateChapterLabel('${n.id}',this.value)">
+        <button class="chapter-note-del" onclick="deleteChapterNote('${n.id}')">&#10005;</button>
       </div>
-      <textarea class="editable-area" rows="4" placeholder="${t('notes_ph')}" oninput="updateChapterNote('${n.id}',this.value)">${escapeHtml(n.note||'')}</textarea>
+      <textarea class="editable-area" rows="4" placeholder="${t('notes_ph')}" oninput="updateChapterNote('${n.id}',this.value)">${escapeHtml(n.body||'')}</textarea>
     `;
     wrap.appendChild(card);
   });
@@ -741,65 +752,69 @@ function updateActiveBookNotes(value) {
 }
 
 function addChapterNote() {
-  const b = getActiveBook(); if (!b) return;
-  if (!Array.isArray(b.chapterNotes)) b.chapterNotes = [];
-  b.chapterNotes.push({ id: uid(), label: mediaNoteDefaultLabel(b.mediaType, b.chapterNotes.length), note: '', date: today() });
-  scheduleSave(); renderChapterNotes();
+  const b = getActiveBook(); if (!b || !b._uuid) return;
+  const existing = _mediaEntityNotes(b);
+  const note = {
+    id:          uid(),
+    section:     'media',
+    entityType:  'media_item',
+    entityId:    b._uuid,
+    title:       mediaNoteDefaultLabel(b.mediaType, existing.length),
+    body:        '',
+    orderIndex:  existing.length,
+    createdAt:   new Date().toISOString(),
+    updatedAt:   new Date().toISOString()
+  };
+  if (!Array.isArray(S.notesDB)) S.notesDB = [];
+  S.notesDB.push(note);
+  saveNoteDB(note);
+  renderChapterNotes();
 }
 
 let _expandNoteId = null;
 
 function expandNote(noteId) {
-  const b = getActiveBook(); if (!b) return;
-  const n = (b.chapterNotes || []).find(n => String(n.id) === String(noteId));
-  if (!n) return;
-  _expandNoteId = noteId;
-  eid('neLabel').value = n.label || '';
-  eid('neBody').value  = n.note  || '';
-  openModal('mNoteExpand');
+  // Redirect to Notes tab for the entity
+  const b = getActiveBook(); if (!b || !b._uuid) return;
+  _mediaOpenNotes(b.id);
 }
 
 function updateExpandedLabel(val) {
-  const b = getActiveBook(); if (!b || !_expandNoteId) return;
-  const n = (b.chapterNotes || []).find(n => String(n.id) === String(_expandNoteId));
-  if (n) { n.label = val; scheduleSave(); renderChapterNotes(); renderAlbumNotes(); }
+  // no-op: expand modal removed
 }
 
 function updateExpandedNote(val) {
-  const b = getActiveBook(); if (!b || !_expandNoteId) return;
-  const n = (b.chapterNotes || []).find(n => String(n.id) === String(_expandNoteId));
-  if (n) { n.note = val; scheduleSave(); }
+  // no-op: expand modal removed
 }
 
 function closeNoteExpand() {
   _expandNoteId = null;
   closeModal('mNoteExpand');
-  renderChapterNotes();
-  renderAlbumNotes();
 }
 
+let _chapterNoteSaveTimers = {};
+
 function updateChapterLabel(noteId, value) {
-  const b = getActiveBook(); if (!b) return;
-  const n = b.chapterNotes.find(n => String(n.id) === String(noteId));
-  if (n) { n.label = value; scheduleSave(); }
+  const n = (S.notesDB || []).find(n => n.id === noteId); if (!n) return;
+  n.title = value; n.updatedAt = new Date().toISOString();
+  clearTimeout(_chapterNoteSaveTimers[noteId]);
+  _chapterNoteSaveTimers[noteId] = setTimeout(() => saveNoteDB(n), 800);
 }
 
 function updateChapterNote(noteId, value) {
-  const b = getActiveBook(); if (!b) return;
-  const n = b.chapterNotes.find(n => String(n.id) === String(noteId));
-  if (n) { n.note = value; scheduleSave(); }
+  const n = (S.notesDB || []).find(n => n.id === noteId); if (!n) return;
+  n.body = value; n.updatedAt = new Date().toISOString();
+  clearTimeout(_chapterNoteSaveTimers[noteId]);
+  _chapterNoteSaveTimers[noteId] = setTimeout(() => saveNoteDB(n), 800);
 }
 
 function updateChapterNoteDate(noteId, value) {
-  const b = getActiveBook(); if (!b) return;
-  const n = b.chapterNotes.find(n => String(n.id) === String(noteId));
-  if (n) { n.date = value; scheduleSave(); }
+  // date field no longer stored separately; no-op
 }
 
 function deleteChapterNote(noteId) {
-  const b = getActiveBook(); if (!b) return;
-  b.chapterNotes = b.chapterNotes.filter(n => String(n.id) !== String(noteId));
-  scheduleSave(); renderChapterNotes();
+  deleteNoteDB(noteId);
+  renderChapterNotes();
 }
 
 /* ══ ALBUM DETAIL ══ */
@@ -852,33 +867,45 @@ function renderAlbumDetail() {
 
 function renderAlbumNotes() {
   const b = getActiveBook(); if (!b) return;
-  if (!Array.isArray(b.chapterNotes)) b.chapterNotes = [];
+  const notes = _mediaEntityNotes(b);
   const wrap = eid('adChapterNotes'); if (!wrap) return;
   wrap.innerHTML = '';
-  if (!b.chapterNotes.length) {
+  if (!notes.length) {
     wrap.innerHTML = `<div style="color:var(--muted);font-size:0.76rem">${t('no_notes_yet')}</div>`;
     return;
   }
-  b.chapterNotes.forEach(n => {
+  notes.forEach(n => {
     const card = document.createElement('div');
     card.className = 'chapter-note-card';
     card.innerHTML = `
       <div class="chapter-note-top">
-        <input class="editable" value="${escapeAttr(n.label||'')}" onchange="updateChapterLabel('${n.id}',this.value);renderAlbumNotes()">
-        <button class="chapter-note-del" onclick="expandNote('${n.id}')" title="Expand" style="margin-right:2px;opacity:0.6">⤢</button>
-        <button class="chapter-note-del" onclick="deleteChapterNote('${n.id}');renderAlbumNotes()">✕</button>
+        <input class="editable" value="${escapeAttr(n.title||'')}" onchange="updateChapterLabel('${n.id}',this.value)">
+        <button class="chapter-note-del" onclick="deleteChapterNote('${n.id}');renderAlbumNotes()">&#10005;</button>
       </div>
-      <textarea class="editable-area" rows="4" placeholder="${t('notes_ph')}" oninput="updateChapterNote('${n.id}',this.value)">${escapeHtml(n.note||'')}</textarea>
+      <textarea class="editable-area" rows="4" placeholder="${t('notes_ph')}" oninput="updateChapterNote('${n.id}',this.value)">${escapeHtml(n.body||'')}</textarea>
     `;
     wrap.appendChild(card);
   });
 }
 
 function addAlbumNote() {
-  const b = getActiveBook(); if (!b) return;
-  if (!Array.isArray(b.chapterNotes)) b.chapterNotes = [];
-  b.chapterNotes.push({ id: uid(), label: mediaNoteDefaultLabel('album', b.chapterNotes.length), note: '' });
-  scheduleSave(); renderAlbumNotes();
+  const b = getActiveBook(); if (!b || !b._uuid) return;
+  const existing = _mediaEntityNotes(b);
+  const note = {
+    id:          uid(),
+    section:     'media',
+    entityType:  'media_item',
+    entityId:    b._uuid,
+    title:       mediaNoteDefaultLabel('album', existing.length),
+    body:        '',
+    orderIndex:  existing.length,
+    createdAt:   new Date().toISOString(),
+    updatedAt:   new Date().toISOString()
+  };
+  if (!Array.isArray(S.notesDB)) S.notesDB = [];
+  S.notesDB.push(note);
+  saveNoteDB(note);
+  renderAlbumNotes();
 }
 
 function addTrack(albumId) {

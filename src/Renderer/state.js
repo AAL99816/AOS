@@ -111,7 +111,6 @@ function makeProject(p={}){
     deadline: p.deadline ?? '',
     notes: p.notes ?? '',
     richNotes: p.richNotes ?? '',
-    notesLog: Array.isArray(p.notesLog) ? p.notesLog : [],
     tasks: Array.isArray(p.tasks) ? p.tasks.map(tk => ({
       id: tk.id ?? uid(),
       text: tk.text ?? '',
@@ -136,7 +135,6 @@ function makeMedia(m={}){
     // Books
     currentPage: Number.isFinite(+m.currentPage) ? +m.currentPage : 0,
     totalPages:  Number.isFinite(+m.totalPages)  ? +m.totalPages  : 0,
-    chapterNotes: Array.isArray(m.chapterNotes) ? m.chapterNotes : [],
     highlights:   Array.isArray(m.highlights)   ? m.highlights   : [],
     // Shows / Anime
     currentSeason:  Number.isFinite(+m.currentSeason)  ? +m.currentSeason  : 1,

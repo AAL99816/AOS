@@ -17,6 +17,13 @@ function normExerciseKey(name) {
   return String(name || '').trim().toLowerCase();
 }
 
+/* ── Notes helpers ── */
+function _fitnessOpenNotes(workoutCardId) {
+  const wc = (S.workoutCards || []).find(x => String(x.id) === String(workoutCardId));
+  if (!wc || !wc._uuid) return;
+  if (typeof openNotesForEntity === 'function') openNotesForEntity('workout_template', wc._uuid);
+}
+
 function getExerciseHistory(name) {
   ensureFitnessState();
   const key = normExerciseKey(name);
@@ -404,8 +411,8 @@ function renderWorkoutCards() {
           title="Edit title"
           style="flex:1;background:none;border:none;color:var(--mist);font-size:0.88rem"
         >
-        <button onclick="event.stopPropagation();openEntityNote('workout','${wc.id}',${escapeAttr(JSON.stringify(wc.title||'Workout'))})"
-          style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.8rem;padding:0 3px;line-height:1;flex-shrink:0" title="Open notes">📝</button>
+        <button onclick="event.stopPropagation();_fitnessOpenNotes('${wc.id}')"
+          style="background:none;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:0.62rem;padding:2px 7px;border-radius:4px;font-family:'DM Mono',monospace;line-height:1;flex-shrink:0" title="Open notes">&rarr;</button>
         <span style="font-size:0.55rem;color:var(--muted);font-family:'DM Mono',monospace;flex-shrink:0">${exCount} exercise${exCount!==1?'s':''}</span>
         <span style="font-size:0.75rem;color:var(--blush);flex-shrink:0">${expanded ? '▾' : '▸'}</span>
       </div>`;

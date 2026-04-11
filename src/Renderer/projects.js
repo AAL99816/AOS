@@ -12,6 +12,20 @@ function ensureProjects() {
   return S.projects;
 }
 
+/* ── Notes helpers ── */
+function _projectEntityNotes(p) {
+  if (!p || !p._uuid) return [];
+  return (Array.isArray(S.notesDB) ? S.notesDB : [])
+    .filter(n => n.entityId === p._uuid)
+    .sort((a, b) => (a.orderIndex - b.orderIndex) || (a.createdAt || '').localeCompare(b.createdAt || ''));
+}
+
+function _projectOpenNotes(appId) {
+  const p = ensureProjects().find(x => String(x.id) === String(appId));
+  if (!p || !p._uuid) return;
+  if (typeof openNotesForEntity === 'function') openNotesForEntity('project', p._uuid);
+}
+
 function calcProjectProgress(p) {
   const tasks = p.tasks || [];
   if (!tasks.length) return 0;
@@ -37,8 +51,9 @@ function renderProjects() {
     const tasks     = p.tasks || [];
     const doneCnt   = tasks.filter(t => t.done).length;
     const overdueCnt = tasks.filter(t => !t.done && t.dueDate && t.dueDate < today()).length;
-    const notesLog  = Array.isArray(p.notesLog) ? [...p.notesLog].reverse().slice(0, 10) : [];
-    const noteTotal = Array.isArray(p.notesLog) ? p.notesLog.length : 0;
+    const projNotes = _projectEntityNotes(p);
+    const notesLog  = projNotes.slice(0, 3);
+    const noteTotal = projNotes.length;
 
     // Deadline warning — within 7 days and not complete/dropped/archived
     const dl = p.deadline;
@@ -55,8 +70,8 @@ function renderProjects() {
           <input class="editable prog-name-inp" value="${escapeAttr(p.type||'')}" onchange="updateProjectField('${p.id}','type',this.value)" placeholder="${t('type_ph')}">
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-          <button onclick="openEntityNote('project','${p.id}',${escapeAttr(JSON.stringify(p.title||'Project'))})"
-            style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.8rem;padding:0 2px;line-height:1" title="Open notes">📝</button>
+          <button onclick="_projectOpenNotes('${p.id}')"
+            style="background:none;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:0.62rem;padding:2px 7px;border-radius:4px;font-family:'DM Mono',monospace;line-height:1" title="Open notes">&rarr;</button>
           <span class="spill s-${status.toLowerCase()}" onclick="cycleProjectStatus('${p.id}')" title="Click to change status" style="cursor:pointer">${escapeHtml(status)}</span>
         </div>
       </div>
@@ -79,24 +94,20 @@ function renderProjects() {
         </div>
       </div>
 
-      <!-- Daily notes log -->
+      <!-- Notes preview -->
       <div style="border-top:1px solid var(--border);padding-top:10px;margin-bottom:10px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
           <div style="font-size:0.52rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">Notes</div>
-          ${noteTotal >= 45 ? `<div style="font-size:0.52rem;color:${noteTotal>=50?'var(--petal)':'var(--muted)'};font-family:'DM Mono',monospace">${noteTotal}/50</div>` : ''}
+          ${noteTotal ? `<span style="font-size:0.52rem;color:var(--muted);font-family:'DM Mono',monospace">${noteTotal}</span>` : ''}
         </div>
-        ${notesLog.length ? notesLog.map((n, ni) => `
-          <div style="display:flex;align-items:flex-start;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)">
-            <div style="flex:1;min-width:0">
-              <div style="font-size:0.52rem;color:var(--muted-lt);font-family:'DM Mono',monospace;margin-bottom:2px">${escapeHtml(n.date||'')}</div>
-              ${ni === 0 ? `<input class="editable" style="font-size:0.76rem;color:var(--mist);line-height:1.4;background:none;border:none;width:100%" value="${escapeAttr(n.text||'')}" onchange="editProjectNote('${p.id}','${n.id}',this.value)" title="Edit note">` : `<div style="font-size:0.76rem;color:var(--mist);line-height:1.4">${escapeHtml(n.text||'')}</div>`}
-            </div>
-            <button class="habit-del" style="opacity:0.4;flex-shrink:0" onclick="deleteProjectNote('${p.id}','${n.id}')">✕</button>
+        ${notesLog.length ? notesLog.map(n => `
+          <div style="padding:4px 0;border-bottom:1px solid var(--border)">
+            <div style="font-size:0.62rem;color:var(--muted-lt);font-family:'DM Mono',monospace;margin-bottom:1px">${escapeHtml(n.title||'')}</div>
+            <div style="font-size:0.72rem;color:var(--mist);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml((n.body||'').slice(0,80))}</div>
           </div>`).join('')
           : `<div style="font-size:0.68rem;color:var(--muted);padding:4px 0">No notes yet.</div>`}
-        <div style="display:flex;gap:6px;margin-top:8px">
-          <input class="add-inp" id="pNote-${p.id}" placeholder="Add a note for today…" style="flex:1;font-size:0.72rem" onkeydown="if(event.key==='Enter')addProjectNote('${p.id}')">
-          <button class="btn btn-g" style="font-size:0.62rem;padding:3px 8px;flex-shrink:0" onclick="addProjectNote('${p.id}')">+ Note</button>
+        <div style="margin-top:8px">
+          <button class="btn btn-g" style="font-size:0.62rem;padding:3px 10px" onclick="_projectOpenNotes('${p.id}')">Open Notes</button>
         </div>
       </div>
 
@@ -118,39 +129,38 @@ function renderProjects() {
 
 function addProjectNote(id) {
   const p = ensureProjects().find(x => String(x.id) === String(id));
-  if (!p) return;
+  if (!p || !p._uuid) return;
   const inp = eid(`pNote-${id}`);
   const text = (inp && inp.value || '').trim();
   if (!text) return;
-  if (!Array.isArray(p.notesLog)) p.notesLog = [];
-  if (p.notesLog.length >= 50) { toast('Note limit reached (50 max) — delete some to add more'); return; }
-  p.notesLog.push({ id: uid(), date: today(), text });
-  p.updatedOn = today();
+  const existing = _projectEntityNotes(p);
+  const note = {
+    section:    'projects',
+    entityType: 'project',
+    entityId:   p._uuid,
+    title:      '',
+    body:       text,
+    orderIndex: existing.length
+  };
   if (inp) inp.value = '';
-  scheduleSave();
-  renderProjects();
+  if (typeof saveNoteDB === 'function') saveNoteDB(note).then(() => { renderProjects(); renderPdNotes(p); });
 }
 
-function editProjectNote(id, noteId, val) {
-  const p = ensureProjects().find(x => String(x.id) === String(id));
-  if (!p) return;
-  const n = (p.notesLog || []).find(n => String(n.id) === String(noteId));
-  if (n) { n.text = val.trim() || n.text; p.updatedOn = today(); scheduleSave(); renderProjects(); }
+function editProjectNote(noteId, val) {
+  const n = (Array.isArray(S.notesDB) ? S.notesDB : []).find(x => String(x.id) === String(noteId));
+  if (!n) return;
+  n.body = val;
+  if (typeof saveNoteDB === 'function') saveNoteDB(n);
 }
 
-function deleteProjectNote(id, noteId) {
-  const p = ensureProjects().find(x => String(x.id) === String(id));
-  if (!p) return;
-  const removed = (p.notesLog || []).find(n => String(n.id) === String(noteId));
-  p.notesLog = (p.notesLog || []).filter(n => String(n.id) !== String(noteId));
-  scheduleSave();
-  renderProjects();
-  if (removed) {
-    toastUndo('Note removed', () => {
-      const pp = ensureProjects().find(x => String(x.id) === String(id));
-      if (pp) { pp.notesLog = pp.notesLog || []; pp.notesLog.push(removed); scheduleSave(); renderProjects(); }
-    });
-  }
+function deleteProjectNote(noteId) {
+  if (typeof deleteNoteDB === 'function') deleteNoteDB(noteId).then(() => {
+    renderProjects();
+    if (_activeProjectId) {
+      const p = ensureProjects().find(x => String(x.id) === String(_activeProjectId));
+      if (p) renderPdNotes(p);
+    }
+  });
 }
 
 /* ══ PROJECT DETAIL MODAL (Tasks | Notes) ══ */
@@ -231,12 +241,14 @@ function renderPdTasks(p) {
 }
 
 function renderPdNotes(p) {
-  const notes = [...(p.notesLog || [])].reverse();
+  const notes = _projectEntityNotes(p);
   const c = eid('pdNotesList');
   c.innerHTML = notes.length ? notes.map(n => `
     <div style="padding:8px 0;border-bottom:1px solid var(--border)">
-      <div style="font-size:0.52rem;color:var(--muted-lt);font-family:'DM Mono',monospace;margin-bottom:3px">${escapeHtml(n.date||'')}</div>
-      <div style="font-size:0.78rem;color:var(--mist);line-height:1.5">${escapeHtml(n.text||'')}</div>
+      ${n.title ? `<div style="font-size:0.52rem;color:var(--muted-lt);font-family:'DM Mono',monospace;margin-bottom:3px">${escapeHtml(n.title)}</div>` : ''}
+      <textarea class="editable" style="width:100%;font-size:0.78rem;color:var(--mist);line-height:1.5;background:none;border:none;resize:vertical;min-height:48px"
+        onchange="editProjectNote('${n.id}',this.value)">${escapeHtml(n.body||'')}</textarea>
+      <button class="habit-del" style="opacity:0.4;font-size:0.6rem" onclick="deleteProjectNote('${n.id}')">&#10005;</button>
     </div>`).join('')
     : `<div style="font-size:0.72rem;color:var(--muted);padding:8px 0">No notes yet.</div>`;
 }
@@ -349,8 +361,7 @@ function saveProject() {
     context:  eid('pCtx').value.trim(),
     status:   eid('pStat').value,
     deadline: eid('pDl').value,
-    tasks:    [],
-    notesLog: []
+    tasks:    []
   }));
   eid('pTitle').value = '';
   eid('pType').value  = '';

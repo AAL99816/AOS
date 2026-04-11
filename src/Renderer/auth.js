@@ -198,3 +198,4 @@ window.addEventListener('DOMContentLoaded', async () => {
     await bootApp();
   }
 });
+  

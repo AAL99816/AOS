@@ -58,7 +58,7 @@ async function loadProjects() {
   if (!currentUser) return;
   const { data, error } = await sb
     .from('projects')
-    .select('*, project_tasks(*), project_notes(*)')
+    .select('*, project_tasks(*)')
     .eq('user_id', currentUser.id)
     .not('app_id', 'is', null)
     .order('order_index');
@@ -66,6 +66,7 @@ async function loadProjects() {
 
   S.projects = data.map(row => ({
     id:       row.app_id,
+    _uuid:    row.id,
     title:    row.title   || '',
     type:     row.type    || '',
     context:  row.context || '',
@@ -73,10 +74,6 @@ async function loadProjects() {
     deadline: row.deadline || '',
     notes:    row.notes   || '',
     richNotes: '',
-    notesLog: (row.project_notes || [])
-      .filter(n => n.app_id)
-      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-      .map(n => ({ id: n.app_id, date: n.note_date || '', text: n.text || '' })),
     tasks: (row.project_tasks || [])
       .filter(tk => tk.app_id)
       .sort((a, b) => a.order_index - b.order_index)
@@ -155,27 +152,6 @@ async function saveProjects() {
       await sb.from('project_tasks').delete().eq('project_id', projectUuid);
     }
 
-    // Notes
-    const notes = p.notesLog || [];
-    if (notes.length) {
-      await sb.from('project_notes').upsert(
-        notes.map(n => ({
-          app_id:     String(n.id),
-          project_id: projectUuid,
-          user_id:    currentUser.id,
-          note_date:  n.date || today(),
-          text:       n.text || ''
-        })),
-        { onConflict: 'app_id' }
-      );
-    }
-    const noteIds = notes.map(n => `"${n.id}"`).join(',');
-    if (noteIds) {
-      await sb.from('project_notes').delete()
-        .eq('project_id', projectUuid).not('app_id', 'in', `(${noteIds})`);
-    } else {
-      await sb.from('project_notes').delete().eq('project_id', projectUuid);
-    }
   }
 }
 
@@ -184,7 +160,7 @@ async function loadMedia() {
   if (!currentUser) return;
   const { data, error } = await sb
     .from('media_items')
-    .select('*, media_notes(*), media_tracks(*)')
+    .select('*, media_tracks(*)')
     .eq('user_id', currentUser.id)
     .not('app_id', 'is', null)
     .order('order_index');
@@ -192,6 +168,7 @@ async function loadMedia() {
 
   S.media = data.map(row => ({
     id:             row.app_id,
+    _uuid:          row.id,
     mediaType:      row.media_type      || 'book',
     title:          row.title           || '',
     author:         row.creator         || '',
@@ -210,10 +187,6 @@ async function loadMedia() {
     watchCount:     row.watch_count     || 0,
     platform:       row.platform        || '',
     hoursPlayed:    row.hours_played    || 0,
-    chapterNotes: (row.media_notes || [])
-      .filter(n => n.app_id)
-      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-      .map(n => ({ id: n.app_id, label: n.label || '', note: n.note || '' })),
     tracks: (row.media_tracks || [])
       .filter(tr => tr.app_id)
       .sort((a, b) => a.track_number - b.track_number)
@@ -274,28 +247,6 @@ async function saveMedia() {
 
     const itemUuid = itemRow?.id;
     if (!itemUuid) continue;
-
-    // Chapter / episode notes
-    const notes = m.chapterNotes || [];
-    if (notes.length) {
-      await sb.from('media_notes').upsert(
-        notes.map(n => ({
-          app_id:        String(n.id),
-          media_item_id: itemUuid,
-          user_id:       currentUser.id,
-          label:         n.label || '',
-          note:          n.note  || ''
-        })),
-        { onConflict: 'app_id' }
-      );
-    }
-    const noteIds = notes.map(n => `"${n.id}"`).join(',');
-    if (noteIds) {
-      await sb.from('media_notes').delete()
-        .eq('media_item_id', itemUuid).not('app_id', 'in', `(${noteIds})`);
-    } else {
-      await sb.from('media_notes').delete().eq('media_item_id', itemUuid);
-    }
 
     // Album tracks
     const tracks = m.tracks || [];
@@ -481,6 +432,90 @@ async function saveNotes() {
   ]);
 }
 
+/* ── unified notes table ── */
+async function loadNotesDB() {
+  if (!currentUser) return;
+  const { data, error } = await sb
+    .from('notes')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('order_index');
+  if (error) { console.warn('[notes] load failed:', error.message); return; }
+  S.notesDB = (data || []).map(r => ({
+    id:          r.id,
+    section:     r.section     || 'custom',
+    entityType:  r.entity_type || null,
+    entityId:    r.entity_id   || null,
+    title:       r.title       || '',
+    body:        r.body        || '',
+    orderIndex:  r.order_index || 0,
+    createdAt:   r.created_at  || '',
+    updatedAt:   r.updated_at  || ''
+  }));
+}
+
+async function saveNoteDB(note) {
+  if (!currentUser) return;
+  const row = {
+    id:          note.id,
+    user_id:     currentUser.id,
+    section:     note.section    || 'custom',
+    entity_type: note.entityType || null,
+    entity_id:   note.entityId   || null,
+    title:       note.title      || '',
+    body:        note.body       || '',
+    order_index: note.orderIndex || 0
+  };
+  const { data, error } = await sb
+    .from('notes')
+    .upsert(row, { onConflict: 'id' })
+    .select('id, updated_at')
+    .single();
+  if (error) { console.warn('[notes] save failed:', error.message); return; }
+  // Update in local array
+  if (!Array.isArray(S.notesDB)) S.notesDB = [];
+  const idx = S.notesDB.findIndex(n => n.id === note.id);
+  const merged = { ...note, updatedAt: data?.updated_at || note.updatedAt };
+  if (idx >= 0) S.notesDB[idx] = merged; else S.notesDB.push(merged);
+}
+
+async function deleteNoteDB(noteId) {
+  if (!currentUser) return;
+  await sb.from('notes').delete().eq('id', noteId).eq('user_id', currentUser.id);
+  if (Array.isArray(S.notesDB)) S.notesDB = S.notesDB.filter(n => n.id !== noteId);
+}
+
+function _subscribeNotesRealtime() {
+  sb.channel('notes-changes')
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'notes',
+      filter: `user_id=eq.${currentUser.id}`
+    }, payload => {
+      if (!Array.isArray(S.notesDB)) S.notesDB = [];
+      if (payload.eventType === 'DELETE') {
+        S.notesDB = S.notesDB.filter(n => n.id !== payload.old.id);
+      } else {
+        const r = payload.new;
+        const note = {
+          id: r.id, section: r.section || 'custom',
+          entityType: r.entity_type || null, entityId: r.entity_id || null,
+          title: r.title || '', body: r.body || '',
+          orderIndex: r.order_index || 0,
+          createdAt: r.created_at || '', updatedAt: r.updated_at || ''
+        };
+        const idx = S.notesDB.findIndex(n => n.id === r.id);
+        if (idx >= 0) S.notesDB[idx] = note; else S.notesDB.push(note);
+      }
+      if (typeof renderNotes === 'function' && document.querySelector('#notesTopicList')) renderNotes();
+      if (typeof renderChapterNotes === 'function') renderChapterNotes();
+      if (typeof renderPdNotes === 'function') {
+        const p = (S.projects||[]).find(p => p.id === _activeProjectId);
+        if (p) renderPdNotes(p);
+      }
+    })
+    .subscribe();
+}
+
 /* ── exercise_pbs ── */
 async function saveExercisePbs() {
   if (!currentUser) return;
@@ -576,6 +611,7 @@ async function loadFitness() {
   if (!tmplRes.error && tmplRes.data?.length) {
     S.workoutCards = tmplRes.data.map(row => ({
       id:       row.app_id,
+      _uuid:    row.id,
       title:    row.title    || '',
       subtitle: row.subtitle || '',
       exercises: (row.workout_template_exercises || [])
@@ -588,6 +624,7 @@ async function loadFitness() {
   if (!sessRes.error && sessRes.data?.length) {
     S.workoutHistory = sessRes.data.map(row => ({
       id:      row.app_id,
+      _uuid:   row.id,
       date:    row.session_date || '',
       title:   row.title        || 'Workout',
       cardId:  row.template_id  ? (S.workoutCards || []).find(c => c._uuid === row.template_id)?.id ?? null : null,
@@ -894,7 +931,8 @@ async function loadFromSupabase() {
   }
 
   S = normalizeAppState(data.data);
-  await Promise.all([loadUserSettings(), loadProjects(), loadMedia(), loadHabits(), loadPrayer(), loadNotes(), loadBodyWeight(), loadWorkoutSchedule(), loadFitness(), loadFocusItems()]);
+  await Promise.all([loadUserSettings(), loadProjects(), loadMedia(), loadHabits(), loadPrayer(), loadNotes(), loadBodyWeight(), loadWorkoutSchedule(), loadFitness(), loadFocusItems(), loadNotesDB()]);
+  _subscribeNotesRealtime();
   setSyncStatus('synced');
   return true;
 }
