@@ -452,6 +452,8 @@ async function loadNotesDB() {
     createdAt:   r.created_at  || '',
     updatedAt:   r.updated_at  || ''
   }));
+  // Re-render Notes tab if it is currently visible
+  if (typeof renderNotes === 'function' && eid('notesTopicList')) renderNotes();
 }
 
 async function saveNoteDB(note) {

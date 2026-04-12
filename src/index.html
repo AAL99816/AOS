@@ -666,15 +666,25 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 ::-webkit-scrollbar{width:5px; height:5px;}
 ::-webkit-scrollbar-track{background:color-mix(in srgb,var(--panel) 30%,transparent);}
 ::-webkit-scrollbar-thumb{background:var(--border-hi); border-radius:3px;}
+/* ── Tablet (≤900px) ── */
 @media(max-width:900px){
   .hero-content,nav,main,.sbar{padding-left:18px;padding-right:18px;}
   .today-top,.goals-grid,.g2,.g3{grid-template-columns:1fr;}
   .gym-week{grid-template-columns:repeat(4,1fr);}
   .books-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));}
+  /* Workout cards: 2-col on tablet */
+  #workoutCards.g3{grid-template-columns:repeat(2,1fr);}
 }
+/* ── Narrow tablet / large phone (≤700px) ── */
 @media(max-width:700px){
   .review-grid{grid-template-columns:1fr;}
   .review-habit-name{width:100px;}
+  /* Workout cards: 1-col */
+  #workoutCards.g3{grid-template-columns:1fr;}
+  /* Nav: horizontal scroll, no fixed bottom yet */
+  nav{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;padding:0 8px;-webkit-overflow-scrolling:touch;}
+  nav::-webkit-scrollbar{display:none;}
+  .tab{padding:10px 12px;font-size:0.62rem;flex-shrink:0;}
 }
 /* ── Pull-to-refresh indicator ── */
 #pullIndicator{
@@ -719,11 +729,24 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
   /* Bigger habit dots for easy tapping */
   .habit-days{gap:5px;}
   .day-dot{width:34px;height:34px;font-size:0.52rem;border-radius:8px;}
-  /* Gym week: 7 equal cols, smaller text */
-  .gym-week{grid-template-columns:repeat(7,1fr);gap:4px;}
-  .gym-day{font-size:0.52rem;padding:6px 2px;}
-  .dn{font-size:0.48rem;}
-  .wt-inp{font-size:0.48rem;padding:2px 3px;}
+  /* Gym week: keep 7 cols but tighter */
+  .gym-week{grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:14px;}
+  .gym-day{font-size:0.5rem;padding:5px 2px;border-radius:8px;}
+  .gym-day .dn{font-size:0.44rem;margin-bottom:2px;}
+  .gym-day .wt-inp{font-size:0.5rem;}
+  .gym-day .ck{font-size:0.8rem;}
+  /* Workout cards: single column */
+  #workoutCards.g3{grid-template-columns:1fr;}
+  /* Workout card header: bigger tap targets */
+  .wk-title-inp{font-size:0.92rem;}
+  /* Exercise list: more breathing room on each row */
+  .ex-item{padding:8px 0;gap:8px;}
+  .ex-del{opacity:1;} /* always visible on touch */
+  .habit-del{opacity:1;}
+  .book-del{opacity:1;}
+  .goal-del{opacity:1;}
+  /* Training log: remove horizontal overflow */
+  #trainingLog{overflow-x:hidden;}
   .progs-grid{grid-template-columns:1fr;}
   main{padding:18px 18px 80px;}
   .today-top{gap:12px;}
@@ -741,7 +764,33 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
   #calorieLogBtn{flex:0 0 auto;}
 }
 
-/* ══ RTL / Arabic ══ */
+/* ── Fitness-specific mobile fixes (≤600px) ── */
+@media(max-width:600px){
+  /* Section headings: don't let buttons overflow */
+  #panel-fitness .sec{flex-wrap:wrap;gap:6px;}
+  /* Workout card header: bigger chevron tap area */
+  #workoutCards .wk-head>button{min-height:36px;min-width:36px;}
+  /* Exercise log inputs: fill width equally */
+  #workoutCards .add-inp{font-size:16px;} /* prevent iOS zoom */
+  /* Session note textarea */
+  #workoutCards textarea{font-size:16px;}
+  /* Training log card: remove inner padding crush */
+  #trainingLog .card{padding:12px 10px;}
+  /* PBs list: allow wrapping */
+  #exercisePbsList{display:flex;flex-direction:column;gap:4px;}
+  /* Cardio input row — already has flex-wrap, just ensure inputs are wide enough */
+  #cardioInputRow input{min-width:0;flex:1 1 40%;}
+  #cardioInputRow #cardioActivity{flex:1 1 100%;}
+  #cardioInputRow #cardioLogBtn{width:100%;margin-top:4px;}
+  /* Body weight inputs */
+  #bodyWeightSection input{min-width:0;}
+  /* Notes tab: sidebar fills width when stacked */
+  #panel-notes>div{flex-direction:column;height:auto;}
+  #notesTopicList{width:100% !important;border-right:none !important;border-bottom:1px solid var(--border);min-height:0;max-height:40vh;overflow-y:auto;}
+  #notesEditor{min-height:50vh;}
+}
+
+/* ── RTL / Arabic ── */
 [dir="rtl"] body { font-family: 'Cairo', 'Jost', sans-serif; }
 [dir="rtl"] nav { direction: rtl; }
 [dir="rtl"] .hero-content { direction: rtl; }
@@ -1030,7 +1079,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <div id="cardioHistory"></div>
     </div>
     </div>
-    <div class="card" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <div class="card" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
       <span style="font-size:0.72rem;color:var(--muted-lt)">Track meals and macros in the Food tab.</span>
       <button class="btn btn-g" style="font-size:0.66rem;white-space:nowrap;flex-shrink:0" onclick="go('food',document.querySelector('.tab[onclick*=food]'))">Open Food</button>
     </div>
@@ -1216,10 +1265,8 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
         style="width:200px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:14px 8px;background:var(--deep)">
       </div>
 
-      <!-- Note list -->
-      <div id="notesNoteList"
-        style="width:240px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:14px 8px;background:var(--panel)">
-      </div>
+      <!-- Note list (unused in current design — kept for mobile view toggle) -->
+      <div id="notesNoteList" style="display:none"></div>
 
       <!-- Note editor -->
       <div id="notesEditor"

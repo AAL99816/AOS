@@ -441,11 +441,11 @@ function renderWorkoutCards() {
                   </div>
                   <button class="ex-del" onclick="delEx('${wc.id}','${ex.id}')">✕</button>
                 </div>
-                <div style="display:flex;align-items:center;gap:6px;margin-top:8px;">
-                  <input class="add-inp" id="logW-${ex.id}" type="number" step="0.5" placeholder="${t('weight_ph')}" style="width:68px;flex:none;" value="${last?.weight ?? ''}">
-                  <input class="add-inp" id="logR-${ex.id}" type="number" placeholder="${t('reps_ph')}" style="width:68px;flex:none;" value="${last?.reps ?? ''}">
-                  <input class="add-inp" id="logSets-${ex.id}" type="number" min="1" placeholder="sets" style="width:52px;flex:none;" value="${last?.sets ?? 1}" title="Sets">
-                  <button class="btn btn-g" style="font-size:0.66rem;padding:4px 9px" onclick="logExercise('${wc.id}','${ex.id}')">${t('log')}</button>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap;">
+                  <input class="add-inp" id="logW-${ex.id}" type="number" step="0.5" placeholder="${t('weight_ph')}" style="min-width:0;flex:1;" value="${last?.weight ?? ''}">
+                  <input class="add-inp" id="logR-${ex.id}" type="number" placeholder="${t('reps_ph')}" style="min-width:0;flex:1;" value="${last?.reps ?? ''}">
+                  <input class="add-inp" id="logSets-${ex.id}" type="number" min="1" placeholder="sets" style="min-width:0;flex:1;" value="${last?.sets ?? 1}" title="Sets">
+                  <button class="btn btn-g" style="font-size:0.66rem;padding:4px 9px;flex-shrink:0" onclick="logExercise('${wc.id}','${ex.id}')">${t('log')}</button>
                 </div>
                 <div id="lastLog-${ex.id}" style="margin-top:5px;font-size:0.64rem;color:var(--muted-lt);font-family:'DM Mono',monospace;">
                   ${last ? `${t('last_colon')} ${last.sets>1?last.sets+' × ':''}${last.weight}kg × ${last.reps}${pct!==null?` <span style="color:${pct>0?'var(--gold-lt)':'var(--petal)'}">${fmtPct(pct)}</span>`:''}${overloadHint}` : t('no_log_yet')}
@@ -460,16 +460,15 @@ function renderWorkoutCards() {
 
         <textarea id="sessionNote-${wc.id}" placeholder="Session notes…" style="display:block;width:100%;box-sizing:border-box;margin-top:10px;background:var(--mid);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:0.7rem;font-family:'DM Mono',monospace;resize:none;padding:7px 10px;min-height:44px;outline:none;line-height:1.5"></textarea>
 
-        <div style="margin-top:8px;display:flex;align-items:center;gap:6px">
-          <span style="font-size:0.58rem;color:var(--muted)">Date:</span>
+        <div style="margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:0.58rem;color:var(--muted);flex-shrink:0">Date:</span>
           <input type="date" id="sessionDate-${wc.id}" value="${today()}"
-            style="background:var(--mid);border:1px solid var(--border);border-radius:6px;color:var(--gold-lt);font-size:0.66rem;padding:3px 7px;font-family:'DM Mono',monospace;outline:none;cursor:pointer">
-          <span style="font-size:0.56rem;color:var(--muted)">Log past sessions here</span>
+            style="background:var(--mid);border:1px solid var(--border);border-radius:6px;color:var(--gold-lt);font-size:0.66rem;padding:3px 7px;font-family:'DM Mono',monospace;outline:none;cursor:pointer;flex-shrink:0">
         </div>
 
-        <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-d" style="font-size:0.66rem;padding:4px 9px" onclick="delWorkoutCard('${wc.id}')">${t('remove')}</button>
-          <div style="display:flex;gap:6px">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
             <button class="btn btn-g" style="font-size:0.66rem;padding:4px 9px" onclick="repeatLastWorkout('${wc.id}')" title="Pre-fill with last session's values">Repeat Last</button>
             <button class="btn btn-p" style="font-size:0.68rem;padding:5px 10px" onclick="logWorkoutSession('${wc.id}')">${t('log_session')}</button>
           </div>
@@ -544,13 +543,17 @@ function renderTrainingLog(){
         row.className = 'ex-item';
         row.style.cssText = 'display:flex;align-items:baseline;justify-content:space-between;gap:12px;';
         row.innerHTML = `
-          <div style="display:flex;align-items:baseline;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="openSessionDetail('${item.id}')">
-            <div style="font-size:0.62rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${escapeHtml(item.date||'')}</div>
-            <div style="font-size:0.8rem;color:var(--mist);flex-shrink:0">${escapeHtml(item.title||'Workout')}</div>
-            <div style="font-size:0.68rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(item.summary||'')}</div>
+          <div style="flex:1;min-width:0;cursor:pointer" onclick="openSessionDetail('${item.id}')">
+            <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+              <span style="font-size:0.62rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${escapeHtml(item.date||'')}</span>
+              <span style="font-size:0.8rem;color:var(--mist);flex-shrink:0">${escapeHtml(item.title||'Workout')}</span>
+            </div>
+            ${item.summary ? `<div style="font-size:0.66rem;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(item.summary)}</div>` : ''}
           </div>
-          <button class="btn btn-g" style="font-size:0.6rem;padding:2px 8px;flex-shrink:0" onclick="openEditSession('${item.id}')">Edit</button>
-          <button class="habit-del" style="opacity:0.4" onclick="deleteWorkoutSession('${item.id}')">✕</button>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            <button class="btn btn-g" style="font-size:0.6rem;padding:2px 8px" onclick="openEditSession('${item.id}')">Edit</button>
+            <button class="habit-del" style="opacity:0.4" onclick="deleteWorkoutSession('${item.id}')">✕</button>
+          </div>
         `;
         wrap.appendChild(row);
       }); // grouped[key]
@@ -1412,13 +1415,15 @@ function renderCardioHistory() {
     const label = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     const rows = grouped[month].map(s => {
       const meta = [s.duration, s.distance, s.steps ? s.steps.toLocaleString() + ' steps' : ''].filter(Boolean).join(' · ');
-      return `<div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)">
-        <div style="display:flex;gap:8px;align-items:baseline;flex:1;min-width:0">
-          <span style="font-size:0.58rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${escapeHtml(s.date||'')}</span>
-          <span style="font-size:0.78rem;color:var(--mist)">${escapeHtml(s.activity||'Cardio')}</span>
-          ${meta ? `<span style="font-size:0.64rem;color:var(--muted)">${escapeHtml(meta)}</span>` : ''}
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;">
+            <span style="font-size:0.58rem;color:var(--muted-lt);font-family:'DM Mono',monospace;flex-shrink:0">${escapeHtml(s.date||'')}</span>
+            <span style="font-size:0.78rem;color:var(--mist);flex-shrink:0">${escapeHtml(s.activity||'Cardio')}</span>
+          </div>
+          ${meta ? `<div style="font-size:0.64rem;color:var(--muted);margin-top:2px">${escapeHtml(meta)}</div>` : ''}
         </div>
-        <button class="habit-del" style="opacity:0.4" onclick="deleteCardioSession('${s.id}')">✕</button>
+        <button class="habit-del" style="opacity:0.4;flex-shrink:0" onclick="deleteCardioSession('${s.id}')">✕</button>
       </div>`;
     }).join('');
     return `<div style="font-size:0.55rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--blush);font-family:'DM Mono',monospace;padding:8px 0 4px;border-bottom:1px solid var(--border);margin-bottom:2px">${label}</div>${rows}`;

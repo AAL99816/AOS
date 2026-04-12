@@ -117,18 +117,10 @@ function renderNotes() {
 function _applyNotesView() {
   const topicsEl = eid('notesTopicList');
   const editorEl = eid('notesEditor');
-  if (!topicsEl) return;
-  const isMobile = window.innerWidth < 700;
-  if (!isMobile) {
-    topicsEl.style.display = editorEl.style.display = '';
-    const nl = eid('notesNoteList');
-    if (nl) nl.style.display = '';
-    return;
-  }
-  topicsEl.style.display = _notesView === 'topics' ? '' : 'none';
-  const nl = eid('notesNoteList');
-  if (nl) nl.style.display = _notesView === 'notelist' ? '' : 'none';
-  editorEl.style.display = _notesView === 'editor' ? '' : 'none';
+  if (!topicsEl || !editorEl) return;
+  // On mobile CSS stacks the panels vertically — both always visible
+  topicsEl.style.display = '';
+  editorEl.style.display = '';
 }
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -318,9 +310,9 @@ function renderNotesEditor() {
   const isMobile = window.innerWidth < 700;
 
   if (!note) {
-    el.innerHTML = `<div style="padding:60px 24px;text-align:center;color:var(--muted);
-      font-size:0.76rem;line-height:1.9">
-      Select a note or tap <strong style="color:var(--blush)">+</strong> to write one
+    el.innerHTML = `<div style="padding:60px 24px;text-align:center;color:var(--muted-lt);
+      font-size:0.76rem;line-height:1.9;font-family:'DM Mono',monospace">
+      Select a note from the sidebar, or tap <strong style="color:var(--blush)">+</strong> next to My Notes to write one.
     </div>`;
     return;
   }
