@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'aos-v47';
+const CACHE = 'aos-v48';
 
 const SHELL = [
   '/manifest.json',
@@ -14,10 +14,12 @@ const SHELL = [
   '/Renderer/updater.js',
   '/Renderer/habits.js',
   '/Renderer/fitness.js',
+  '/Renderer/exercises.js',
   '/Renderer/goals.js',
   '/Renderer/projects.js',
   '/Renderer/mediaSearch.js',
   '/Renderer/media.js',
+  '/Renderer/notes.js',
   '/Renderer/review.js',
   '/Renderer/settings.js',
   '/Renderer/features.js',
@@ -47,8 +49,6 @@ self.addEventListener('fetch', e => {
   if (url.hostname !== self.location.hostname) return;
 
   /* Navigation requests (HTML page loads) — always go to network.
-     This ensures the browser always gets fresh HTML and can detect
-     a new sw.js version without needing a hard refresh.
      Falls back to cached index.html if offline. */
   if (e.request.mode === 'navigate') {
     e.respondWith(
@@ -57,8 +57,19 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  /* JS / CSS / assets — cache-first for fast loads */
+  /* JS / CSS / assets — stale-while-revalidate:
+     Serve cached version immediately for speed, fetch fresh copy in
+     background so the *next* load always gets updated code.
+     Falls back to cache if offline. */
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    caches.open(CACHE).then(cache =>
+      cache.match(e.request).then(cached => {
+        const networkFetch = fetch(e.request).then(res => {
+          if (res && res.status === 200) cache.put(e.request, res.clone());
+          return res;
+        }).catch(() => cached);
+        return cached || networkFetch;
+      })
+    )
   );
 });

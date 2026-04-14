@@ -794,23 +794,44 @@ function _refreshExerciseDatalist() {
 // ── Exercise Picker Modal ──────────────────────────────────────────────────────
 let _pickerWcId       = null;  // which workout card we're adding to
 let _pickerQuery      = '';
-let _pickerMuscle     = '';    // '' = all
+let _pickerRegion     = '';    // body region (Chest, Back, Shoulders, Arms, Legs, Core, Cardio)
+let _pickerMuscle     = '';    // sub-muscle drill-down within region
 let _pickerEquip      = '';    // '' = all
 
+// Body regions — used for the first row of filter chips
+const _BODY_REGIONS = [
+  { key:'chest',     label:'Chest',     muscles:['chest']                                    },
+  { key:'back',      label:'Back',      muscles:['back','lats','traps']                      },
+  { key:'shoulders', label:'Shoulders', muscles:['shoulders']                                },
+  { key:'arms',      label:'Arms',      muscles:['biceps','triceps','forearms']              },
+  { key:'legs',      label:'Legs',      muscles:['quads','hamstrings','glutes','calves']     },
+  { key:'core',      label:'Core',      muscles:['core']                                     },
+  { key:'cardio',    label:'Cardio',    muscles:[],  pattern:'cardio'                        },
+];
+
+// Preferred muscle order within each region (for two-level grouping)
+const _REGION_MUSCLE_ORDER = {
+  back:  ['lats','back','traps'],
+  arms:  ['biceps','triceps','forearms'],
+  legs:  ['quads','hamstrings','glutes','calves'],
+};
+
+// Human-readable sub-muscle labels
 const _MUSCLE_LABELS = {
-  chest:'Chest', back:'Back', lats:'Lats', traps:'Traps',
+  chest:'Chest', back:'Rows & Thickness', lats:'Lats & Pulldowns', traps:'Traps & Upper Back',
   shoulders:'Shoulders', biceps:'Biceps', triceps:'Triceps', forearms:'Forearms',
   core:'Core', glutes:'Glutes', quads:'Quads', hamstrings:'Hamstrings', calves:'Calves',
 };
 const _EQUIP_LABELS = {
   barbell:'Barbell', dumbbell:'Dumbbell', cable:'Cable',
   machine:'Machine', bodyweight:'Bodyweight', kettlebell:'Kettlebell',
-  band:'Band', cardio:'Cardio',
+  band:'Band',
 };
 
 function openExercisePicker(wcId) {
   _pickerWcId   = wcId;
   _pickerQuery  = '';
+  _pickerRegion = '';
   _pickerMuscle = '';
   _pickerEquip  = '';
   _renderPickerFilters();
@@ -823,6 +844,13 @@ function openExercisePicker(wcId) {
 
 function setPickerQuery(q) {
   _pickerQuery = (q || '').toLowerCase().trim();
+  _renderPickerResults();
+}
+
+function _setPickerRegion(r) {
+  _pickerRegion = _pickerRegion === r ? '' : r;
+  _pickerMuscle = ''; // clear sub-muscle when switching region
+  _renderPickerFilters();
   _renderPickerResults();
 }
 
@@ -843,14 +871,32 @@ function _filterChip(label, active, onclick) {
 }
 
 function _renderPickerFilters() {
-  const mEl = eid('exPickerMuscleFilters');
+  const rEl = eid('exPickerMuscleFilters');   // now: region chips
+  const subEl = eid('exPickerSubFilters');    // sub-muscle chips
   const eEl = eid('exPickerEquipFilters');
-  if (!mEl || !eEl) return;
+  if (!rEl || !eEl) return;
 
-  mEl.innerHTML = Object.entries(_MUSCLE_LABELS).map(([k, v]) =>
-    _filterChip(v, _pickerMuscle === k, `_setPickerMuscle('${k}')`)
+  // Row 1: body region chips
+  rEl.innerHTML = _BODY_REGIONS.map(r =>
+    _filterChip(r.label, _pickerRegion === r.key, `_setPickerRegion('${r.key}')`)
   ).join('');
 
+  // Row 2: sub-muscle chips — only when a multi-muscle region is selected
+  if (subEl) {
+    const region = _BODY_REGIONS.find(r => r.key === _pickerRegion);
+    if (region && region.muscles.length > 1) {
+      const order = _REGION_MUSCLE_ORDER[region.key] || region.muscles;
+      subEl.style.display = 'flex';
+      subEl.innerHTML = order.map(m =>
+        _filterChip(_MUSCLE_LABELS[m] || m, _pickerMuscle === m, `_setPickerMuscle('${m}')`)
+      ).join('');
+    } else {
+      subEl.style.display = 'none';
+      subEl.innerHTML = '';
+    }
+  }
+
+  // Row 3: equipment chips
   eEl.innerHTML = Object.entries(_EQUIP_LABELS).map(([k, v]) =>
     _filterChip(v, _pickerEquip === k, `_setPickerEquip('${k}')`)
   ).join('');
@@ -865,10 +911,22 @@ function _renderPickerResults() {
     id: 'custom-' + e.name, name: e.name, muscles: [], secondary: [], equipment: 'custom', category: 'custom', pattern: 'other'
   }));
   const all = [...db, ...custom];
-
   let results = all;
 
-  // Filter by muscle group
+  // Region filter
+  const region = _BODY_REGIONS.find(r => r.key === _pickerRegion);
+  if (region) {
+    if (region.pattern === 'cardio') {
+      results = results.filter(e => (e.pattern || '') === 'cardio');
+    } else {
+      results = results.filter(e =>
+        (e.muscles || []).some(m => region.muscles.includes(m)) ||
+        (e.secondary || []).some(m => region.muscles.includes(m))
+      );
+    }
+  }
+
+  // Sub-muscle drill-down filter
   if (_pickerMuscle) {
     results = results.filter(e =>
       (e.muscles || []).includes(_pickerMuscle) ||
@@ -876,7 +934,7 @@ function _renderPickerResults() {
     );
   }
 
-  // Filter by equipment
+  // Equipment filter
   if (_pickerEquip) {
     results = results.filter(e =>
       (e.equipment || '').toLowerCase() === _pickerEquip ||
@@ -884,7 +942,7 @@ function _renderPickerResults() {
     );
   }
 
-  // Filter by search query
+  // Search query filter
   if (_pickerQuery) {
     results = results.filter(e =>
       e.name.toLowerCase().includes(_pickerQuery) ||
@@ -895,7 +953,6 @@ function _renderPickerResults() {
   }
 
   if (!results.length) {
-    // Offer to add as custom
     el.innerHTML = `
       <div style="padding:24px 16px;text-align:center">
         <div style="font-size:0.76rem;color:var(--muted);margin-bottom:14px">No exercises found</div>
@@ -905,28 +962,84 @@ function _renderPickerResults() {
     return;
   }
 
-  // Group by primary muscle (first muscle in array) if no query and no muscle filter
-  const grouped = !_pickerQuery && !_pickerMuscle;
-  if (grouped) {
-    const groups = {};
-    results.forEach(e => {
-      const key = (e.muscles && e.muscles[0]) || 'other';
-      const label = _MUSCLE_LABELS[key] || (key.charAt(0).toUpperCase() + key.slice(1));
-      if (!groups[label]) groups[label] = [];
-      groups[label].push(e);
-    });
+  const noFilter    = !_pickerQuery && !_pickerRegion && !_pickerMuscle && !_pickerEquip;
+  const regionOnly  = !_pickerQuery && _pickerRegion  && !_pickerMuscle && !_pickerEquip;
 
-    el.innerHTML = Object.entries(groups).map(([groupLabel, items]) => `
-      <div style="margin-bottom:2px">
-        <div style="font-size:0.55rem;letter-spacing:0.14em;text-transform:uppercase;
-          color:var(--blush);font-family:'DM Mono',monospace;padding:10px 10px 6px;
-          position:sticky;top:0;background:var(--panel)">${escapeHtml(groupLabel)}</div>
-        ${items.map(e => _pickerExRow(e)).join('')}
-      </div>
-    `).join('');
+  if (noFilter) {
+    el.innerHTML = _renderTwoLevelGroups(results);
+  } else if (regionOnly && region && region.muscles.length > 1) {
+    // Region selected, no sub-muscle — group by sub-muscle within the region
+    el.innerHTML = _renderSubMuscleGroups(results, _REGION_MUSCLE_ORDER[region.key] || region.muscles);
   } else {
     el.innerHTML = results.slice(0, 80).map(e => _pickerExRow(e)).join('');
   }
+}
+
+/* Full two-level hierarchy: REGION → sub-muscle → exercises */
+function _renderTwoLevelGroups(results) {
+  // Map each muscle key to its region
+  const muscleToRegion = {};
+  _BODY_REGIONS.forEach(r => r.muscles.forEach(m => { muscleToRegion[m] = r.key; }));
+
+  // Bucket exercises into region → primaryMuscle
+  const regionMap = {};
+  results.forEach(e => {
+    const primaryMuscle = (e.muscles && e.muscles[0]) || 'other';
+    const regionKey = e.pattern === 'cardio' ? 'cardio'
+      : (muscleToRegion[primaryMuscle] || 'other');
+    if (!regionMap[regionKey]) regionMap[regionKey] = {};
+    if (!regionMap[regionKey][primaryMuscle]) regionMap[regionKey][primaryMuscle] = [];
+    regionMap[regionKey][primaryMuscle].push(e);
+  });
+
+  const regionOrder = ['chest','back','shoulders','arms','legs','core','cardio','other'];
+  return regionOrder.filter(rk => regionMap[rk]).map(rk => {
+    const regionDef  = _BODY_REGIONS.find(r => r.key === rk);
+    const regionLabel = regionDef ? regionDef.label : (rk.charAt(0).toUpperCase() + rk.slice(1));
+    const subOrder   = _REGION_MUSCLE_ORDER[rk] || Object.keys(regionMap[rk]);
+    const muscles    = subOrder.filter(m => regionMap[rk][m]);
+    // Also append any muscles not in the predefined order
+    Object.keys(regionMap[rk]).forEach(m => { if (!muscles.includes(m)) muscles.push(m); });
+    const multiSub   = muscles.length > 1;
+
+    const innerHtml = muscles.map(m => {
+      const subLabel = _MUSCLE_LABELS[m] || m;
+      const items    = regionMap[rk][m] || [];
+      return `
+        ${multiSub ? `<div style="font-size:0.5rem;letter-spacing:0.12em;text-transform:uppercase;
+          color:var(--muted);font-family:'DM Mono',monospace;padding:8px 10px 4px;margin-top:2px">${escapeHtml(subLabel)}</div>` : ''}
+        ${items.map(e => _pickerExRow(e)).join('')}`;
+    }).join('');
+
+    return `<div style="margin-bottom:4px">
+      <div style="font-size:0.6rem;letter-spacing:0.14em;text-transform:uppercase;
+        color:var(--blush);font-family:'DM Mono',monospace;padding:12px 10px 6px;
+        position:sticky;top:0;background:var(--panel);border-bottom:1px solid var(--border)">${escapeHtml(regionLabel)}</div>
+      ${innerHtml}
+    </div>`;
+  }).join('');
+}
+
+/* Single-region view: group by sub-muscle only */
+function _renderSubMuscleGroups(results, muscleOrder) {
+  const groups = {};
+  results.forEach(e => {
+    const key = (e.muscles && e.muscles[0]) || 'other';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(e);
+  });
+  const order = muscleOrder.filter(m => groups[m]);
+  Object.keys(groups).forEach(m => { if (!order.includes(m)) order.push(m); });
+
+  return order.map(m => {
+    const label = _MUSCLE_LABELS[m] || m;
+    return `<div style="margin-bottom:2px">
+      <div style="font-size:0.55rem;letter-spacing:0.14em;text-transform:uppercase;
+        color:var(--blush);font-family:'DM Mono',monospace;padding:10px 10px 6px;
+        position:sticky;top:0;background:var(--panel)">${escapeHtml(label)}</div>
+      ${(groups[m] || []).map(e => _pickerExRow(e)).join('')}
+    </div>`;
+  }).join('');
 }
 
 function _pickerExRow(e) {

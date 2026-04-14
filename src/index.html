@@ -822,7 +822,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
   #bodyWeightSection input{min-width:0;}
   /* Exercise picker: full-height modal, bigger chips */
   #mExercisePicker .modal{max-height:96vh;}
-  #exPickerMuscleFilters,#exPickerEquipFilters{padding:10px 12px 8px;}
+  #exPickerMuscleFilters,#exPickerSubFilters,#exPickerEquipFilters{padding:10px 12px 8px;}
   .picker-chip{padding:7px 14px;font-size:0.68rem;min-height:38px;}
   /* Workout preset modal: fill screen, buttons full-width column */
   #mWorkoutPreset .modal{max-height:94vh;}
@@ -836,6 +836,43 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
   #panel-notes>div{flex-direction:column;height:auto;}
   #notesTopicList{width:100% !important;border-right:none !important;border-bottom:1px solid var(--border);min-height:0;max-height:40vh;overflow-y:auto;}
   #notesEditor{min-height:50vh;}
+}
+
+/* ── General mobile polish ── */
+@media(max-width:600px){
+  /* Prevent iOS auto-zoom on ALL inputs across every tab.
+     Excludes .wt-inp (gym week tiny weight cells) which have their own size. */
+  input[type="text"]:not(.wt-inp),
+  input[type="number"]:not(.wt-inp),
+  input[type="date"], input[type="email"], input[type="password"],
+  textarea, select { font-size:16px !important; }
+
+  /* All section headings (.sec rows) wrap on narrow screens */
+  .sec { flex-wrap:wrap; gap:8px; }
+
+  /* Bigger tap targets for all generic icon buttons */
+  .card button[style*="background:none"],
+  .card button[style*="background: none"] { min-width:36px; min-height:36px; }
+
+  /* Training log full modal: more scrolling space */
+  #tfList { max-height:68vh; }
+  #mTrainingFull .modal { overflow:hidden; display:flex; flex-direction:column; padding:20px 18px; }
+  #mTrainingFull .modal>*:last-child { flex:1; overflow-y:auto; min-height:0; }
+
+  /* Food search: bigger scroll area */
+  #foodSearchResults { max-height:50vh; }
+
+  /* Grocery list, habit manager, past notes: more room */
+  #groceryItems, #habitManagerList, #pnList { max-height:65vh; }
+
+  /* Project notes list */
+  #pdNotesList { max-height:40vh; }
+
+  /* Exercise progress modal: bigger chart area */
+  #mExerciseProgress .modal { overflow:hidden; }
+
+  /* Nav tabs: slightly tighter padding to help 8 tabs fit */
+  .tab { padding:10px 6px 8px; font-size:0.56rem; letter-spacing:0; }
 }
 
 /* ── RTL / Arabic ── */
@@ -1714,10 +1751,12 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
           border-radius:8px;color:var(--cream);padding:10px 12px;font-size:16px;outline:none;
           font-family:'Jost',sans-serif">
     </div>
-    <!-- Muscle filters -->
-    <div id="exPickerMuscleFilters" style="display:flex;gap:5px;padding:8px 14px 6px;overflow-x:auto;flex-shrink:0;scrollbar-width:none"></div>
+    <!-- Region filters (top level: Chest, Back, Shoulders…) -->
+    <div id="exPickerMuscleFilters" style="display:flex;gap:5px;padding:8px 14px 4px;overflow-x:auto;flex-shrink:0;scrollbar-width:none"></div>
+    <!-- Sub-muscle filters (drill-down: Lats, Rows, Quads…) — hidden until a multi-muscle region is selected -->
+    <div id="exPickerSubFilters" style="display:none;gap:5px;padding:2px 14px 4px;overflow-x:auto;flex-shrink:0;scrollbar-width:none;border-top:1px solid var(--border)"></div>
     <!-- Equipment filters -->
-    <div id="exPickerEquipFilters" style="display:flex;gap:5px;padding:4px 14px 8px;overflow-x:auto;flex-shrink:0;border-bottom:1px solid var(--border);scrollbar-width:none"></div>
+    <div id="exPickerEquipFilters" style="display:flex;gap:5px;padding:4px 14px 8px;overflow-x:auto;flex-shrink:0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);scrollbar-width:none"></div>
     <!-- Results -->
     <div id="exPickerResults" style="flex:1;overflow-y:auto;padding:6px 8px"></div>
   </div>
