@@ -362,7 +362,8 @@ async function clearAllData() {
   );
   if (!confirmed) return;
   const typed = prompt('Type DELETE (all caps) to confirm permanent data wipe:');
-  if (typed !== 'DELETE') { toast('Cancelled — nothing was deleted'); return; }
+  if (typed === null) { toast('Cancelled — nothing was deleted'); return; }
+  if (typed !== 'DELETE') { toast('Incorrect — type DELETE in all caps to confirm'); return; }
   // Auto-backup before wiping
   try { await window.api.exportData(JSON.stringify(S, null, 2)); } catch(_) {}
   S = normalizeAppState({});

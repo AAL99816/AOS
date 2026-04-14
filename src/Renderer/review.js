@@ -113,14 +113,15 @@ function renderWeeklyReview() {
         const future     = d > today();
         return `<button
           ${future ? 'disabled' : `onclick="selectDayDetail('${d}')"`}
-          style="padding:6px 2px;border-radius:var(--r-sm);font-size:0.55rem;font-family:'DM Mono',monospace;letter-spacing:0.04em;
+          style="padding:10px 2px;border-radius:var(--r-sm);font-size:0.62rem;font-family:'DM Mono',monospace;letter-spacing:0.04em;
+            min-height:44px;-webkit-tap-highlight-color:transparent;
             background:${isSelected?'var(--blush)':'var(--mid)'};
             color:${isSelected?'var(--cream)':'var(--muted)'};
             border:${isToday?'1px solid var(--blush)':'1px solid transparent'};
             cursor:${future?'default':'pointer'};opacity:${future?'0.3':'1'};
             text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px">
           <span>${DAY_SHORT[i].slice(0,2)}</span>
-          <span style="font-size:0.48rem;opacity:0.7">${d.slice(8)}</span>
+          <span style="font-size:0.52rem;opacity:0.7">${d.slice(8)}</span>
         </button>`;
       }).join('')}
     </div>

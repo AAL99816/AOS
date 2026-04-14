@@ -35,7 +35,7 @@ async function uploadAvatar(input){
     currentProfile.avatar_url = url;
     renderHeroProfile();
     toast(t('avatar_updated'));
-  } catch { toast(t('avatar_upload_error')); }
+  } catch(e) { console.error('[uploadAvatar]', e); toast(t('avatar_upload_error')); }
 }
 
 async function saveUsername(val){
@@ -114,8 +114,7 @@ function _renderTab(name) {
     if (typeof renderWeightLog         === 'function') renderWeightLog();
     if (typeof renderBodyWeightSection === 'function') renderBodyWeightSection();
     if (typeof renderExercisePbs       === 'function') renderExercisePbs();
-    // Heatmap hidden — code preserved for future use
-    // if (typeof renderMuscleHeatmap  === 'function') renderMuscleHeatmap();
+    if (typeof renderMuscleHeatmap     === 'function') renderMuscleHeatmap();
   }
   if (name === 'food'     && typeof renderFoodTab     === 'function') { if (typeof _bindFoodDatePicker === 'function') _bindFoodDatePicker(); renderFoodTab(); }
   if (name === 'projects' && typeof renderProjects    === 'function') renderProjects();

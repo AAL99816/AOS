@@ -523,14 +523,14 @@ function _foodEntryRow(e) {
   const btnStyle = 'background:none;border:none;cursor:pointer;flex-shrink:0;padding:0;line-height:1';
   const qtyVal = isServings ? (e.servings || 1) : (e.grams || 100);
   const adjHtml = canAdjust ? `
-    <div style="display:flex;align-items:center;gap:3px;flex-shrink:0">
-      <button onclick="adjustFoodEntry('${e.id}',${-step})" style="${btnStyle};color:var(--muted);font-size:1rem;width:22px;height:22px;border-radius:50%;background:var(--mid)" title="Less">\u2212</button>
+    <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+      <button onclick="adjustFoodEntry('${e.id}',${-step})" style="${btnStyle};color:var(--muted);font-size:1.1rem;width:36px;height:36px;border-radius:50%;background:var(--mid);-webkit-tap-highlight-color:transparent" title="Less">\u2212</button>
       <input type="number" min="0" step="any" value="${qtyVal}"
         onchange="setFoodEntryQty('${e.id}',this.value)"
         onclick="this.select()"
-        style="width:38px;background:var(--mid);border:1px solid var(--border);border-radius:5px;color:var(--cream);font-family:'DM Mono',monospace;font-size:0.62rem;text-align:center;padding:2px 3px;-moz-appearance:textfield">
+        style="width:44px;background:var(--mid);border:1px solid var(--border);border-radius:5px;color:var(--cream);font-family:'DM Mono',monospace;font-size:16px;text-align:center;padding:4px 3px;-moz-appearance:textfield">
       <span style="font-size:0.58rem;color:var(--muted);margin-left:-1px">${isServings ? 'srv' : 'g'}</span>
-      <button onclick="adjustFoodEntry('${e.id}',${step})" style="${btnStyle};color:var(--muted);font-size:0.9rem;width:22px;height:22px;border-radius:50%;background:var(--mid)" title="More">+</button>
+      <button onclick="adjustFoodEntry('${e.id}',${step})" style="${btnStyle};color:var(--muted);font-size:1.1rem;width:36px;height:36px;border-radius:50%;background:var(--mid);-webkit-tap-highlight-color:transparent" title="More">+</button>
     </div>` : '';
   return `
     <div style="border-bottom:1px solid var(--border)">

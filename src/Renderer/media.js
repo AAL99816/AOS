@@ -185,8 +185,8 @@ function buildFilmCard(b, idx) {
       </div>
     </div>
     <div class="book-info">
-      <input class="editable book-title-inp" value="${escapeAttr(b.title)}" onchange="event.stopPropagation();updateBF(${b.id},'title',this.value)">
-      <input class="editable book-author-inp" value="${escapeAttr(b.author)}" onchange="event.stopPropagation();updateBF(${b.id},'author',this.value)" placeholder="${t('director')}">
+      <input class="editable book-title-inp" value="${escapeAttr(b.title)}" onchange="event.stopPropagation();updateBF('${b.id}','title',this.value)">
+      <input class="editable book-author-inp" value="${escapeAttr(b.author)}" onchange="event.stopPropagation();updateBF('${b.id}','author',this.value)" placeholder="${t('director')}">
       ${b.runtime ? `<div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">${escapeHtml(b.runtime)}</div>` : ''}
       <div style="height:2px;background:var(--border);border-radius:1px;margin-top:5px"><div style="height:2px;width:${watched?'100':'0'}%;background:var(--blush);border-radius:1px;transition:width 0.3s"></div></div>
       <div class="book-row" style="margin-top:6px">
@@ -229,8 +229,8 @@ function buildShowCard(b, idx) {
       <div style="position:absolute;top:7px;left:7px;background:var(--ink-glass);border-radius:5px;padding:2px 7px;font-size:0.58rem;font-family:'DM Mono',monospace;color:var(--petal)">${seBadge}</div>
     </div>
     <div class="book-info">
-      <input class="editable book-title-inp" value="${escapeAttr(b.title)}" onchange="event.stopPropagation();updateBF(${b.id},'title',this.value)">
-      <input class="editable book-author-inp" value="${escapeAttr(b.author)}" onchange="event.stopPropagation();updateBF(${b.id},'author',this.value)" placeholder="${t('creator')}">
+      <input class="editable book-title-inp" value="${escapeAttr(b.title)}" onchange="event.stopPropagation();updateBF('${b.id}','title',this.value)">
+      <input class="editable book-author-inp" value="${escapeAttr(b.author)}" onchange="event.stopPropagation();updateBF('${b.id}','author',this.value)" placeholder="${t('creator')}">
       ${progressBar}
       <div class="book-row" style="margin-top:6px">
         <span class="bstatus bs-${b.status}" onclick="event.stopPropagation();cycleBook('${b.id}')">${slbl}</span>
@@ -267,8 +267,8 @@ function buildAlbumCard(b, idx) {
       </div>
     </div>
     <div class="book-info">
-      <input class="editable book-title-inp" value="${escapeAttr(b.title)}" onchange="event.stopPropagation();updateBF(${b.id},'title',this.value)">
-      <input class="editable book-author-inp" value="${escapeAttr(b.author)}" onchange="event.stopPropagation();updateBF(${b.id},'author',this.value)" placeholder="${t('artist')}">
+      <input class="editable book-title-inp" value="${escapeAttr(b.title)}" onchange="event.stopPropagation();updateBF('${b.id}','title',this.value)">
+      <input class="editable book-author-inp" value="${escapeAttr(b.author)}" onchange="event.stopPropagation();updateBF('${b.id}','author',this.value)" placeholder="${t('artist')}">
       ${trackCount > 0 ? `<div style="font-size:0.56rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">${trackCount} ${t('tracks')}</div>` : ''}
       ${(() => { const rated = (b.tracks||[]).filter(tr => tr.rating > 0).length; const pct = trackCount ? Math.round(rated/trackCount*100) : (b.status==='done'?100:0); return `<div style="height:2px;background:var(--border);border-radius:1px;margin-top:5px"><div style="height:2px;width:${pct}%;background:var(--blush);border-radius:1px;transition:width 0.3s"></div></div>`; })()}
       <div class="book-row" style="margin-top:6px">

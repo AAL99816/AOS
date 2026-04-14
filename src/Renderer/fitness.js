@@ -1376,7 +1376,7 @@ function logWorkoutSession(wcId) {
   // Reset date picker to today after logging
   setTimeout(() => { const dp = eid(`sessionDate-${wc.id}`); if (dp) dp.value = today(); }, 50);
 
-  // Heatmap hidden — code preserved: if (typeof renderMuscleHeatmap === 'function') renderMuscleHeatmap();
+  if (typeof renderMuscleHeatmap === 'function') renderMuscleHeatmap();
   toast(`${wc.title || t('workout')} ${t('workout_saved')}`);
 }
 

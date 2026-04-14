@@ -22,7 +22,12 @@ function _projectEntityNotes(p) {
 
 function _projectOpenNotes(appId) {
   const p = ensureProjects().find(x => String(x.id) === String(appId));
-  if (!p || !p._uuid) return;
+  if (!p) return;
+  if (!p._uuid) {
+    toast('Notes will be available after your first sync — try again in a moment.');
+    scheduleSave();
+    return;
+  }
   if (typeof openNotesForEntity === 'function') openNotesForEntity('project', p._uuid);
 }
 
