@@ -285,8 +285,8 @@ function renderToday() {
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace">Water · ${waterCount}/${waterTarget} ${waterUnitLbl}</div>
         <div style="display:flex;align-items:center;gap:6px">
-          <button onclick="addWater(-${waterUnit==='litres'?0.25:waterUnit==='oz'?8:1})" style="background:var(--mid);border:none;color:var(--muted);cursor:pointer;width:22px;height:22px;border-radius:50%;font-size:1rem;line-height:1;display:flex;align-items:center;justify-content:center">−</button>
-          <button onclick="addWater(${waterUnit==='litres'?0.25:waterUnit==='oz'?8:1})" style="background:var(--blush);border:none;color:var(--cream);cursor:pointer;width:22px;height:22px;border-radius:50%;font-size:1rem;line-height:1;display:flex;align-items:center;justify-content:center">+</button>
+          <button onclick="addWater(-${waterUnit==='litres'?0.25:waterUnit==='oz'?8:1})" style="background:var(--mid);border:none;color:var(--muted);cursor:pointer;width:36px;height:36px;border-radius:50%;font-size:1.1rem;line-height:1;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">−</button>
+          <button onclick="addWater(${waterUnit==='litres'?0.25:waterUnit==='oz'?8:1})" style="background:var(--blush);border:none;color:var(--cream);cursor:pointer;width:36px;height:36px;border-radius:50%;font-size:1.1rem;line-height:1;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">+</button>
         </div>
       </div>
       ${waterBubbles ? `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">${waterBubbles}</div>` : ''}

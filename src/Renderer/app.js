@@ -262,7 +262,17 @@ function setupInlineEdits(){
   if(inlineEditsBound) return;
   inlineEditsBound = true;
   eid('appTitle').addEventListener('input',e=>{
-    S.appTitle=e.target.textContent;
+    S.appTitle = e.target.textContent.slice(0, 80);
+    if (e.target.textContent.length > 80) {
+      // Trim in-place without losing cursor
+      e.target.textContent = S.appTitle;
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.selectNodeContents(e.target);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
     clearTimeout(_titleSaveTimer);
     _titleSaveTimer = setTimeout(()=>scheduleSave(), 800);
   });
@@ -273,7 +283,12 @@ async function initApp(){
   if(typeof restoreAppearance === 'function') restoreAppearance();
   setupMobileUX();
   const hasData = await loadFromSupabase();
-  eid('dateBadge').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  function _refreshDateBadge() {
+    eid('dateBadge').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  }
+  _refreshDateBadge();
+  // Refresh when the user returns to the tab (covers midnight crossings and background stays)
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) _refreshDateBadge(); });
   setupInlineEdits();
   renderHeroProfile();
 

@@ -500,7 +500,10 @@ function renderTrainingLog(){
   c.appendChild(sec);
 
   if(!histAll.length){
-    c.innerHTML += `<div style="text-align:center;padding:40px 24px"><div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:10px">◆</div><div style="font-size:0.66rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">${t('no_sessions')}</div></div>`;
+    const empty = document.createElement('div');
+    empty.style.cssText = 'text-align:center;padding:40px 24px';
+    empty.innerHTML = `<div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:10px">◆</div><div style="font-size:0.66rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">${t('no_sessions')}</div>`;
+    c.appendChild(empty);
     return;
   }
 

@@ -1190,7 +1190,7 @@ function _showFoodAddForm(per100g, manual, servingsMode = false) {
 function _updateFoodMacroPreview() {
   const form = eid('foodAddForm');
   if (!form) return;
-  const qty   = parseFloat(eid('foodAddGrams')?.value) || (form._servingsMode ? 1 : 100);
+  const qty   = parseFloat(eid('foodAddGrams')?.value) ?? (form._servingsMode ? 1 : 100);
   const p100  = form._per100g;
   const preview = eid('foodMacroPreview');
   if (!preview) return;
@@ -1215,7 +1215,7 @@ function saveFoodEntry() {
   const form    = eid('foodAddForm');
   const name    = eid('foodAddName')?.value.trim();
   const brand   = eid('foodAddBrand')?.value.trim() || '';
-  const grams   = parseFloat(eid('foodAddGrams')?.value) || 100;
+  const grams   = parseFloat(eid('foodAddGrams')?.value) ?? 100;
   const meal    = eid('foodAddMeal')?.value || _currentMeal;
   if (!name) { toast('Enter a food name'); return; }
 

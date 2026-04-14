@@ -153,6 +153,7 @@ let _pomodoroTimer    = null;
 let _pomodoroSecsLeft = 0;
 let _pomodoroPhase    = 'work';   // 'work' | 'break' | 'long-break'
 let _pomodoroCount    = 0;        // completed work sessions this cycle
+let _audioCtx         = null;     // reused AudioContext singleton
 
 const POMO_WORK       = 25 * 60;
 const POMO_BREAK      = 5  * 60;
@@ -162,7 +163,8 @@ const POMO_CYCLE      = 4;        // sessions before long break
 function _playChime() {
   let played = false;
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = _audioCtx;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
