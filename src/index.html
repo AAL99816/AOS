@@ -764,6 +764,42 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
   #calorieLogBtn{flex:0 0 auto;}
 }
 
+/* ── Exercise picker filter chips ── */
+.picker-chip{
+  flex-shrink:0;padding:5px 12px;border-radius:20px;
+  border:1px solid var(--border);background:transparent;
+  color:var(--muted);font-size:0.64rem;cursor:pointer;
+  white-space:nowrap;font-family:'DM Mono',monospace;
+  transition:all 0.12s;min-height:32px;
+  -webkit-tap-highlight-color:transparent;
+}
+.picker-chip:hover,.picker-chip:active{border-color:var(--blush);color:var(--blush);}
+.picker-chip-active{border-color:var(--blush);background:var(--blush-dim);color:var(--blush);}
+
+/* ── Exercise picker row ── */
+.picker-ex-row{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 10px;border-radius:8px;
+  cursor:pointer;transition:background 0.1s;
+  -webkit-tap-highlight-color:transparent;
+}
+.picker-ex-row:hover,.picker-ex-row:active{background:var(--mid);}
+
+/* ── Workout preset grid ── */
+.preset-btn-grid{display:flex;flex-wrap:wrap;gap:6px;}
+
+/* ── Workout preset buttons ── */
+.preset-btn{
+  background:var(--mid);border:1px solid var(--border);
+  border-radius:8px;padding:9px 16px;
+  color:var(--mist);font-size:0.78rem;
+  cursor:pointer;font-family:'Jost',sans-serif;
+  transition:border-color 0.15s,background 0.15s;
+  -webkit-tap-highlight-color:transparent;
+  min-height:40px;
+}
+.preset-btn:hover,.preset-btn:active{border-color:var(--blush);background:color-mix(in srgb,var(--rose) 10%,transparent);}
+
 /* ── Fitness-specific mobile fixes (≤600px) ── */
 @media(max-width:600px){
   /* Section headings: don't let buttons overflow */
@@ -784,6 +820,18 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
   #cardioInputRow #cardioLogBtn{width:100%;margin-top:4px;}
   /* Body weight inputs */
   #bodyWeightSection input{min-width:0;}
+  /* Exercise picker: full-height modal, bigger chips */
+  #mExercisePicker .modal{max-height:96vh;}
+  #exPickerMuscleFilters,#exPickerEquipFilters{padding:10px 12px 8px;}
+  .picker-chip{padding:7px 14px;font-size:0.68rem;min-height:38px;}
+  /* Workout preset modal: fill screen, buttons full-width column */
+  #mWorkoutPreset .modal{max-height:94vh;}
+  .preset-btn-grid{flex-direction:column;gap:4px;}
+  .preset-btn{width:100%;text-align:left;padding:12px 16px;font-size:0.82rem;}
+  /* Edit session: inputs large enough to tap */
+  #esExerciseList input{font-size:16px !important;}
+  /* Log inputs in expanded workout card */
+  .add-inp{font-size:16px;}
   /* Notes tab: sidebar fills width when stacked */
   #panel-notes>div{flex-direction:column;height:auto;}
   #notesTopicList{width:100% !important;border-right:none !important;border-bottom:1px solid var(--border);min-height:0;max-height:40vh;overflow-y:auto;}
@@ -1663,7 +1711,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
         oninput="setPickerQuery(this.value)"
         autocomplete="off"
         style="width:100%;box-sizing:border-box;background:var(--mid);border:1px solid var(--border);
-          border-radius:8px;color:var(--cream);padding:8px 12px;font-size:0.82rem;outline:none;
+          border-radius:8px;color:var(--cream);padding:10px 12px;font-size:16px;outline:none;
           font-family:'Jost',sans-serif">
     </div>
     <!-- Muscle filters -->

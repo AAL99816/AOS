@@ -458,7 +458,7 @@ function renderWorkoutCards() {
           <button class="btn btn-g" style="width:100%;font-size:0.72rem;padding:7px" onclick="openExercisePicker('${wc.id}')">+ Add Exercise</button>
         </div>
 
-        <textarea id="sessionNote-${wc.id}" placeholder="Session notes…" style="display:block;width:100%;box-sizing:border-box;margin-top:10px;background:var(--mid);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:0.7rem;font-family:'DM Mono',monospace;resize:none;padding:7px 10px;min-height:44px;outline:none;line-height:1.5"></textarea>
+        <textarea id="sessionNote-${wc.id}" placeholder="Session notes…" style="display:block;width:100%;box-sizing:border-box;margin-top:10px;background:var(--mid);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:16px;font-family:'DM Mono',monospace;resize:none;padding:7px 10px;min-height:52px;outline:none;line-height:1.5"></textarea>
 
         <div style="margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
           <span style="font-size:0.58rem;color:var(--muted);flex-shrink:0">Date:</span>
@@ -594,20 +594,20 @@ function openEditSession(id) {
       <div style="padding:10px 0;border-bottom:1px solid var(--border)">
         <div style="font-size:0.78rem;color:var(--mist);margin-bottom:8px">${escapeHtml(ex.name || '')}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <div>
+          <div style="flex:1;min-width:70px">
             <div style="font-size:0.56rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:3px">Weight (kg)</div>
             <input type="number" step="0.5" class="add-inp" id="es-w-${i}" value="${best.weight || ''}"
-              style="width:72px;font-size:0.76rem">
+              style="width:100%;font-size:16px">
           </div>
-          <div>
+          <div style="flex:1;min-width:55px">
             <div style="font-size:0.56rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:3px">Reps</div>
             <input type="number" class="add-inp" id="es-r-${i}" value="${best.reps || ''}"
-              style="width:60px;font-size:0.76rem">
+              style="width:100%;font-size:16px">
           </div>
-          <div>
+          <div style="flex:1;min-width:55px">
             <div style="font-size:0.56rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:3px">Sets</div>
             <input type="number" min="1" class="add-inp" id="es-s-${i}" value="${setsArr.length || best.sets || 1}"
-              style="width:52px;font-size:0.76rem">
+              style="width:100%;font-size:16px">
           </div>
         </div>
       </div>`;
@@ -839,11 +839,7 @@ function _setPickerEquip(e) {
 }
 
 function _filterChip(label, active, onclick) {
-  return `<button onclick="${onclick}"
-    style="flex-shrink:0;padding:3px 10px;border-radius:20px;border:1px solid ${active ? 'var(--blush)' : 'var(--border)'};
-      background:${active ? 'var(--blush-dim)' : 'transparent'};color:${active ? 'var(--blush)' : 'var(--muted)'};
-      font-size:0.64rem;cursor:pointer;white-space:nowrap;font-family:'DM Mono',monospace;
-      transition:all 0.12s">${escapeHtml(label)}</button>`;
+  return `<button onclick="${onclick}" class="picker-chip${active ? ' picker-chip-active' : ''}">${escapeHtml(label)}</button>`;
 }
 
 function _renderPickerFilters() {
@@ -937,19 +933,14 @@ function _pickerExRow(e) {
   const muscles = [...(e.muscles || []), ...(e.secondary || [])].slice(0, 3)
     .map(m => _MUSCLE_LABELS[m] || m).join(', ');
   const equip = _EQUIP_LABELS[e.equipment] || _EQUIP_LABELS[e.category] || (e.equipment || '');
-  return `<div onclick="pickExercise('${escapeAttr(e.name)}')"
-    style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;
-      cursor:pointer;transition:background 0.1s"
-    onmouseover="this.style.background='var(--mid)'"
-    onmouseout="this.style.background=''">
+  return `<div onclick="pickExercise('${escapeAttr(e.name)}')" class="picker-ex-row">
     <div style="flex:1;min-width:0">
-      <div style="font-size:0.8rem;color:var(--cream);white-space:nowrap;
-        overflow:hidden;text-overflow:ellipsis">${escapeHtml(e.name)}</div>
-      ${muscles ? `<div style="font-size:0.6rem;color:var(--muted);margin-top:1px">${escapeHtml(muscles)}</div>` : ''}
+      <div style="font-size:0.84rem;color:var(--cream);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(e.name)}</div>
+      ${muscles ? `<div style="font-size:0.62rem;color:var(--muted);margin-top:2px">${escapeHtml(muscles)}</div>` : ''}
     </div>
     ${equip ? `<span style="font-size:0.58rem;color:var(--muted-lt);font-family:'DM Mono',monospace;
       flex-shrink:0;background:var(--deep);border:1px solid var(--border);
-      border-radius:5px;padding:2px 7px">${escapeHtml(equip)}</span>` : ''}
+      border-radius:5px;padding:2px 8px">${escapeHtml(equip)}</span>` : ''}
   </div>`;
 }
 
@@ -1008,13 +999,9 @@ function _renderWorkoutPresetPicker() {
   el.innerHTML = WORKOUT_PRESETS.map(group => `
     <div style="margin-bottom:16px">
       <div style="font-size:0.58rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--blush);font-family:'DM Mono',monospace;padding:6px 0 8px;border-bottom:1px solid var(--border);margin-bottom:6px">${escapeHtml(group.category)}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">
+      <div class="preset-btn-grid">
         ${group.workouts.map(w => `
-          <button onclick="addWorkoutCardFromPreset('${escapeAttr(w.name)}')"
-            style="background:var(--mid);border:1px solid var(--border);border-radius:8px;padding:7px 14px;color:var(--mist);font-size:0.76rem;cursor:pointer;font-family:'Jost',sans-serif;transition:border-color 0.15s"
-            onmouseover="this.style.borderColor='var(--blush)'"
-            onmouseout="this.style.borderColor='var(--border)'"
-          >${escapeHtml(w.name)}</button>
+          <button class="preset-btn" onclick="addWorkoutCardFromPreset('${escapeAttr(w.name)}')">${escapeHtml(w.name)}</button>
         `).join('')}
       </div>
     </div>
