@@ -527,7 +527,7 @@ function _fabContentFood() {
 function _fabContentProjects() {
   const projs = (S.projects || []).filter(p => p.status !== 'Done').slice(0, 4);
   const projBtns = projs.length
-    ? projs.map(p => `<button class="btn btn-g" style="text-align:left;font-size:0.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px" onclick="fabClose();openProjectDetail('${p.id}')">${escapeHtml(p.title||'Project')}</button>`).join('')
+    ? projs.map(p => `<button class="btn btn-g" style="text-align:left;font-size:0.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(220px,calc(100vw - 90px))" onclick="fabClose();openProjectDetail('${p.id}')">${escapeHtml(p.title||'Project')}</button>`).join('')
     : '';
   return `
     <div style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:10px">Projects</div>

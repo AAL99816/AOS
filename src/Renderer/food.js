@@ -545,7 +545,7 @@ function _foodEntryRow(e) {
           <div style="font-size:0.86rem;color:var(--gold-lt);font-family:'DM Mono',monospace">${Math.round(e.kcal)}</div>
           <div style="font-size:0.6rem;color:var(--muted)">kcal</div>
         </div>
-        <button onclick="deleteFoodEntry('${e.id}')" style="${btnStyle};color:var(--muted);font-size:0.72rem;width:18px;height:18px">&#x2715;</button>
+        <button onclick="deleteFoodEntry('${e.id}')" style="${btnStyle};color:var(--muted);font-size:0.9rem;width:36px;height:36px;border-radius:50%;-webkit-tap-highlight-color:transparent">&#x2715;</button>
       </div>
       <textarea
         onchange="setFoodEntryNote('${e.id}',this.value)"

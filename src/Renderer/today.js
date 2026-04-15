@@ -171,8 +171,8 @@ function renderToday() {
     ? '' // numeric-only for these units (bubbles impractical)
     : Array.from({length: maxBubbles}, (_, i) => {
         const filled = i < waterCount;
-        return `<div onclick="addWater(${filled ? -1 : 1})" style="width:28px;height:28px;border-radius:50%;background:${filled ? 'var(--blush)' : 'var(--mid)'};border:1.5px solid ${filled ? 'var(--blush)' : 'var(--border)'};cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center" title="${filled ? 'Remove' : 'Add'} 1 ${waterUnitLbl}">
-          ${filled ? `<svg width="10" height="13" viewBox="0 0 10 13"><path d="M5 1 C5 1 9 5 9 8 A4 4 0 0 1 1 8 C1 5 5 1 5 1Z" fill="var(--cream)" opacity="0.8"/></svg>` : ''}
+        return `<div onclick="addWater(${filled ? -1 : 1})" style="width:36px;height:36px;border-radius:50%;background:${filled ? 'var(--blush)' : 'var(--mid)'};border:1.5px solid ${filled ? 'var(--blush)' : 'var(--border)'};cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent" title="${filled ? 'Remove' : 'Add'} 1 ${waterUnitLbl}">
+          ${filled ? `<svg width="12" height="15" viewBox="0 0 10 13"><path d="M5 1 C5 1 9 5 9 8 A4 4 0 0 1 1 8 C1 5 5 1 5 1Z" fill="var(--cream)" opacity="0.8"/></svg>` : ''}
         </div>`;
       }).join('');
 
@@ -376,16 +376,16 @@ function renderToday() {
       </div>
       <div class="card">
         <textarea id="todayNoteArea" class="editable-area" rows="4" placeholder="Write anything…"
-          oninput="S.notes[today()]=this.value;scheduleSave()"
-          style="font-size:0.8rem">${escapeHtml(todayNote)}</textarea>
+          oninput="S.notes[today()]=this.value;clearTimeout(window._noteSaveT);window._noteSaveT=setTimeout(scheduleSave,800)"
+          style="font-size:16px">${escapeHtml(todayNote)}</textarea>
       </div>
     </div>
 
     <!-- Reflection / quote -->
     <div id="reflectionCard" class="card quote-card" style="margin-bottom:18px">
       <div class="q-label">Reflection</div>
-      <textarea id="quoteText" class="editable-area" rows="3" placeholder="Write your quote or reflection…" oninput="S.quote.text=this.value;scheduleSave()">${escapeHtml(S.quote && S.quote.text || '')}</textarea>
-      <input id="quoteAuthor" class="editable" placeholder="— Author" value="${escapeAttr(S.quote && S.quote.author || '')}" oninput="S.quote.author=this.value;scheduleSave()">
+      <textarea id="quoteText" class="editable-area" rows="3" placeholder="Write your quote or reflection…" oninput="S.quote.text=this.value;clearTimeout(window._quoteSaveT);window._quoteSaveT=setTimeout(scheduleSave,800)">${escapeHtml(S.quote && S.quote.text || '')}</textarea>
+      <input id="quoteAuthor" class="editable" placeholder="— Author" value="${escapeAttr(S.quote && S.quote.author || '')}" oninput="S.quote.author=this.value;clearTimeout(window._quoteSaveT);window._quoteSaveT=setTimeout(scheduleSave,800)">
     </div>
 
     <!-- Mood (feature-flagged) -->

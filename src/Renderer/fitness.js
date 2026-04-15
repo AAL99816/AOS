@@ -228,7 +228,7 @@ function renderWeightLog() {
       <span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:0.7rem;min-width:80px">${e.date}</span>
       <span style="color:var(--cream);font-weight:600">${e.weight} kg</span>
       ${e.notes ? `<span style="color:var(--muted-lt);flex:1;font-size:0.7rem">${escapeHtml(e.notes)}</span>` : '<span style="flex:1"></span>'}
-      <button onclick="deleteWeightEntry('${e.date}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.8rem;padding:0 4px">×</button>
+      <button onclick="deleteWeightEntry('${e.date}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.9rem;padding:4px 8px;min-width:36px;min-height:36px;-webkit-tap-highlight-color:transparent">×</button>
     </div>`;
 
   const chartEntries = allEntries.slice(0, 30).reverse(); // ascending for chart
@@ -1248,8 +1248,11 @@ function logExercise(wcId, exId) {
   const ex = (wc.exercises || []).find(e => String(e.id) === String(exId));
   if (!ex) return;
 
-  const weight = parseFloat(eid(`logW-${exId}`).value);
-  const reps = parseInt(eid(`logR-${exId}`).value, 10);
+  const wEl = eid(`logW-${exId}`);
+  const rEl = eid(`logR-${exId}`);
+  if (!wEl || !rEl) return;
+  const weight = parseFloat(wEl.value);
+  const reps = parseInt(rEl.value, 10);
   const setsEl = eid(`logSets-${exId}`);
   const setsCount = setsEl ? (parseInt(setsEl.value, 10) || 1) : 1;
 
@@ -1556,9 +1559,18 @@ function logCardioSession() {
 }
 
 function deleteCardioSession(id) {
+  const session = (S.cardioHistory || []).find(s => String(s.id) === String(id));
   S.cardioHistory = (S.cardioHistory || []).filter(s => String(s.id) !== String(id));
   scheduleSave();
   renderCardioHistory();
+  if (session) {
+    toastUndo(`${session.activity || 'Cardio'} session removed`, () => {
+      if (!Array.isArray(S.cardioHistory)) S.cardioHistory = [];
+      S.cardioHistory.push(session);
+      scheduleSave();
+      renderCardioHistory();
+    });
+  }
 }
 
 function renderCalorieSection() {
