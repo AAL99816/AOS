@@ -835,10 +835,10 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
   #esExerciseList input{font-size:16px !important;}
   /* Log inputs in expanded workout card */
   .add-inp{font-size:16px;}
-  /* Notes tab: sidebar fills width when stacked */
-  #panel-notes>div{flex-direction:column;height:auto;}
-  #notesTopicList{width:100% !important;border-right:none !important;border-bottom:1px solid var(--border);min-height:0;max-height:40vh;overflow-y:auto;}
-  #notesEditor{min-height:50vh;}
+  /* Notes tab: drill-down — JS hides inactive pane; active pane fills full width */
+  #panel-notes>div{height:calc(100vh - 140px);}
+  #notesTopicList{width:100% !important;border-right:none !important;height:100%;overflow-y:auto;}
+  #notesEditor{padding:16px 18px;}
 }
 
 /* ── General mobile polish ── */

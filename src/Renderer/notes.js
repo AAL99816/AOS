@@ -118,9 +118,28 @@ function _applyNotesView() {
   const topicsEl = eid('notesTopicList');
   const editorEl = eid('notesEditor');
   if (!topicsEl || !editorEl) return;
-  // On mobile CSS stacks the panels vertically — both always visible
-  topicsEl.style.display = '';
-  editorEl.style.display = '';
+
+  const isMobile = window.innerWidth < 700;
+
+  if (!isMobile) {
+    // Desktop: both panes always visible side-by-side
+    topicsEl.style.display = '';
+    topicsEl.style.width   = '200px';
+    editorEl.style.display = '';
+    return;
+  }
+
+  // Mobile: drill-down — one pane at a time, full width
+  if (_notesView === 'editor' && _notesSelectedId) {
+    topicsEl.style.display = 'none';
+    topicsEl.style.width   = '';
+    editorEl.style.display = '';
+  } else {
+    _notesView             = 'topics';
+    topicsEl.style.display = '';
+    topicsEl.style.width   = '100%';
+    editorEl.style.display = 'none';
+  }
 }
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
