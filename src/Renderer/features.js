@@ -211,6 +211,22 @@ function _restorePomodoroState() {
   return false;
 }
 
+function _setFocusNavDot(active) {
+  const btn = eid('tabFocus');
+  if (!btn) return;
+  let dot = btn.querySelector('.pomo-dot');
+  if (active) {
+    if (!dot) {
+      dot = document.createElement('span');
+      dot.className = 'pomo-dot';
+      dot.style.cssText = 'display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--blush);margin-left:4px;vertical-align:middle;animation:pomoPulse 1.2s ease-in-out infinite';
+      btn.appendChild(dot);
+    }
+  } else if (dot) {
+    dot.remove();
+  }
+}
+
 function startPomodoro() {
   if (!feat('pomodoro')) return;
   if (_pomodoroTimer) clearInterval(_pomodoroTimer);
@@ -220,6 +236,7 @@ function startPomodoro() {
   _renderPomodoroWidget();
   _pomodoroTimer = setInterval(_tickPomodoro, 1000);
   _savePomodoroState();
+  _setFocusNavDot(true);
   if (navigator.vibrate) navigator.vibrate(30);
 }
 
@@ -323,6 +340,7 @@ function stopPomodoro() {
   _pomodoroTimer = null;
   sessionStorage.removeItem('pomo');
   _applyVis('pomodoroWidget', false);
+  _setFocusNavDot(false);
 }
 
 // Restore timer state on boot (handles page refresh mid-session)
@@ -543,6 +561,8 @@ let _focusSecs     = 0;
 let _focusPhase    = 'work';  // 'work' | 'break'
 let _focusItemId   = null;
 let _focusRunning  = false;
+let _focusArchiveExpanded = false;
+function toggleFocusArchive() { _focusArchiveExpanded = !_focusArchiveExpanded; renderFocusItems(); }
 
 function renderFocusTab() {
   renderFocusItems();
@@ -581,14 +601,26 @@ function renderFocusItems() {
           ${target ? `<div style="height:2px;background:var(--mid);border-radius:2px;margin-top:4px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--blush);border-radius:2px"></div></div>` : ''}
         </div>
         ${!item.completed ? `<button onclick="startFocusOn('${item.id}')" class="btn ${isActive ? 'btn-p' : 'btn-g'}" style="font-size:0.68rem;flex-shrink:0">${isActive ? '▶ Active' : 'Focus'}</button>` : ''}
-        <button onclick="deleteFocusItem('${item.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.78rem;padding:0 4px;flex-shrink:0">✕</button>
+        <button onclick="deleteFocusItem('${item.id}')" class="icon-del" title="Delete">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M5.5 3.5V2.5h3v1M5.5 6v4.5M8.5 6v4.5M3 3.5l.7 7h6.6l.7-7"/></svg>
+        </button>
       </div>`;
   };
 
-  let html = active.map(renderItem).join('');
+  let html = active.length
+    ? active.map(renderItem).join('')
+    : `<div style="color:var(--muted);font-size:0.78rem;text-align:center;padding:24px 0;letter-spacing:0.04em">No active focus items — add one above</div>`;
+
   if (archived.length) {
-    html += `<div style="font-size:0.58rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;margin:12px 0 6px">Completed (${archived.length})</div>`;
-    html += archived.map(renderItem).join('');
+    html += `
+      <div style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 0;margin-top:4px;user-select:none"
+        onclick="toggleFocusArchive()">
+        <span style="font-size:0.5rem;display:inline-block;transform:${_focusArchiveExpanded ? 'rotate(90deg)' : 'rotate(0deg)'};transition:transform 0.15s;color:var(--muted)">&#9658;</span>
+        <span style="font-size:0.58rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace">Completed (${archived.length})</span>
+      </div>`;
+    if (_focusArchiveExpanded) {
+      html += archived.map(renderItem).join('');
+    }
   }
   el.innerHTML = html;
 }

@@ -429,7 +429,9 @@ function renderWinsLog() {
         <div style="display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border-lt)">
           <span style="font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace;flex-shrink:0;margin-top:2px">${w.date || ''}</span>
           <span style="flex:1;font-size:0.8rem;color:var(--mist);line-height:1.5">${escapeHtml(w.text)}</span>
-          <button onclick="deleteWin('${w.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.68rem;padding:0 2px;flex-shrink:0">✕</button>
+          <button onclick="deleteWin('${w.id}')" class="icon-del" title="Delete">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M5.5 3.5V2.5h3v1M5.5 6v4.5M8.5 6v4.5M3 3.5l.7 7h6.6l.7-7"/></svg>
+          </button>
         </div>`).join('')}`;
   }).join('');
 }
@@ -444,6 +446,18 @@ function addWin() {
   inp.value = '';
   scheduleSave();
   renderWinsLog();
+}
+
+function addWinToday() {
+  const inp = eid('todayWinInput');
+  if (!inp) return;
+  const text = inp.value.trim();
+  if (!text) return;
+  if (!Array.isArray(S.winsLog)) S.winsLog = [];
+  S.winsLog.push({ id: uid(), text, date: today() });
+  inp.value = '';
+  scheduleSave();
+  toast('Win logged!');
 }
 
 function deleteWin(id) {

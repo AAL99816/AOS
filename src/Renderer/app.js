@@ -81,7 +81,7 @@ async function doImport(){
 }
 
 /* ══ NAV ══ */
-let _activeTab = 'summary';
+let _activeTab = 'today';
 
 function go(name,btn){
   _activeTab = name;

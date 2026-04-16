@@ -11,7 +11,7 @@ function renderStars(rating) {
   }
   return html;
 }
-let bookF      = 'all';
+let bookF      = 'reading';
 let mediaTypeF = 'book';   // default tab — no more 'all'
 let activeBookId = null;
 let _mediaSearchQ = '';    // M1: search filter
@@ -104,7 +104,12 @@ function renderMediaSection(type) {
   updateStatusFilterLabels(type);
 
   if (!list.length) {
-    c.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px 24px"><div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:10px">◆</div><div style="font-size:0.66rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">${t('nothing_here')}</div></div>`;
+    const isFiltered = bookF !== 'all';
+    c.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px 24px">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:10px">◆</div>
+      <div style="font-size:0.66rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px">${isFiltered ? 'Nothing here with this filter' : t('nothing_here')}</div>
+      ${isFiltered ? `<button class="btn btn-g" style="font-size:0.64rem" onclick="setBookF('all',document.querySelector('.book-status-filters .fpill[data-status=all]'))">Show all</button>` : ''}
+    </div>`;
     return;
   }
 
@@ -157,7 +162,7 @@ function buildBookCard(b, idx) {
         ${stars ? `<span class="b-stars" title="${b.rating}/10">${stars} <span style="font-size:0.54rem;color:var(--muted);font-family:'DM Mono',monospace">${b.rating}</span></span>` : ''}
       </div>
     </div>
-    <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')">✕</button>
+    <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')" title="Remove"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M5.5 3.5V2.5h3v1M5.5 6v4.5M8.5 6v4.5M3 3.5l.7 7h6.6l.7-7"/></svg></button>
     <button onclick="event.stopPropagation();_mediaOpenNotes('${b.id}')"
       style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.65rem;padding:3px 7px;line-height:1;backdrop-filter:blur(4px);font-family:'DM Mono',monospace" title="Open notes">&rarr;</button>
   `;
@@ -195,7 +200,7 @@ function buildFilmCard(b, idx) {
       </div>
       ${b.watchCount > 1 ? `<div style="font-size:0.55rem;color:var(--muted);margin-top:3px;font-family:'DM Mono',monospace">${b.watchCount}× ${t('watched').toLowerCase()}</div>` : ''}
     </div>
-    <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')">✕</button>
+    <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')" title="Remove"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M5.5 3.5V2.5h3v1M5.5 6v4.5M8.5 6v4.5M3 3.5l.7 7h6.6l.7-7"/></svg></button>
     <button onclick="event.stopPropagation();_mediaOpenNotes('${b.id}')"
       style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.65rem;padding:3px 7px;line-height:1;backdrop-filter:blur(4px);font-family:'DM Mono',monospace" title="Open notes">&rarr;</button>
   `;
@@ -238,7 +243,7 @@ function buildShowCard(b, idx) {
       </div>
       ${stars ? `<div class="b-stars" style="margin-top:3px">${stars}</div>` : ''}
     </div>
-    <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')">✕</button>
+    <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')" title="Remove"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M5.5 3.5V2.5h3v1M5.5 6v4.5M8.5 6v4.5M3 3.5l.7 7h6.6l.7-7"/></svg></button>
     <button onclick="event.stopPropagation();_mediaOpenNotes('${b.id}')"
       style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.65rem;padding:3px 7px;line-height:1;backdrop-filter:blur(4px);font-family:'DM Mono',monospace" title="Open notes">&rarr;</button>
   `;
@@ -276,7 +281,7 @@ function buildAlbumCard(b, idx) {
         ${stars ? `<span class="b-stars">${stars}</span>` : ''}
       </div>
     </div>
-    <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')">✕</button>
+    <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')" title="Remove"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M5.5 3.5V2.5h3v1M5.5 6v4.5M8.5 6v4.5M3 3.5l.7 7h6.6l.7-7"/></svg></button>
   `;
   return div;
 }
@@ -312,7 +317,7 @@ function buildGameCard(b, idx) {
         ${stars ? `<span class="b-stars">${stars}</span>` : ''}
       </div>
     </div>
-    <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')">✕</button>
+    <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')" title="Remove"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M5.5 3.5V2.5h3v1M5.5 6v4.5M8.5 6v4.5M3 3.5l.7 7h6.6l.7-7"/></svg></button>
   `;
   return div;
 }

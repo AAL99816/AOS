@@ -235,25 +235,6 @@ function renderToday() {
       </div>
     </div>
 
-    ${focusItem ? `
-    <!-- Active focus item -->
-    <div class="card" style="margin-bottom:16px;padding:12px 16px;border-left:3px solid var(--blush);cursor:pointer" onclick="go('focus')">
-      <div style="font-size:0.52rem;color:var(--blush);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:5px">Current Focus</div>
-      <div style="font-size:0.88rem;color:var(--mist)">${escapeHtml(focusItem.label)}</div>
-      ${focusItem.pomodorosDone ? `<div style="font-size:0.6rem;color:var(--muted);margin-top:3px;font-family:'DM Mono',monospace">${focusItem.pomodorosDone} pomodoro${focusItem.pomodorosDone !== 1 ? 's' : ''} done</div>` : ''}
-    </div>` : ''}
-
-    ${nextUpTask ? mod('today.nextup', `
-    <!-- Next up task -->
-    <div id="todayNextUpSection" class="card" style="margin-bottom:16px;padding:12px 16px;border-left:3px solid var(--gold);cursor:pointer" onclick="go('projects')">
-      <div style="font-size:0.52rem;color:var(--gold);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:5px">Next Up · ${escapeHtml(nextUpProject.title || 'Project')}</div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <div style="width:16px;height:16px;border-radius:50%;border:2px solid var(--gold);flex-shrink:0"></div>
-        <span style="font-size:0.86rem;color:var(--mist);flex:1">${escapeHtml(nextUpTask.text || nextUpTask.label || '')}</span>
-        ${nextUpTask.timeEst ? `<span style="font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace">${nextUpTask.timeEst}m</span>` : ''}
-      </div>
-    </div>`) : ''}
-
     ${deadlines.length ? `
     <!-- Upcoming deadlines -->
     <div class="card" style="margin-bottom:16px;padding:12px 16px">
@@ -269,6 +250,20 @@ function renderToday() {
       }).join('')}
     </div>` : ''}
 
+    <!-- Habits -->
+    <div id="todayHabitsSection" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="sec" style="margin:0;font-size:0.66rem">Habits</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span style="font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace">${habitsDone}/${habitsTotal}</span>
+          <button class="btn btn-g" style="font-size:0.6rem;padding:2px 8px" onclick="openHabitManager()">Edit</button>
+        </div>
+      </div>
+      <div class="card" style="padding:8px 14px">
+        ${habitRows || `<div style="font-size:0.72rem;color:var(--muted);padding:16px 0;text-align:center;letter-spacing:0.04em">No habits yet — tap Edit to add one</div>`}
+      </div>
+    </div>
+
     <!-- Prayer -->
     <div id="todayPrayerSection" style="margin-bottom:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -279,6 +274,16 @@ function renderToday() {
         ${prayerRowHtml}
       </div>
     </div>
+
+    <!-- Mood (feature-flagged) -->
+    ${typeof feat === 'function' && feat('moodTracking') ? `
+    <div class="card" style="margin-bottom:16px;padding:12px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace">Today's Mood</span>
+        <span id="moodScore" style="font-size:0.78rem;color:var(--gold-lt);font-family:'DM Mono',monospace">${S.moodLog && S.moodLog[d] ? S.moodLog[d] + '/10' : '—'}</span>
+      </div>
+      <div id="moodGrid" style="display:flex;gap:3px;flex-wrap:wrap"></div>
+    </div>` : ''}
 
     <!-- Water tracker -->
     <div id="todayWaterSection" class="card" style="margin-bottom:16px;padding:12px 16px">
@@ -305,19 +310,24 @@ function renderToday() {
       </div>
     </div>
 
-    <!-- Habits -->
-    <div id="todayHabitsSection" style="margin-bottom:16px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div class="sec" style="margin:0;font-size:0.66rem">Habits</div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <span style="font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace">${habitsDone}/${habitsTotal}</span>
-          <button class="btn btn-g" style="font-size:0.6rem;padding:2px 8px" onclick="openHabitManager()">Edit</button>
-        </div>
+    ${focusItem ? `
+    <!-- Active focus item -->
+    <div class="card" style="margin-bottom:16px;padding:12px 16px;border-left:3px solid var(--blush);cursor:pointer" onclick="go('focus')">
+      <div style="font-size:0.52rem;color:var(--blush);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:5px">Current Focus</div>
+      <div style="font-size:0.88rem;color:var(--mist)">${escapeHtml(focusItem.label)}</div>
+      ${focusItem.pomodorosDone ? `<div style="font-size:0.6rem;color:var(--muted);margin-top:3px;font-family:'DM Mono',monospace">${focusItem.pomodorosDone} pomodoro${focusItem.pomodorosDone !== 1 ? 's' : ''} done</div>` : ''}
+    </div>` : ''}
+
+    ${nextUpTask ? mod('today.nextup', `
+    <!-- Next up task -->
+    <div id="todayNextUpSection" class="card" style="margin-bottom:16px;padding:12px 16px;border-left:3px solid var(--gold);cursor:pointer" onclick="go('projects')">
+      <div style="font-size:0.52rem;color:var(--gold);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:5px">Next Up · ${escapeHtml(nextUpProject.title || 'Project')}</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:16px;height:16px;border-radius:50%;border:2px solid var(--gold);flex-shrink:0"></div>
+        <span style="font-size:0.86rem;color:var(--mist);flex:1">${escapeHtml(nextUpTask.text || nextUpTask.label || '')}</span>
+        ${nextUpTask.timeEst ? `<span style="font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace">${nextUpTask.timeEst}m</span>` : ''}
       </div>
-      <div class="card" style="padding:8px 14px">
-        ${habitRows || `<div style="font-size:0.72rem;color:var(--muted);padding:12px 0;text-align:center">No habits yet — add one above</div>`}
-      </div>
-    </div>
+    </div>`) : ''}
 
     <!-- Quick exercise log strip -->
     ${(() => {
@@ -368,6 +378,16 @@ function renderToday() {
       }).join('')}
     </div>` : ''}
 
+    <!-- Quick win -->
+    <div id="todayWinSection" class="card" style="margin-bottom:16px;padding:12px 16px">
+      <div style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:8px">Log a Win</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="todayWinInput" class="add-inp" placeholder="What did you accomplish today?" style="flex:1;font-size:0.78rem"
+          onkeydown="if(event.key==='Enter')addWinToday()">
+        <button class="btn btn-p" onclick="addWinToday()" style="font-size:0.72rem;flex-shrink:0">+ Win</button>
+      </div>
+    </div>
+
     <!-- Daily note -->
     <div id="todayNoteSection" style="margin-bottom:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -387,16 +407,6 @@ function renderToday() {
       <textarea id="quoteText" class="editable-area" rows="3" placeholder="Write your quote or reflection…" oninput="S.quote.text=this.value;clearTimeout(window._quoteSaveT);window._quoteSaveT=setTimeout(scheduleSave,800)">${escapeHtml(S.quote && S.quote.text || '')}</textarea>
       <input id="quoteAuthor" class="editable" placeholder="— Author" value="${escapeAttr(S.quote && S.quote.author || '')}" oninput="S.quote.author=this.value;clearTimeout(window._quoteSaveT);window._quoteSaveT=setTimeout(scheduleSave,800)">
     </div>
-
-    <!-- Mood (feature-flagged) -->
-    ${typeof feat === 'function' && feat('moodTracking') ? `
-    <div class="card" style="margin-bottom:16px;padding:12px 16px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <span style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace">Today's Mood</span>
-        <span id="moodScore" style="font-size:0.78rem;color:var(--gold-lt);font-family:'DM Mono',monospace">${S.moodLog && S.moodLog[d] ? S.moodLog[d] + '/10' : '—'}</span>
-      </div>
-      <div id="moodGrid" style="display:flex;gap:3px;flex-wrap:wrap"></div>
-    </div>` : ''}
   `;
 
   // Sync hidden elements that other code still writes to
