@@ -16,6 +16,7 @@ let mediaTypeF = 'book';   // default tab — no more 'all'
 let activeBookId = null;
 let _mediaSearchQ = '';    // M1: search filter
 let _mediaSort = 'added';  // added | title | rating | progress
+let _mediaGenreF  = '';    // genre filter — empty = show all
 
 /* removed: MEDIA_TYPES array — no longer needed */
 
@@ -92,6 +93,7 @@ function renderMediaSection(type) {
 
   let list = (S.media || []).filter(b => b.mediaType === type);
   if (bookF !== 'all') list = list.filter(b => b.status === bookF);
+  if (_mediaGenreF)   list = list.filter(b => (b.genre || '').toLowerCase().includes(_mediaGenreF.toLowerCase()));
   if (_mediaSearchQ) list = list.filter(b =>
     (b.title||'').toLowerCase().includes(_mediaSearchQ) ||
     (b.author||'').toLowerCase().includes(_mediaSearchQ)
@@ -102,6 +104,9 @@ function renderMediaSection(type) {
 
   /* Update status filter labels for current type */
   updateStatusFilterLabels(type);
+
+  /* Update genre filter chips */
+  renderGenreFilters();
 
   if (!list.length) {
     const isFiltered = bookF !== 'all';
@@ -346,6 +351,7 @@ function setMediaTypeF(f, btn) {
   mediaTypeF = f;
   bookF = 'all'; // reset status filter when switching type
   _mediaSort = 'added'; // reset sort
+  _mediaGenreF = ''; // reset genre filter
   const sortSel = eid('mediaSortSel');
   if (sortSel) sortSel.value = 'added';
   document.querySelectorAll('.book-type-filters .fpill').forEach(b => b.classList.remove('active'));
@@ -360,6 +366,27 @@ function setBookF(f, btn) {
   document.querySelectorAll('.book-status-filters .fpill').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   renderBooks();
+}
+
+function setMediaGenreF(genre) {
+  _mediaGenreF = (_mediaGenreF === genre) ? '' : genre; // toggle off if already active
+  renderGenreFilters();
+  renderBooks();
+}
+
+function renderGenreFilters() {
+  const row = eid('mediaGenreFilters');
+  if (!row) return;
+  // Collect unique genres from all items of current type
+  const allItems = (S.media || []).filter(b => b.mediaType === mediaTypeF && b.genre);
+  const genres = [...new Set(
+    allItems.flatMap(b => b.genre.split(',').map(g => g.trim())).filter(Boolean)
+  )].sort();
+  if (!genres.length) { row.style.display = 'none'; return; }
+  row.style.display = '';
+  row.innerHTML = genres.map(g =>
+    `<button class="fpill${_mediaGenreF === g ? ' active' : ''}" onclick="setMediaGenreF('${escapeAttr(g)}')">${escapeHtml(g)}</button>`
+  ).join('');
 }
 
 /* ══ SHOW / ANIME EPISODE TRACKING ══ */
@@ -483,9 +510,11 @@ function saveBook() {
     totalEpisodes: af.totalEpisodes || 0,
     runtime:       af.runtime       || '',
     platform:      af.platform      || '',
-    tracks:        af.tracks        || []
+    tracks:        af.tracks        || [],
+    genre:         eid('bkGenre')?.value.trim() || af.genre || ''
   }));
   eid('bkT').value=''; eid('bkA').value=''; eid('bkN').value=''; eid('bkR').value='';
+  if (eid('bkGenre')) eid('bkGenre').value = '';
   if (eid('bkSearch')) eid('bkSearch').value = '';
   scheduleSave();
   // Switch to the type tab of what was just added
@@ -519,6 +548,7 @@ function renderBookDetails() {
   eid('bdStatus').value      = b.status || 'unread';
   eid('bdRating').value      = b.rating || '';
   eid('bdNotes').value       = b.notes  || '';
+  if (eid('bdGenre')) eid('bdGenre').value = b.genre || '';
 
   eid('bdCreatorLabel').textContent = mediaCreatorLabel(b.mediaType);
 

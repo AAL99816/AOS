@@ -154,7 +154,9 @@ function makeMedia(m={}){
       duration: tr.duration ?? '',
       rating: Number.isFinite(+tr.rating) ? +tr.rating : 0,
       review: tr.review ?? ''
-    })) : []
+    })) : [],
+    // Genre (all types)
+    genre: m.genre ?? ''
   };
 }
 

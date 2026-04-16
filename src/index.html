@@ -467,7 +467,8 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
     padding-bottom:4px;
   }
   .book-type-filters::-webkit-scrollbar,
-  .book-status-filters::-webkit-scrollbar{ display:none; }
+  .book-status-filters::-webkit-scrollbar,
+  #mediaGenreFilters::-webkit-scrollbar{ display:none; }
   .book-type-filters .fpill,
   .book-status-filters .fpill{ flex-shrink:0; }
 }
@@ -1300,6 +1301,9 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <button class="fpill"        data-status="done"    onclick="setBookF('done',this)"    >Finished</button>
     </div>
 
+    <!-- Genre filter chips (populated dynamically by renderGenreFilters()) -->
+    <div id="mediaGenreFilters" class="book-filters" style="margin-top:6px;display:none;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none"></div>
+
     <!-- Search + Sort + Queue -->
     <div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap">
       <input id="mediaSearchInp" type="search" placeholder="Search title or author…"
@@ -1446,6 +1450,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
     </select>
   </div>
   <div class="mf"><label data-i18n="rating_lbl">Rating (1–10)</label><input id="bkR" type="number" min="0.5" max="10" step="0.5" placeholder="—"></div>
+  <div class="mf"><label>Genre</label><input id="bkGenre" placeholder="e.g. Thriller, Sci-Fi…"></div>
   <div class="mf"><label data-i18n="notes">Notes</label><textarea id="bkN" placeholder="Thoughts…"></textarea></div>
   <div class="modal-acts">
     <button class="btn btn-g" onclick="closeModal('mBook')" data-i18n="cancel">Cancel</button>
@@ -1461,6 +1466,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <div class="book-detail-kicker" data-i18n="details_section">Details</div>
       <div class="mf"><label data-i18n="title_lbl">Title</label><input id="bdTitle" placeholder="Title" oninput="updateActiveBookField('title', this.value)"></div>
       <div class="mf"><label id="bdCreatorLabel">Author</label><input id="bdAuthor" placeholder="Author / creator" oninput="updateActiveBookField('author', this.value)"></div>
+      <div class="mf"><label>Genre</label><input id="bdGenre" placeholder="e.g. Thriller, Sci-Fi…" oninput="updateActiveBookField('genre', this.value)"></div>
       <div class="book-progress-row">
         <div class="mf" style="margin-bottom:0"><label data-i18n="status_label">Status</label><select id="bdStatus" onchange="updateActiveBookStatus(this.value)"><option value="unread">To Read</option><option value="reading">Reading</option><option value="done">Finished</option></select></div>
         <div class="mf" style="margin-bottom:0"><label data-i18n="rating_lbl">Rating (1–10)</label><input id="bdRating" type="number" min="0.5" max="10" step="0.5" placeholder="—" onchange="updateActiveBookRating(this.value)"></div>

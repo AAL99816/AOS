@@ -7,6 +7,20 @@
 const TMDB_KEY = '5402798e10de2bc6e4cc1e855bef54de';
 const RAWG_KEY = '6c844977a1ee47f4bf8fd23373361a55';
 
+// TMDB genre ID → name (static — these IDs have not changed since 2013)
+const TMDB_GENRES = {
+  28:'Action', 12:'Adventure', 16:'Animation', 35:'Comedy', 80:'Crime',
+  99:'Documentary', 18:'Drama', 10751:'Family', 14:'Fantasy', 36:'History',
+  27:'Horror', 10402:'Music', 9648:'Mystery', 10749:'Romance', 878:'Sci-Fi',
+  53:'Thriller', 10752:'War', 37:'Western',
+  // TV-specific
+  10759:'Action & Adventure', 10762:'Kids', 10763:'News', 10764:'Reality',
+  10765:'Sci-Fi & Fantasy', 10766:'Soap', 10767:'Talk', 10768:'War & Politics'
+};
+function _tmdbGenres(ids) {
+  return (ids || []).slice(0, 3).map(id => TMDB_GENRES[id]).filter(Boolean).join(', ');
+}
+
 // ── State ─────────────────────────────────────────────────────────────────────
 let _ddResults    = [];
 let _autofillData = {};
@@ -90,6 +104,7 @@ async function searchMovies(q) {
     creator:  '',
     coverUrl: m.poster_path ? `https://image.tmdb.org/t/p/w200${m.poster_path}` : '',
     year:     (m.release_date || '').slice(0, 4),
+    genre:    _tmdbGenres(m.genre_ids),
     tmdbId:   m.id
   }));
 }
@@ -103,6 +118,7 @@ async function searchShows(q) {
     creator:  '',
     coverUrl: s.poster_path ? `https://image.tmdb.org/t/p/w200${s.poster_path}` : '',
     year:     (s.first_air_date || '').slice(0, 4),
+    genre:    _tmdbGenres(s.genre_ids),
     tmdbId:   s.id
   }));
 }
@@ -116,6 +132,7 @@ async function searchGames(q) {
     creator:  '',
     coverUrl: g.background_image || '',
     year:     (g.released || '').slice(0, 4),
+    genre:    (g.genres || []).slice(0, 3).map(g => g.name).join(', '),
     platform: (g.platforms || []).map(p => p.platform.name).slice(0, 2).join(', '),
     rawgId:   g.id
   }));
@@ -129,6 +146,7 @@ async function searchAlbums(q) {
     creator:   item.artistName    || '',
     coverUrl:  (item.artworkUrl100 || '').replace('100x100bb', '600x600bb'),
     year:      item.releaseDate ? item.releaseDate.slice(0, 4) : '',
+    genre:     item.primaryGenreName || '',
     itunesId:  item.collectionId
   }));
 }
@@ -141,6 +159,7 @@ async function searchAnime(q) {
     creator:       (item.studios || []).map(s => s.name).slice(0, 1).join(''),
     coverUrl:      item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || '',
     year:          item.year ? String(item.year) : '',
+    genre:         (item.genres || []).slice(0, 3).map(g => g.name).join(', '),
     totalEpisodes: item.episodes || 0,
     totalSeasons:  1,
     jikanId:       item.mal_id
