@@ -5,7 +5,12 @@ const ACCENT_THEMES = {
   ocean:    { '--blush':'#5a9fbf','--rose':'#2d6a8a','--petal':'#a0d0e8','--mist':'#d0eaf5','--cream':'#f0f8fc','--gold':'#6ab0c9','--gold-lt':'#90cde8','--muted':'#4a7890','--muted-lt':'#70a0b8','--blush-dim':'rgba(70,140,190,0.07)','--border-hi':'rgba(70,140,190,0.38)' },
   forest:   { '--blush':'#6aaa7a','--rose':'#3a7a4a','--petal':'#a0d0a8','--mist':'#d0ead5','--cream':'#f0f8f2','--gold':'#c9a96a','--gold-lt':'#e8c890','--muted':'#4a7858','--muted-lt':'#70a078','--blush-dim':'rgba(90,160,100,0.07)','--border-hi':'rgba(90,160,100,0.38)' },
   midnight: { '--blush':'#9090b0','--rose':'#5a5a7a','--petal':'#c0c0d8','--mist':'#e0e0ec','--cream':'#f5f5fa','--gold':'#c9b06a','--gold-lt':'#e8cc90','--muted':'#606078','--muted-lt':'#909098','--blush-dim':'rgba(130,130,160,0.07)','--border-hi':'rgba(130,130,160,0.38)' },
-  ember:    { '--blush':'#c08040','--rose':'#8b5220','--petal':'#e8c0a0','--mist':'#f5e0d0','--cream':'#fdf5ef','--gold':'#c9956a','--gold-lt':'#e8b990','--muted':'#8a6040','--muted-lt':'#b09070','--blush-dim':'rgba(180,110,50,0.07)','--border-hi':'rgba(180,110,50,0.38)' }
+  ember:    { '--blush':'#c08040','--rose':'#8b5220','--petal':'#e8c0a0','--mist':'#f5e0d0','--cream':'#fdf5ef','--gold':'#c9956a','--gold-lt':'#e8b990','--muted':'#8a6040','--muted-lt':'#b09070','--blush-dim':'rgba(180,110,50,0.07)','--border-hi':'rgba(180,110,50,0.38)' },
+  crimson:  { '--blush':'#c0405a','--rose':'#8b1a30','--petal':'#e880a0','--mist':'#f5c0d0','--cream':'#fdf0f3','--gold':'#c9856a','--gold-lt':'#e8a890','--muted':'#8a4050','--muted-lt':'#b06878','--blush-dim':'rgba(192,64,90,0.07)','--border-hi':'rgba(192,64,90,0.38)' },
+  amber:    { '--blush':'#c09030','--rose':'#8b6010','--petal':'#e8c070','--mist':'#f5e0b8','--cream':'#fdf8ef','--gold':'#c9b040','--gold-lt':'#e8d070','--muted':'#8a7040','--muted-lt':'#b09060','--blush-dim':'rgba(192,144,48,0.07)','--border-hi':'rgba(192,144,48,0.38)' },
+  violet:   { '--blush':'#9060c8','--rose':'#6030a0','--petal':'#c0a0e8','--mist':'#e0d0f5','--cream':'#f8f4ff','--gold':'#c0a060','--gold-lt':'#d8c080','--muted':'#806090','--muted-lt':'#a080b8','--blush-dim':'rgba(144,96,200,0.07)','--border-hi':'rgba(144,96,200,0.38)' },
+  teal:     { '--blush':'#40a8a0','--rose':'#1a7870','--petal':'#80d0c8','--mist':'#c0ece8','--cream':'#f0fafa','--gold':'#80b8a0','--gold-lt':'#a0d4b8','--muted':'#407870','--muted-lt':'#68a098','--blush-dim':'rgba(64,168,160,0.07)','--border-hi':'rgba(64,168,160,0.38)' },
+  coral:    { '--blush':'#d06040','--rose':'#a03818','--petal':'#e8a088','--mist':'#f5d0c0','--cream':'#fdf4ef','--gold':'#c9a06a','--gold-lt':'#e8c090','--muted':'#8a5040','--muted-lt':'#b07860','--blush-dim':'rgba(208,96,64,0.07)','--border-hi':'rgba(208,96,64,0.38)' }
 };
 const APP_THEMES = {
   // Each theme bundles surfaces + matched accent colors as a full palette
@@ -64,6 +69,27 @@ const APP_THEMES = {
     '--blush':'#b07898','--rose':'#7a4868','--petal':'#d8b0c8','--mist':'#f0daea',
     '--cream':'#fdf4fa','--gold':'#c9a070','--gold-lt':'#e0c090','--muted':'#887080','--muted-lt':'#b098a8',
     '--blush-dim':'rgba(176,120,152,0.08)','--border-hi':'rgba(176,120,152,0.40)','--ink-glass':'rgba(12,8,15,0.85)'
+  },
+  ash: {
+    '--ink':'#0c0e0f','--deep':'#141618','--panel':'#1e2224','--mid':'#2a3035',
+    '--border':'rgba(140,160,180,0.18)','--border-lt':'rgba(180,205,220,0.28)',
+    '--blush':'#8aa0b8','--rose':'#5a7898','--petal':'#b8d0e0','--mist':'#d8e8f0',
+    '--cream':'#f0f6fa','--gold':'#b0a888','--gold-lt':'#d0c8a8','--muted':'#606e78','--muted-lt':'#909aa4',
+    '--blush-dim':'rgba(140,160,180,0.07)','--border-hi':'rgba(140,160,180,0.36)','--ink-glass':'rgba(12,14,15,0.85)'
+  },
+  aurora: {
+    '--ink':'#05080f','--deep':'#0a1020','--panel':'#101828','--mid':'#182534',
+    '--border':'rgba(80,180,190,0.20)','--border-lt':'rgba(120,220,230,0.32)',
+    '--blush':'#48bac0','--rose':'#20888e','--petal':'#88d8dc','--mist':'#c0ece8',
+    '--cream':'#f0fafa','--gold':'#90c0a0','--gold-lt':'#b8dac0','--muted':'#408890','--muted-lt':'#70b0b8',
+    '--blush-dim':'rgba(80,180,190,0.07)','--border-hi':'rgba(80,180,190,0.38)','--ink-glass':'rgba(5,8,15,0.85)'
+  },
+  mocha: {
+    '--ink':'#100a06','--deep':'#1c140c','--panel':'#2c1e12','--mid':'#3c2c1a',
+    '--border':'rgba(180,140,90,0.20)','--border-lt':'rgba(220,180,120,0.32)',
+    '--blush':'#b89060','--rose':'#886030','--petal':'#d8b888','--mist':'#f0dcc0',
+    '--cream':'#fdf5e8','--gold':'#c0a060','--gold-lt':'#e0c080','--muted':'#887058','--muted-lt':'#a89078',
+    '--blush-dim':'rgba(180,140,90,0.07)','--border-hi':'rgba(180,140,90,0.38)','--ink-glass':'rgba(16,10,6,0.85)'
   }
 };
 /* Keep BOX_THEMES alias for any legacy references */
@@ -222,16 +248,21 @@ function openSettings() {
   // Sync custom color pickers with stored values
   restoreCustomColors();
 
-  const stRef = eid('st-reflection');
-  if (stRef) stRef.checked = S.appPrefs?.showReflection !== false;
   const swRef = eid('st-weekly-reflection');
   if (swRef) swRef.checked = S.appPrefs?.showWeeklyReflection !== false;
 
-  _refreshCalModeBtns();
-
-  // Pre-render dynamic panes so they're ready when the user clicks their tab
+  // Pre-render all dynamic panes so they're ready when the user clicks their tab
+  renderTodaySettingsPane();
+  renderFitnessSettingsPane();
+  renderFocusSettingsPane();
   renderFeaturesPane();
   if (typeof renderModulesPane === 'function') renderModulesPane();
+
+  // Sync static feature toggles in Profile and Summary panes
+  const agRef = eid('feat-annualGoals');
+  if (agRef) agRef.checked = !!(S.features || {}).annualGoals;
+  const gsRef = eid('feat-globalSearch');
+  if (gsRef) gsRef.checked = !!(S.features || {}).globalSearch;
 
   // Always open on Profile tab
   switchSettingsTab('profile');
@@ -277,7 +308,7 @@ function applyReflectionVisibility() {
 }
 
 /* ══ SETTINGS SUB-TABS ══ */
-const SETTINGS_TABS = ['profile','summary','today','fitness','projects','media','features','modules'];
+const SETTINGS_TABS = ['profile','summary','today','fitness','focus','projects','media','features','modules'];
 
 function switchSettingsTab(tab) {
   SETTINGS_TABS.forEach(t2 => {
@@ -286,10 +317,19 @@ function switchSettingsTab(tab) {
     if (btn)  btn.classList.toggle('active', t2 === tab);
     if (pane) pane.style.display = t2 === tab ? '' : 'none';
   });
-  // Refresh calorie mode buttons when switching to fitness tab
-  if (tab === 'fitness') _refreshCalModeBtns();
-  if (tab === 'today')   { const stRef = eid('st-reflection'); if (stRef) stRef.checked = S.appPrefs?.showReflection !== false; }
-  if (tab === 'summary') { const swRef = eid('st-weekly-reflection'); if (swRef) swRef.checked = S.appPrefs?.showWeeklyReflection !== false; }
+  if (tab === 'today')   renderTodaySettingsPane();
+  if (tab === 'fitness') renderFitnessSettingsPane();
+  if (tab === 'focus')   renderFocusSettingsPane();
+  if (tab === 'summary') {
+    const swRef = eid('st-weekly-reflection');
+    if (swRef) swRef.checked = S.appPrefs?.showWeeklyReflection !== false;
+    const agRef = eid('feat-annualGoals');
+    if (agRef) agRef.checked = !!(S.features || {}).annualGoals;
+  }
+  if (tab === 'profile') {
+    const gsRef = eid('feat-globalSearch');
+    if (gsRef) gsRef.checked = !!(S.features || {}).globalSearch;
+  }
   if (tab === 'features') renderFeaturesPane();
   if (tab === 'modules')  { if (typeof renderModulesPane === 'function') renderModulesPane(); }
 }

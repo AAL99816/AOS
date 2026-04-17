@@ -11,6 +11,7 @@ function scrollToSection(id) {
   if (el && el.style.display !== 'none') el.scrollIntoView({ behavior: 'smooth' });
 }
 
+
 /* ══ WATER TRACKER ══ */
 // waterLog stores units (glasses/cups/litres/oz) — not raw ml —
 // because changing units also changes the target, so relative progress is preserved.
