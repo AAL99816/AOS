@@ -1829,6 +1829,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <button class="fpill"        id="stab-summary"  onclick="switchSettingsTab('summary')">Summary</button>
       <button class="fpill"        id="stab-today"    onclick="switchSettingsTab('today')">Today</button>
       <button class="fpill"        id="stab-fitness"  onclick="switchSettingsTab('fitness')">Fitness</button>
+      <button class="fpill"        id="stab-focus"    onclick="switchSettingsTab('focus')">Focus</button>
       <button class="fpill"        id="stab-projects" onclick="switchSettingsTab('projects')">Projects</button>
       <button class="fpill"        id="stab-media"    onclick="switchSettingsTab('media')">Media</button>
       <button class="fpill"        id="stab-features" onclick="switchSettingsTab('features')">Features</button>
@@ -1929,63 +1930,51 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
           <span style="font-size:0.78rem;color:var(--muted-lt)">AR</span>
         </div>
       </div>
+      <div class="settings-section">
+        <div class="settings-kicker">App Features</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0">
+          <div>
+            <div style="font-size:0.82rem;color:var(--cream);margin-bottom:2px">Global Search</div>
+            <div style="font-size:0.68rem;color:var(--muted)">Search across all projects, media, habits, and notes</div>
+          </div>
+          <label class="toggle-switch" style="flex-shrink:0;margin-left:12px">
+            <input type="checkbox" id="feat-globalSearch" onchange="toggleFeature('globalSearch',this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
     </div>
 
     <!-- Summary tab -->
     <div id="stPane-summary" style="display:none">
       <div class="settings-section">
-        <div class="settings-kicker">Summary</div>
+        <div class="settings-kicker">Display</div>
         <div class="mf"><label><input type="checkbox" id="st-weekly-reflection" onchange="toggleWeeklyReflection(this.checked)"> <span>Weekly Reflection</span></label></div>
         <div style="font-size:0.68rem;color:var(--muted);margin-top:4px;line-height:1.5">Show the weekly reflection prompt in your Summary page.</div>
       </div>
-    </div>
-
-    <!-- Today tab -->
-    <div id="stPane-today" style="display:none">
       <div class="settings-section">
-        <div class="settings-kicker">Today</div>
-        <div class="mf"><label><input type="checkbox" id="st-reflection" onchange="toggleReflection(this.checked)"> <span data-i18n="show_reflection">Daily Reflection</span></label></div>
-        <div style="font-size:0.68rem;color:var(--muted);margin-top:4px;line-height:1.5">Show the daily reflection card on your Today page.</div>
-      </div>
-      <div class="settings-section">
-        <div class="settings-kicker">Water Tracking</div>
-        <div class="mf">
-          <label style="display:block;margin-bottom:6px">Unit</label>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="btn btn-g" id="wuBtn-glasses" onclick="setWaterUnit('glasses')" style="font-size:0.7rem">Glasses (250ml)</button>
-            <button class="btn btn-g" id="wuBtn-litres"  onclick="setWaterUnit('litres')"  style="font-size:0.7rem">Litres</button>
-            <button class="btn btn-g" id="wuBtn-cups"    onclick="setWaterUnit('cups')"    style="font-size:0.7rem">Cups (240ml)</button>
-            <button class="btn btn-g" id="wuBtn-oz"      onclick="setWaterUnit('oz')"      style="font-size:0.7rem">Fl oz</button>
+        <div class="settings-kicker">Features</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0">
+          <div>
+            <div style="font-size:0.82rem;color:var(--cream);margin-bottom:2px">Annual Goals</div>
+            <div style="font-size:0.68rem;color:var(--muted)">Set yearly reading and workout targets in Summary</div>
           </div>
-          <div style="font-size:0.68rem;color:var(--muted);margin-top:6px;line-height:1.5">Changing unit resets today's log count display — raw ml data is always preserved.</div>
+          <label class="toggle-switch" style="flex-shrink:0;margin-left:12px">
+            <input type="checkbox" id="feat-annualGoals" onchange="toggleFeature('annualGoals',this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
         </div>
       </div>
     </div>
 
-    <!-- Fitness tab -->
-    <div id="stPane-fitness" style="display:none">
-      <div class="settings-section">
-        <div class="settings-kicker">Fitness</div>
-        <div class="mf">
-          <label>Calorie Tracking Mode</label>
-          <div style="display:flex;gap:6px;margin-top:8px">
-            <button id="calModeBtn-meal"  class="btn btn-g active" onclick="setCalorieMode('meal')"  style="font-size:0.7rem">Meal mode</button>
-            <button id="calModeBtn-daily" class="btn btn-g"        onclick="setCalorieMode('daily')" style="font-size:0.7rem">Daily total</button>
-          </div>
-          <div style="font-size:0.68rem;color:var(--muted);margin-top:6px;line-height:1.5">Meal mode logs individual meals. Daily total logs one number per day.</div>
-        </div>
-        <div class="mf" style="margin-top:14px">
-          <label>Rest Timer Duration</label>
-          <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
-            <input type="range" min="30" max="300" step="15" id="restTimerRange"
-              oninput="if(!S.appPrefs)S.appPrefs={};S.appPrefs.restTimerSecs=parseInt(this.value);scheduleSave();eid('restTimerRangeVal').textContent=Math.floor(this.value/60)+'m '+(this.value%60?this.value%60+'s':'')"
-              style="flex:1;accent-color:var(--blush)">
-            <span id="restTimerRangeVal" style="font-size:0.7rem;color:var(--gold-lt);font-family:'DM Mono',monospace;min-width:36px">90s</span>
-          </div>
-          <div style="font-size:0.68rem;color:var(--muted);margin-top:4px">Countdown starts automatically after each logged set.</div>
-        </div>
-      </div>
-    </div>
+    <!-- Today tab — filled dynamically by renderTodaySettingsPane() -->
+    <div id="stPane-today" style="display:none"></div>
+
+    <!-- Fitness tab — filled dynamically by renderFitnessSettingsPane() -->
+    <div id="stPane-fitness" style="display:none"></div>
+
+    <!-- Focus tab — filled dynamically by renderFocusSettingsPane() -->
+    <div id="stPane-focus" style="display:none"></div>
 
     <!-- Projects tab -->
     <div id="stPane-projects" style="display:none">

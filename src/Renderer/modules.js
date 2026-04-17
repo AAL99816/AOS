@@ -157,34 +157,23 @@ function setModule(id, on) {
 function renderModulesPane() {
   const pane = eid('stPane-modules');
   if (!pane) return;
-
-  // Group modules by group
-  const groups = {};
-  MODULE_REGISTRY.forEach(m => {
-    if (!groups[m.group]) groups[m.group] = [];
-    groups[m.group].push(m);
-  });
-
+  // Only Navigation (tab visibility) lives here.
+  // Today sections → Settings > Today. Fitness sections → Settings > Fitness.
+  const navMods = MODULE_REGISTRY.filter(m => m.group === 'Navigation');
   pane.innerHTML = `
     <div style="font-size:0.68rem;color:var(--muted);margin-bottom:16px;line-height:1.6">
-      Toggle any feature on or off. Tabs you disable disappear from the nav. Sections disappear from their page.
-      Your data is always preserved — nothing is deleted.
+      Hide tabs you don't use. They disappear from the nav and your data is always preserved.
     </div>
-    ${Object.entries(groups).map(([group, mods]) => `
-      <div style="margin-bottom:20px">
-        <div style="font-size:0.56rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--blush);font-family:'DM Mono',monospace;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">${group}</div>
-        ${mods.map(m => `
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border-lt)">
-            <div style="flex:1;min-width:0;margin-right:12px">
-              <div style="font-size:0.82rem;color:var(--cream);margin-bottom:2px">${escapeHtml(m.label)}</div>
-              <div style="font-size:0.66rem;color:var(--muted);line-height:1.4">${escapeHtml(m.desc)}</div>
-            </div>
-            <label class="toggle-switch" style="flex-shrink:0">
-              <input type="checkbox" ${modOn(m.id) ? 'checked' : ''} onchange="setModule('${m.id}',this.checked)">
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-        `).join('')}
+    ${navMods.map(m => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">
+        <div style="flex:1;min-width:0;margin-right:12px">
+          <div style="font-size:0.82rem;color:var(--cream);margin-bottom:2px">${escapeHtml(m.label)}</div>
+          <div style="font-size:0.66rem;color:var(--muted);line-height:1.4">${escapeHtml(m.desc)}</div>
+        </div>
+        <label class="toggle-switch" style="flex-shrink:0">
+          <input type="checkbox" ${modOn(m.id) ? 'checked' : ''} onchange="setModule('${m.id}',this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
       </div>
     `).join('')}
   `;

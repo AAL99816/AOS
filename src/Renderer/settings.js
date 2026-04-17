@@ -334,36 +334,141 @@ function switchSettingsTab(tab) {
   if (tab === 'modules')  { if (typeof renderModulesPane === 'function') renderModulesPane(); }
 }
 
+function _featRow(f, feats) {
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-size:0.82rem;color:var(--cream);margin-bottom:2px">${f.label}</div>
+        <div style="font-size:0.68rem;color:var(--muted)">${f.desc}</div>
+      </div>
+      <label class="toggle-switch" style="flex-shrink:0;margin-left:12px">
+        <input type="checkbox" ${feats[f.key] ? 'checked' : ''} onchange="toggleFeature('${f.key}',this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>`;
+}
+
+function _modRow(m) {
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1;min-width:0;margin-right:12px">
+        <div style="font-size:0.82rem;color:var(--cream);margin-bottom:2px">${escapeHtml(m.label)}</div>
+        <div style="font-size:0.66rem;color:var(--muted);line-height:1.4">${escapeHtml(m.desc)}</div>
+      </div>
+      <label class="toggle-switch" style="flex-shrink:0">
+        <input type="checkbox" ${(typeof modOn === 'function' ? modOn(m.id) : true) ? 'checked' : ''} onchange="setModule('${m.id}',this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>`;
+}
+
+function _settingsSection(kicker, body) {
+  return `<div class="settings-section"><div class="settings-kicker">${kicker}</div>${body}</div>`;
+}
+
+function renderTodaySettingsPane() {
+  const pane = eid('stPane-today');
+  if (!pane) return;
+  const feats = S.features || {};
+  const unit  = (S.appPrefs && S.appPrefs.waterUnit) || 'glasses';
+  const todayMods = (typeof MODULE_REGISTRY !== 'undefined' ? MODULE_REGISTRY : []).filter(m => m.group === 'Today');
+  pane.innerHTML =
+    _settingsSection('Display', `
+      <div class="mf"><label><input type="checkbox" id="st-reflection" ${S.appPrefs?.showReflection !== false ? 'checked' : ''} onchange="toggleReflection(this.checked)"> <span>Daily Reflection</span></label></div>
+      <div style="font-size:0.68rem;color:var(--muted);margin-top:4px;line-height:1.5">Show the daily reflection card on your Today page.</div>
+    `) +
+    _settingsSection('Water Tracking', `
+      <div class="mf">
+        <label style="display:block;margin-bottom:6px">Unit</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-g${unit==='glasses'?' active':''}" id="wuBtn-glasses" onclick="setWaterUnit('glasses')" style="font-size:0.7rem">Glasses (250ml)</button>
+          <button class="btn btn-g${unit==='litres'?' active':''}"  id="wuBtn-litres"  onclick="setWaterUnit('litres')"  style="font-size:0.7rem">Litres</button>
+          <button class="btn btn-g${unit==='cups'?' active':''}"    id="wuBtn-cups"    onclick="setWaterUnit('cups')"    style="font-size:0.7rem">Cups (240ml)</button>
+          <button class="btn btn-g${unit==='oz'?' active':''}"      id="wuBtn-oz"      onclick="setWaterUnit('oz')"      style="font-size:0.7rem">Fl oz</button>
+        </div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:6px;line-height:1.5">Changing unit resets today's log count display — raw ml data is always preserved.</div>
+      </div>
+    `) +
+    _settingsSection('Features',
+      [
+        { key:'moodTracking',     label:'Mood Tracking',     desc:'Log a daily mood score (1–10) in the Today tab' },
+        { key:'streakProtection', label:'Streak Protection', desc:'Allow one grace day per week without breaking streaks' },
+      ].map(f => _featRow(f, feats)).join('')
+    ) +
+    _settingsSection('Sections',
+      `<div style="font-size:0.66rem;color:var(--muted);margin-bottom:10px;line-height:1.5">Show or hide sections on your Today dashboard.</div>` +
+      todayMods.map(_modRow).join('')
+    );
+}
+
+function renderFitnessSettingsPane() {
+  const pane = eid('stPane-fitness');
+  if (!pane) return;
+  const feats = S.features || {};
+  const mode     = (S.appPrefs && S.appPrefs.calorieMode) || 'meal';
+  const restSecs = (S.appPrefs && S.appPrefs.restTimerSecs) || 90;
+  const restLbl  = restSecs < 60 ? restSecs + 's' : Math.floor(restSecs/60) + 'm' + (restSecs % 60 ? ' ' + (restSecs % 60) + 's' : '');
+  const fitMods  = (typeof MODULE_REGISTRY !== 'undefined' ? MODULE_REGISTRY : []).filter(m => m.group === 'Fitness');
+  pane.innerHTML =
+    _settingsSection('Food & Calories', `
+      <div class="mf">
+        <label>Calorie Tracking Mode</label>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button id="calModeBtn-meal"  class="btn btn-g${mode==='meal'?' active':''}"  onclick="setCalorieMode('meal')"  style="font-size:0.7rem">Meal mode</button>
+          <button id="calModeBtn-daily" class="btn btn-g${mode==='daily'?' active':''}" onclick="setCalorieMode('daily')" style="font-size:0.7rem">Daily total</button>
+        </div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:6px;line-height:1.5">Meal mode logs individual meals. Daily total logs one number per day.</div>
+      </div>
+    `) +
+    _settingsSection('Workout', `
+      <div class="mf">
+        <label>Rest Timer Duration</label>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+          <input type="range" min="30" max="300" step="15" id="restTimerRange" value="${restSecs}"
+            oninput="if(!S.appPrefs)S.appPrefs={};S.appPrefs.restTimerSecs=parseInt(this.value);scheduleSave();eid('restTimerRangeVal').textContent=Math.floor(this.value/60)+'m '+(this.value%60?this.value%60+'s':'')"
+            style="flex:1;accent-color:var(--blush)">
+          <span id="restTimerRangeVal" style="font-size:0.7rem;color:var(--gold-lt);font-family:'DM Mono',monospace;min-width:36px">${restLbl}</span>
+        </div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:4px">Countdown starts automatically after each logged set.</div>
+      </div>
+    `) +
+    _settingsSection('Features',
+      [
+        { key:'bodyWeight',  label:'Body Weight Log', desc:'Track your body weight over time in the Fitness tab' },
+        { key:'exercisePbs', label:'Exercise PBs',    desc:'Auto-track personal bests per exercise' },
+      ].map(f => _featRow(f, feats)).join('')
+    ) +
+    _settingsSection('Sections',
+      `<div style="font-size:0.66rem;color:var(--muted);margin-bottom:10px;line-height:1.5">Show or hide sections on your Fitness tab.</div>` +
+      fitMods.map(_modRow).join('')
+    );
+}
+
+function renderFocusSettingsPane() {
+  const pane = eid('stPane-focus');
+  if (!pane) return;
+  const feats = S.features || {};
+  pane.innerHTML =
+    _settingsSection('Focus Timer',
+      [
+        { key:'pomodoro', label:'Pomodoro Timer', desc:'Focus timer for projects (25 min work / 5 min break)' },
+      ].map(f => _featRow(f, feats)).join('')
+    );
+}
+
 function renderFeaturesPane() {
   const pane = eid('stPane-features');
   if (!pane) return;
-  const feats = [
-    { key:'moodTracking',      label:'Mood Tracking',       desc:'Log a daily mood score (1–10) in the Today tab' },
-    { key:'bodyWeight',        label:'Body Weight Log',      desc:'Track weight over time in the Fitness tab' },
-    { key:'annualGoals',       label:'Annual Goals',         desc:'Set yearly reading and workout targets in Summary' },
-    { key:'pomodoro',          label:'Pomodoro Timer',       desc:'Focus timer for projects (25 min work / 5 min break)' },
-    { key:'globalSearch',      label:'Global Search',        desc:'Search across all projects, media, habits, and notes' },
-    { key:'dataExport',        label:'Data Export',          desc:'Export your data as CSV files' },
-    { key:'exercisePbs',       label:'Exercise PBs',         desc:'Auto-track personal bests per exercise in Fitness' },
-    { key:'streakProtection',  label:'Streak Protection',    desc:'Allow one grace day per week without breaking streaks' },
-    { key:'financialTracking', label:'Financial Tracking',   desc:'Log income and expenses (coming soon)' },
-    { key:'aiInsights',        label:'AI Insights',          desc:'Weekly summary generated from your data (coming soon)' },
+  // Only features without a dedicated settings tab live here
+  const feats = S.features || {};
+  const remaining = [
+    { key:'dataExport',        label:'Data Export',        desc:'Export your data as CSV files' },
+    { key:'financialTracking', label:'Financial Tracking', desc:'Log income and expenses (coming soon)' },
+    { key:'aiInsights',        label:'AI Insights',        desc:'Weekly summary generated from your data (coming soon)' },
   ];
   pane.innerHTML = `
     <div style="margin-bottom:14px">
-      <div style="font-size:0.7rem;color:var(--muted);margin-bottom:12px">Toggle features on or off. Changes apply immediately and are saved with your data.</div>
-      ${feats.map(f => `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-          <div>
-            <div style="font-size:0.82rem;color:var(--cream);margin-bottom:2px">${f.label}</div>
-            <div style="font-size:0.68rem;color:var(--muted)">${f.desc}</div>
-          </div>
-          <label class="toggle-switch" style="flex-shrink:0;margin-left:12px">
-            <input type="checkbox" ${(S.features||{})[f.key] ? 'checked' : ''} onchange="toggleFeature('${f.key}',this.checked)">
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-      `).join('')}
+      ${remaining.map(f => _featRow(f, feats)).join('')}
     </div>
     <div style="margin-top:20px">
       <div style="font-size:0.72rem;color:var(--cream);margin-bottom:10px;font-weight:500">Export Data (CSV)</div>
