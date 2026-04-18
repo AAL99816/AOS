@@ -107,10 +107,11 @@ function makeProject(p={}){
     title:   p.title   ?? p.school   ?? '',
     type:    p.type    ?? p.name     ?? '',
     context: p.context ?? p.location ?? '',
-    status:  p.status  ?? 'Active',
+    status:   p.status   ?? 'Active',
     deadline: p.deadline ?? '',
-    notes: p.notes ?? '',
+    notes:    p.notes    ?? '',
     richNotes: p.richNotes ?? '',
+    isPublic: p.isPublic ?? false,
     tasks: Array.isArray(p.tasks) ? p.tasks.map(tk => ({
       id: tk.id ?? uid(),
       text: tk.text ?? '',

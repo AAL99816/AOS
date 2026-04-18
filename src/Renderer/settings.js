@@ -223,6 +223,30 @@ async function saveSettings() {
   toast(t('settings_saved'));
 }
 
+// ── Community profile helpers ────────────────────────────────────────────────
+async function saveCommunityProfileField(field, value) {
+  if (typeof saveCommunityProfile === 'function') await saveCommunityProfile({ [field]: value });
+  // Reset community data so next tab open re-fetches
+  if (typeof _communityLoaded !== 'undefined') window._communityLoaded = false;
+}
+
+function toggleCommunityShareSection(isPublic) {
+  const sec = eid('comm-shareSection');
+  if (sec) sec.style.display = isPublic ? '' : 'none';
+}
+
+function _populateCommunitySettings() {
+  const p = currentProfile || {};
+  const isPublicEl = eid('comm-isPublic');
+  const bioEl      = eid('comm-bio');
+  if (isPublicEl) { isPublicEl.checked = !!p.is_public; toggleCommunityShareSection(!!p.is_public); }
+  if (bioEl)      bioEl.value = p.bio || '';
+  ['fitness','food','projects','media'].forEach(k => {
+    const el = eid(`comm-share-${k}`);
+    if (el) el.checked = !!p[`share_${k}`];
+  });
+}
+
 function openSettings() {
   if (!currentProfile) currentProfile = {};
   eid('stUsername').value    = currentProfile.username    || '';
@@ -268,6 +292,7 @@ function openSettings() {
   switchSettingsTab('profile');
 
   eid('stLangToggle').textContent = currentLang === 'en' ? 'AR' : 'EN';
+  _populateCommunitySettings();
   openModal('mSettings');
 }
 

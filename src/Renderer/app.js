@@ -120,7 +120,8 @@ function _renderTab(name) {
   if (name === 'projects' && typeof renderProjects    === 'function') renderProjects();
   if (name === 'media'    && typeof renderBooks       === 'function') renderBooks();
   if (name === 'focus'    && typeof renderFocusTab    === 'function') renderFocusTab();
-  if (name === 'notes'    && typeof renderNotes       === 'function') renderNotes();
+  if (name === 'notes'     && typeof renderNotes      === 'function') renderNotes();
+  if (name === 'community' && typeof renderCommunity  === 'function') renderCommunity();
   // Apply module visibility after the tab has rendered its DOM
   if (typeof applyModules === 'function') applyModules();
 }

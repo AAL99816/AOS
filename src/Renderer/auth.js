@@ -20,7 +20,7 @@ async function loadProfile() {
   if (!currentUser) return;
   const { data, error } = await sb
     .from('profiles')
-    .select('username, avatar_url, country, display_name, font, theme')
+    .select('username, avatar_url, country, display_name, font, theme, bio, is_public, share_fitness, share_food, share_projects, share_media')
     .eq('id', currentUser.id)
     .single();
   if (error && error.code !== 'PGRST116') console.warn('[auth] loadProfile failed:', error.message);

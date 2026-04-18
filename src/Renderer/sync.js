@@ -74,6 +74,7 @@ async function loadProjects() {
     deadline: row.deadline || '',
     notes:    row.notes   || '',
     richNotes: '',
+    isPublic: row.is_public || false,
     tasks: (row.project_tasks || [])
       .filter(tk => tk.app_id)
       .sort((a, b) => a.order_index - b.order_index)
@@ -121,6 +122,7 @@ async function saveProjects() {
       status:      p.status   || 'Active',
       deadline:    p.deadline || null,
       notes:       p.notes    || '',
+      is_public:   p.isPublic || false,
       order_index: i
     }, { onConflict: 'user_id,app_id' }).select('id').single();
 
@@ -937,4 +939,154 @@ async function loadFromSupabase() {
   _subscribeNotesRealtime();
   setSyncStatus('synced');
   return true;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Community — all Supabase data functions
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/* ── Community profile ── */
+async function saveCommunityProfile(updates) {
+  if (!currentUser) return;
+  const { error } = await sb.from('profiles').update(updates).eq('id', currentUser.id);
+  if (error) { console.warn('[community] saveCommunityProfile failed:', error.message); return; }
+  if (!currentProfile) currentProfile = {};
+  Object.assign(currentProfile, updates);
+}
+
+/* ── Feed events (daily rollup via ON CONFLICT DO UPDATE) ── */
+async function pushFeedEvent(type, entityId, summary) {
+  if (!currentUser) return;
+  const p = currentProfile || {};
+  if (!p.is_public) return;
+  // Check share flag for the event type
+  const shareFlags = {
+    workout:        'share_fitness',
+    cardio:         'share_fitness',
+    food_day:       'share_food',
+    project_update: 'share_projects',
+    media_finish:   'share_media',
+    community_note: null   // always share (it's a public note by definition)
+  };
+  const flag = shareFlags[type];
+  if (flag && !p[flag]) return;
+
+  const dateStr = (typeof today === 'function') ? today() : new Date().toISOString().slice(0, 10);
+  await sb.from('community_feed_events').upsert({
+    user_id:    currentUser.id,
+    event_type: type,
+    entity_id:  entityId || null,
+    event_date: dateStr,
+    summary:    summary || {}
+  }, { onConflict: 'user_id,event_type,event_date' });
+}
+
+/* ── Community notes ── */
+async function loadCommunityNotes() {
+  if (!currentUser) return [];
+  const { data, error } = await sb
+    .from('community_notes')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false });
+  if (error) { console.warn('[community] loadCommunityNotes failed:', error.message); return []; }
+  return data || [];
+}
+
+async function saveCommunityNote(note) {
+  if (!currentUser) return null;
+  const row = { user_id: currentUser.id, title: note.title || '', body: note.body || '' };
+  if (note.id) row.id = note.id;
+  const { data, error } = await sb
+    .from('community_notes')
+    .upsert(row, { onConflict: 'id' })
+    .select('*')
+    .single();
+  if (error) { console.warn('[community] saveCommunityNote failed:', error.message); return null; }
+  return data;
+}
+
+async function deleteCommunityNote(id) {
+  if (!currentUser) return;
+  await sb.from('community_notes').delete().eq('id', id).eq('user_id', currentUser.id);
+}
+
+/* ── Follows ── */
+async function followUser(userId) {
+  if (!currentUser) return;
+  await sb.from('community_follows').insert({ follower_id: currentUser.id, following_id: userId });
+}
+
+async function unfollowUser(userId) {
+  if (!currentUser) return;
+  await sb.from('community_follows').delete()
+    .eq('follower_id', currentUser.id).eq('following_id', userId);
+}
+
+async function loadFollowing() {
+  if (!currentUser) return [];
+  const { data } = await sb
+    .from('community_follows')
+    .select('following_id')
+    .eq('follower_id', currentUser.id);
+  return (data || []).map(r => r.following_id);
+}
+
+async function loadFollowersCount(userId) {
+  const { count } = await sb
+    .from('community_follows')
+    .select('follower_id', { count: 'exact', head: true })
+    .eq('following_id', userId);
+  return count || 0;
+}
+
+/* ── Feed ── */
+async function loadCommunityFeed(followingIds) {
+  if (!currentUser || !followingIds.length) return [];
+  const { data, error } = await sb
+    .from('community_feed_events')
+    .select('*, profiles(username, display_name, avatar_url)')
+    .in('user_id', followingIds)
+    .order('event_date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(80);
+  if (error) { console.warn('[community] loadCommunityFeed failed:', error.message); return []; }
+  return data || [];
+}
+
+async function loadCommunityFeedByUser(userId) {
+  const { data, error } = await sb
+    .from('community_feed_events')
+    .select('*')
+    .eq('user_id', userId)
+    .order('event_date', { ascending: false })
+    .limit(20);
+  if (error) return [];
+  return data || [];
+}
+
+/* ── Discover ── */
+async function searchCommunityProfiles(query) {
+  if (!currentUser) return [];
+  const clean = query.replace(/'/g, "''");
+  const { data, error } = await sb
+    .from('profiles')
+    .select('id, username, display_name, avatar_url, bio, share_fitness, share_food, share_projects, share_media')
+    .eq('is_public', true)
+    .neq('id', currentUser.id)
+    .or(`username.ilike.%${clean}%,display_name.ilike.%${clean}%`)
+    .limit(20);
+  if (error) { console.warn('[community] searchProfiles failed:', error.message); return []; }
+  return data || [];
+}
+
+async function fetchPublicProfileById(userId) {
+  const { data, error } = await sb
+    .from('profiles')
+    .select('id, username, display_name, avatar_url, bio, is_public, share_fitness, share_food, share_projects, share_media')
+    .eq('id', userId)
+    .eq('is_public', true)
+    .single();
+  if (error) return null;
+  return data;
 }

@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="/icons/icon.svg">
 <!-- Supabase JS client — loaded from CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500&family=DM+Mono:wght@300;400&family=Cairo:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -1075,6 +1076,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   <button class="tab" onclick="go('projects',this)" data-i18n="nav_projects">Projects</button>
   <button class="tab" onclick="go('media',this)" data-i18n="nav_media">Media</button>
   <button class="tab" onclick="go('notes',this)">Notes</button>
+  <button class="tab" onclick="go('community',this)">Community</button>
   <button class="tab" onclick="go('summary',this)" data-i18n="nav_summary">Summary</button>
   <div class="nav-right">
     <div class="sync-dot" id="syncDot" title="Sync status"></div>
@@ -1369,6 +1371,9 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 
     </div>
   </div>
+
+  <!-- COMMUNITY TAB -->
+  <div id="panel-community" class="panel"></div>
 
 </main>
 
@@ -1943,6 +1948,47 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
           </label>
         </div>
       </div>
+      <div class="settings-section">
+        <div class="settings-kicker">Community Profile</div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-bottom:14px;line-height:1.6">Make your profile public so others can follow your activity. Your personal notes are always private.</div>
+        <!-- Master public toggle -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-size:0.82rem;color:var(--cream);margin-bottom:2px">Public Profile</div>
+            <div style="font-size:0.68rem;color:var(--muted)">Allow others to find and follow you</div>
+          </div>
+          <label class="toggle-switch" style="flex-shrink:0;margin-left:12px">
+            <input type="checkbox" id="comm-isPublic" onchange="saveCommunityProfileField('is_public',this.checked);toggleCommunityShareSection(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <!-- Bio -->
+        <div class="mf" style="margin-top:12px">
+          <label>Bio <span style="font-size:0.60rem;color:var(--muted);font-weight:400">shown on your public profile</span></label>
+          <textarea id="comm-bio" rows="2" placeholder="A short bio…" style="resize:none;font-size:0.82rem"
+            onchange="saveCommunityProfileField('bio',this.value.trim())"></textarea>
+        </div>
+        <!-- Share toggles — hidden when not public -->
+        <div id="comm-shareSection" style="display:none">
+          <div style="font-size:0.66rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace;margin:14px 0 8px">Share with followers</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+            <div style="font-size:0.80rem;color:var(--cream)">Fitness</div>
+            <label class="toggle-switch" style="flex-shrink:0"><input type="checkbox" id="comm-share-fitness" onchange="saveCommunityProfileField('share_fitness',this.checked)"><span class="toggle-slider"></span></label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+            <div style="font-size:0.80rem;color:var(--cream)">Food</div>
+            <label class="toggle-switch" style="flex-shrink:0"><input type="checkbox" id="comm-share-food" onchange="saveCommunityProfileField('share_food',this.checked)"><span class="toggle-slider"></span></label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+            <div style="font-size:0.80rem;color:var(--cream)">Projects</div>
+            <label class="toggle-switch" style="flex-shrink:0"><input type="checkbox" id="comm-share-projects" onchange="saveCommunityProfileField('share_projects',this.checked)"><span class="toggle-slider"></span></label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
+            <div style="font-size:0.80rem;color:var(--cream)">Media</div>
+            <label class="toggle-switch" style="flex-shrink:0"><input type="checkbox" id="comm-share-media" onchange="saveCommunityProfileField('share_media',this.checked)"><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Summary tab -->
@@ -2256,6 +2302,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 <script src="./Renderer/today.js"></script>
 <script src="./Renderer/modules.js"></script>
 <script src="./Renderer/notes.js"></script>
+<script src="./Renderer/community.js"></script>
 <script src="./Renderer/app.js"></script>
 <div id="updateBanner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--blush);color:var(--cream);padding:10px 22px;border-radius:20px;font-size:0.78rem;font-family:'Jost',sans-serif;letter-spacing:0.04em;z-index:9999;cursor:pointer;box-shadow:0 4px 24px rgba(0,0,0,0.5)" onclick="window.location.reload()">
   Update available — tap to reload

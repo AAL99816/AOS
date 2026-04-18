@@ -121,7 +121,11 @@ function renderProjects() {
           <button class="btn btn-d" style="font-size:0.66rem;padding:3px 9px" onclick="deleteProject('${p.id}')">${t('remove')}</button>
           ${p.updatedOn ? `<span style="font-size:0.52rem;color:var(--muted);font-family:'DM Mono',monospace" title="Last updated">↻ ${p.updatedOn}</span>` : ''}
         </div>
-        <div style="display:flex;gap:6px">
+        <div style="display:flex;gap:6px;align-items:center">
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.60rem;color:var(--muted);font-family:'DM Mono',monospace" title="Make this project visible on your community profile">
+            <input type="checkbox" ${p.isPublic ? 'checked' : ''} onchange="toggleProjectPublic('${p.id}',this.checked)" style="width:13px;height:13px;cursor:pointer">
+            Public
+          </label>
           ${typeof feat === 'function' && feat('pomodoro') ? `<button class="btn btn-g" style="font-size:0.66rem;padding:3px 9px" onclick="focusOnProject('${p.id}')">Focus</button>` : ''}
           <button class="btn btn-p" style="font-size:0.68rem;padding:3px 12px" onclick="openProjectDetail('${p.id}')">${t('open_detail')}</button>
         </div>
@@ -293,9 +297,18 @@ function toggleProjectTask(id, taskId) {
   tk.done = !tk.done;
   tk.completedOn = tk.done ? today() : null;
   p.updatedOn = today();
+  if (tk.done) pushFeedEvent('project_update', p._uuid || null, { projectTitle: p.title, taskText: tk.text });
   scheduleSave();
   renderPdTasks(p);
   renderProjects();
+}
+
+function toggleProjectPublic(id, isPublic) {
+  const p = ensureProjects().find(x => String(x.id) === String(id));
+  if (!p) return;
+  p.isPublic = isPublic;
+  p.updatedOn = today();
+  scheduleSave();
 }
 
 function reorderTask(projectId, fromIdx, dir) {

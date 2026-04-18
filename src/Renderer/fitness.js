@@ -1359,6 +1359,7 @@ function logWorkoutSession(wcId) {
     notes: sessionNote,
     exercises
   });
+  pushFeedEvent('workout', null, { title: wc.title || 'Workout', exercises: exercises.length, date: sessionDate });
 
   const gh = hfind('gym','lift','workout','training','weights');
   if (gh) { if (!gh.days) gh.days = {}; gh.days[sessionDate] = true; }

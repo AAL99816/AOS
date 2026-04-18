@@ -439,6 +439,7 @@ function cycleBook(id) {
     if (b.status === 'done' && !b.finishedOn) b.finishedOn = today();
     if (b.status !== 'done') b.finishedOn = null;
   }
+  if (b.status === 'done') pushFeedEvent('media_finish', b._uuid || null, { title: b.title, mediaType: b.mediaType, rating: b.rating });
 
   scheduleSave();
   renderBooks();

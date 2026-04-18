@@ -1266,6 +1266,9 @@ function saveFoodEntry() {
   const _date = _foodEffectiveDate();
   if (!S.foodLog[_date]) S.foodLog[_date] = [];
   S.foodLog[_date].push(entry);
+  const _dayEntries = S.foodLog[_date];
+  const _dayKcal = _dayEntries.reduce((s, e) => s + (e.kcal || 0), 0);
+  pushFeedEvent('food_day', null, { date: _date, calories: _dayKcal, items: _dayEntries.length });
   scheduleSave();
   closeFoodSearch();
   renderFoodTab();

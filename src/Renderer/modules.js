@@ -40,6 +40,11 @@ const MODULE_REGISTRY = [
     desc: 'Free-form notes organised by topic, linkable to other tabs',
     type: 'tab', tabName: 'notes', default: true
   },
+  {
+    id: 'tab.community', group: 'Navigation', label: 'Community',
+    desc: 'Public profiles, activity feed, discover people, community notes',
+    type: 'tab', tabName: 'community', default: true
+  },
 
   // ── Today dashboard sections ──────────────────────────────────
   {
