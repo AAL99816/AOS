@@ -1090,3 +1090,49 @@ async function fetchPublicProfileById(userId) {
   if (error) return null;
   return data;
 }
+
+/* ── Per-profile public data tabs ── */
+async function fetchPublicFoodLog(userId) {
+  const { data } = await sb
+    .from('food_log')
+    .select('id, log_date, name, brand, meal_type, calories, protein_g, carbs_g, fat_g, grams')
+    .eq('user_id', userId)
+    .order('log_date', { ascending: false })
+    .limit(300);
+  return data || [];
+}
+
+async function fetchPublicFitness(userId) {
+  const [sessRes, cardioRes] = await Promise.all([
+    sb.from('workout_sessions')
+      .select('id, session_date, title, summary, workout_exercises(name, sets, reps, weight_kg, order_index)')
+      .eq('user_id', userId)
+      .order('session_date', { ascending: false })
+      .limit(50),
+    sb.from('cardio_sessions')
+      .select('id, session_date, activity, duration_minutes, distance_km, steps, notes')
+      .eq('user_id', userId)
+      .order('session_date', { ascending: false })
+      .limit(50)
+  ]);
+  return { sessions: sessRes.data || [], cardio: cardioRes.data || [] };
+}
+
+async function fetchPublicProjects(userId) {
+  const { data } = await sb
+    .from('projects')
+    .select('id, title, type, status, deadline, project_tasks(id, text, done, due_date, order_index)')
+    .eq('user_id', userId)
+    .eq('is_public', true)
+    .order('order_index');
+  return data || [];
+}
+
+async function fetchPublicMedia(userId) {
+  const { data } = await sb
+    .from('media_items')
+    .select('id, media_type, title, creator, status, rating, cover_url, finished_on, current_page, total_pages')
+    .eq('user_id', userId)
+    .order('order_index');
+  return data || [];
+}

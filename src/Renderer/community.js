@@ -411,20 +411,22 @@ async function deleteCommunityNoteUI(id) {
   }
 }
 
-// ── Profile overlay ───────────────────────────────────────────────────────────
-async function openProfileOverlay(userId) {
-  // Don't open overlay for own profile
-  if (currentUser && userId === currentUser.id) {
-    switchCommunityView('my-profile');
-    return;
-  }
+// ── Profile overlay — tabbed ──────────────────────────────────────────────────
+let _profileCache         = {};   // { [userId]: { feedEvents, notes, profileCtx, fitness, food, projects, media } }
+let _currentProfileUserId = null;
 
-  // Show skeleton while loading
+async function openProfileOverlay(userId) {
+  if (currentUser && userId === currentUser.id) { switchCommunityView('my-profile'); return; }
+
+  _currentProfileUserId = userId;
+  if (!_profileCache[userId]) _profileCache[userId] = {};
+
+  // Mount skeleton immediately
   const overlay = document.createElement('div');
   overlay.id = 'profileOverlay';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.78);display:flex;align-items:flex-end;justify-content:center';
   overlay.innerHTML = `
-    <div style="background:var(--ink);border:1px solid var(--border-lt);border-radius:18px 18px 0 0;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;padding:24px;box-sizing:border-box">
+    <div id="profileOverlaySheet" style="background:var(--ink);border:1px solid var(--border-lt);border-radius:18px 18px 0 0;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;padding:24px;box-sizing:border-box">
       <div style="display:flex;justify-content:flex-start;margin-bottom:16px">
         <button class="btn btn-g" style="font-size:0.70rem;padding:6px 14px" onclick="closeProfileOverlay()">← Back</button>
       </div>
@@ -433,77 +435,115 @@ async function openProfileOverlay(userId) {
   overlay.addEventListener('click', e => { if (e.target === overlay) closeProfileOverlay(); });
   document.body.appendChild(overlay);
 
-  // Fetch data in parallel
+  // Parallel fetch: profile + activity + follower count
   const [profile, feedData, notesRes, followerCount] = await Promise.all([
     fetchPublicProfileById(userId),
     loadCommunityFeedByUser(userId),
-    sb.from('community_notes').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(20),
+    sb.from('community_notes').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(30),
     loadFollowersCount(userId)
   ]);
 
+  const sheet = eid('profileOverlaySheet');
+  if (!sheet) return;
+
   if (!profile) {
-    const inner = overlay.querySelector('div > div:last-child');
-    if (inner) inner.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:0.76rem">Profile not found or is private</div>`;
+    sheet.innerHTML = `
+      <div style="display:flex;justify-content:flex-start;margin-bottom:16px">
+        <button class="btn btn-g" style="font-size:0.70rem;padding:6px 14px" onclick="closeProfileOverlay()">← Back</button>
+      </div>
+      <div style="text-align:center;padding:40px 0;color:var(--muted);font-size:0.76rem">Profile not found or is private</div>`;
     return;
   }
 
+  // Cache activity data
+  const profileCtx = { display_name: profile.display_name, avatar_url: profile.avatar_url, username: profile.username };
+  _profileCache[userId].feedEvents  = feedData || [];
+  _profileCache[userId].notes       = notesRes?.data || [];
+  _profileCache[userId].profileCtx  = profileCtx;
+
+  // Build header
   const isFollowing = _communityFollowing.includes(userId);
   const name    = profile.display_name || profile.username || 'Anonymous';
   const initial = (name[0] || '?').toUpperCase();
   const avatar  = profile.avatar_url
-    ? `<img src="${escapeAttr(profile.avatar_url)}" style="width:72px;height:72px;border-radius:50%;object-fit:cover">`
-    : `<div style="width:72px;height:72px;border-radius:50%;background:var(--border-lt);display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:var(--muted);font-weight:600">${escapeHtml(initial)}</div>`;
+    ? `<img src="${escapeAttr(profile.avatar_url)}" style="width:68px;height:68px;border-radius:50%;object-fit:cover">`
+    : `<div style="width:68px;height:68px;border-radius:50%;background:var(--border-lt);display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:var(--muted);font-weight:600">${escapeHtml(initial)}</div>`;
 
-  const shares = [
-    profile.share_fitness  && 'Fitness',
-    profile.share_food     && 'Food',
-    profile.share_projects && 'Projects',
-    profile.share_media    && 'Media'
+  // Build tab strip — only tabs for categories they share
+  const availTabs = [
+    { id: 'activity', label: 'Activity' },
+    profile.share_fitness  && { id: 'fitness',  label: 'Fitness' },
+    profile.share_food     && { id: 'food',      label: 'Food' },
+    profile.share_projects && { id: 'projects',  label: 'Projects' },
+    profile.share_media    && { id: 'media',     label: 'Media' },
   ].filter(Boolean);
 
-  const feedEvents = feedData || [];
-  const notes      = notesRes?.data || [];
+  const tabStrip = availTabs.map((t, i) =>
+    `<button class="fpill${i === 0 ? ' active' : ''}" data-ptab="${t.id}" onclick="switchProfileTab('${t.id}')" style="white-space:nowrap">${t.label}</button>`
+  ).join('');
 
-  const profileCtx = { display_name: profile.display_name, avatar_url: profile.avatar_url, username: profile.username };
-
-  const inner = overlay.querySelector('[style*="border-radius:18px"]');
-  if (inner) inner.innerHTML = `
+  sheet.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
       <button class="btn btn-g" style="font-size:0.70rem;padding:6px 14px" onclick="closeProfileOverlay()">← Back</button>
       <button id="overlayFollowBtn" class="btn ${isFollowing ? 'btn-g' : 'btn-p'}" style="font-size:0.72rem;padding:7px 18px"
         onclick="toggleFollowFromOverlay('${escapeAttr(userId)}',this)">${isFollowing ? 'Following' : 'Follow'}</button>
     </div>
-    <div style="text-align:center;margin-bottom:24px">
-      <div style="display:flex;justify-content:center;margin-bottom:12px">${avatar}</div>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:1.15rem;color:var(--cream);font-weight:600">${escapeHtml(name)}</div>
+
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="display:flex;justify-content:center;margin-bottom:10px">${avatar}</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--cream);font-weight:600">${escapeHtml(name)}</div>
       ${profile.username ? `<div style="font-size:0.68rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">@${escapeHtml(profile.username)}</div>` : ''}
-      <div style="font-size:0.66rem;color:var(--muted);margin-top:4px;font-family:'DM Mono',monospace">${followerCount} follower${followerCount !== 1 ? 's' : ''}</div>
-      ${profile.bio ? `<div style="font-size:0.76rem;color:var(--muted);margin-top:10px;line-height:1.6;max-width:300px;margin-left:auto;margin-right:auto">${escapeHtml(profile.bio)}</div>` : ''}
-      ${shares.length ? `<div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:12px">${shares.map(s => `<span class="fpill">${s}</span>`).join('')}</div>` : ''}
+      <div style="font-size:0.64rem;color:var(--muted);margin-top:3px;font-family:'DM Mono',monospace">${followerCount} follower${followerCount !== 1 ? 's' : ''}</div>
+      ${profile.bio ? `<div style="font-size:0.74rem;color:var(--muted);margin-top:8px;line-height:1.6;max-width:300px;margin-left:auto;margin-right:auto">${escapeHtml(profile.bio)}</div>` : ''}
     </div>
 
-    ${feedEvents.length ? `
-      <div style="font-size:0.66rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:10px">Recent Activity</div>
-      ${feedEvents.slice(0, 10).map(ev => _buildFeedCard({ ...ev, profiles: profileCtx })).join('')}
-    ` : ''}
+    <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:18px;padding-bottom:2px">
+      ${tabStrip}
+    </div>
 
-    ${notes.length ? `
-      <div style="font-size:0.66rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;margin:20px 0 10px">Community Notes</div>
-      ${notes.map(n => `
-        <div class="card" style="padding:14px;margin-bottom:10px">
-          <div style="font-size:0.84rem;color:var(--cream);font-weight:600;margin-bottom:8px">${escapeHtml(n.title || 'Untitled')}</div>
-          <div class="markdown-body" style="font-size:0.74rem;color:var(--muted);line-height:1.7">${_renderMarkdown(n.body || '')}</div>
-          <div style="font-size:0.60rem;color:var(--muted);margin-top:8px;font-family:'DM Mono',monospace">
-            ${n.updated_at ? new Date(n.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
-          </div>
-        </div>`).join('')}
-    ` : ''}
+    <div id="profileTabContent"></div>
   `;
+
+  // Render default Activity tab
+  const content = eid('profileTabContent');
+  if (content) content.innerHTML = _buildActivityTab(userId);
 }
 
 function closeProfileOverlay() {
   const el = eid('profileOverlay');
   if (el) el.remove();
+  _currentProfileUserId = null;
+}
+
+async function switchProfileTab(tab) {
+  const userId = _currentProfileUserId;
+  if (!userId) return;
+  const cache = _profileCache[userId];
+  if (!cache) return;
+
+  // Update pill states
+  document.querySelectorAll('#profileOverlay [data-ptab]').forEach(b => {
+    b.classList.toggle('active', b.dataset.ptab === tab);
+  });
+
+  const content = eid('profileTabContent');
+  if (!content) return;
+
+  if (tab === 'activity') { content.innerHTML = _buildActivityTab(userId); return; }
+
+  // Lazy-load on first visit
+  if (!cache[tab]) {
+    content.innerHTML = `<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:0.76rem">Loading…</div>`;
+    if (tab === 'fitness')  cache.fitness  = await fetchPublicFitness(userId);
+    if (tab === 'food')     cache.food     = await fetchPublicFoodLog(userId);
+    if (tab === 'projects') cache.projects = await fetchPublicProjects(userId);
+    if (tab === 'media')    cache.media    = await fetchPublicMedia(userId);
+  }
+
+  if (tab === 'fitness')  content.innerHTML = _buildFitnessTab(cache.fitness);
+  if (tab === 'food')     content.innerHTML = _buildFoodTab(cache.food);
+  if (tab === 'projects') content.innerHTML = _buildProjectsTab(cache.projects);
+  if (tab === 'media')    content.innerHTML = _buildMediaTab(cache.media);
 }
 
 async function toggleFollowFromOverlay(userId, btn) {
@@ -512,16 +552,242 @@ async function toggleFollowFromOverlay(userId, btn) {
   if (isFollowing) {
     await unfollowUser(userId);
     _communityFollowing = _communityFollowing.filter(id => id !== userId);
-    btn.textContent = 'Follow';
-    btn.className   = 'btn btn-p';
+    btn.textContent = 'Follow'; btn.className = 'btn btn-p';
   } else {
     await followUser(userId);
     _communityFollowing = [..._communityFollowing, userId];
-    btn.textContent = 'Following';
-    btn.className   = 'btn btn-g';
+    btn.textContent = 'Following'; btn.className = 'btn btn-g';
   }
   btn.style.cssText = 'font-size:0.72rem;padding:7px 18px';
   btn.disabled = false;
+}
+
+// ── Profile tab content builders ──────────────────────────────────────────────
+function _buildActivityTab(userId) {
+  const cache = _profileCache[userId] || {};
+  const feedEvents = cache.feedEvents  || [];
+  const notes      = cache.notes       || [];
+  const ctx        = cache.profileCtx  || {};
+  let html = '';
+
+  if (feedEvents.length) {
+    html += `<div style="font-size:0.64rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:10px">Recent Activity</div>`;
+    html += feedEvents.slice(0, 15).map(ev => _buildFeedCard({ ...ev, profiles: ctx })).join('');
+  }
+  if (notes.length) {
+    html += `<div style="font-size:0.64rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;margin:18px 0 10px">Community Notes</div>`;
+    html += notes.map(n => `
+      <div class="card" style="padding:14px;margin-bottom:10px">
+        <div style="font-size:0.82rem;color:var(--cream);font-weight:600;margin-bottom:8px">${escapeHtml(n.title || 'Untitled')}</div>
+        <div class="markdown-body" style="font-size:0.74rem;color:var(--muted);line-height:1.7">${_renderMarkdown(n.body || '')}</div>
+        <div style="font-size:0.60rem;color:var(--muted);margin-top:8px;font-family:'DM Mono',monospace">
+          ${n.updated_at ? new Date(n.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+        </div>
+      </div>`).join('');
+  }
+  return html || `<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:0.76rem">No activity yet</div>`;
+}
+
+function _buildFitnessTab(data) {
+  if (!data) return _emptyTab();
+  const { sessions, cardio } = data;
+  let html = '';
+
+  if (sessions.length) {
+    html += `<div style="font-size:0.64rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:10px">Workouts</div>`;
+    html += sessions.map(s => {
+      const exs = (s.workout_exercises || []).sort((a, b) => a.order_index - b.order_index);
+      const exNames = exs.map(e => escapeHtml(e.name || '')).filter(Boolean);
+      return `
+        <div class="card" style="padding:13px;margin-bottom:9px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <div style="font-size:0.84rem;color:var(--cream);font-weight:600">${escapeHtml(s.title || 'Workout')}</div>
+            <div style="font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace">${s.session_date || ''}</div>
+          </div>
+          ${s.summary ? `<div style="font-size:0.72rem;color:var(--muted);margin-bottom:6px">${escapeHtml(s.summary)}</div>` : ''}
+          ${exNames.length ? `
+            <div style="font-size:0.68rem;color:var(--muted);font-family:'DM Mono',monospace;line-height:1.6">
+              ${exNames.slice(0, 6).join(' · ')}${exNames.length > 6 ? ` <span style="color:var(--muted)">+${exNames.length - 6} more</span>` : ''}
+            </div>` : ''}
+        </div>`;
+    }).join('');
+  }
+
+  if (cardio.length) {
+    html += `<div style="font-size:0.64rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;margin:16px 0 10px">Cardio</div>`;
+    html += cardio.map(c => {
+      const meta = [
+        c.duration_minutes && `${c.duration_minutes}min`,
+        c.distance_km      && `${c.distance_km}km`,
+        c.steps            && `${Number(c.steps).toLocaleString()} steps`
+      ].filter(Boolean).join(' · ');
+      return `
+        <div class="card" style="padding:13px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:0.82rem;color:var(--cream);font-weight:600;margin-bottom:3px">${escapeHtml(c.activity || 'Cardio')}</div>
+            ${meta ? `<div style="font-size:0.66rem;color:var(--muted);font-family:'DM Mono',monospace">${meta}</div>` : ''}
+          </div>
+          <div style="font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace">${c.session_date || ''}</div>
+        </div>`;
+    }).join('');
+  }
+
+  return html || _emptyTab('No fitness data yet');
+}
+
+function _buildFoodTab(entries) {
+  if (!entries || !entries.length) return _emptyTab('No food data yet');
+
+  const MEAL_LABELS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack', other: 'Other' };
+
+  // Group by date
+  const byDate = {};
+  for (const e of entries) {
+    if (!byDate[e.log_date]) byDate[e.log_date] = [];
+    byDate[e.log_date].push(e);
+  }
+
+  return Object.entries(byDate)
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([date, items]) => {
+      const totalKcal = items.reduce((s, e) => s + (Number(e.calories) || 0), 0);
+      const totalProt = items.reduce((s, e) => s + (Number(e.protein_g) || 0), 0);
+      const dateStr   = new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+      // Group by meal
+      const byMeal = {};
+      for (const item of items) {
+        const m = item.meal_type || 'other';
+        if (!byMeal[m]) byMeal[m] = [];
+        byMeal[m].push(item);
+      }
+      const MEAL_ORDER = ['breakfast','lunch','dinner','snack','other'];
+      const sortedMeals = MEAL_ORDER.filter(m => byMeal[m]);
+
+      return `
+        <div class="card" style="padding:14px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="font-size:0.84rem;color:var(--cream);font-weight:600">${dateStr}</div>
+            <div style="text-align:right">
+              <div style="font-size:0.72rem;color:var(--blush);font-family:'DM Mono',monospace;font-weight:600">${Math.round(totalKcal)} kcal</div>
+              ${totalProt > 0 ? `<div style="font-size:0.60rem;color:var(--muted);font-family:'DM Mono',monospace">${Math.round(totalProt)}g protein</div>` : ''}
+            </div>
+          </div>
+          ${sortedMeals.map(meal => `
+            <div style="margin-bottom:10px">
+              <div style="font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;font-family:'DM Mono',monospace;margin-bottom:5px">${MEAL_LABELS[meal] || meal}</div>
+              ${byMeal[meal].map(item => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)">
+                  <div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">
+                    <span style="font-size:0.76rem;color:var(--mist)">${escapeHtml(item.name || '')}</span>
+                    ${item.brand ? `<span style="font-size:0.62rem;color:var(--muted);margin-left:5px">${escapeHtml(item.brand)}</span>` : ''}
+                  </div>
+                  <div style="flex-shrink:0;margin-left:12px;text-align:right">
+                    <span style="font-size:0.68rem;color:var(--muted);font-family:'DM Mono',monospace">${Math.round(Number(item.calories) || 0)} kcal</span>
+                    ${item.grams > 0 ? `<span style="font-size:0.60rem;color:var(--muted);font-family:'DM Mono',monospace;margin-left:6px">${item.grams}g</span>` : ''}
+                  </div>
+                </div>`).join('')}
+            </div>`).join('')}
+        </div>`;
+    }).join('');
+}
+
+function _buildProjectsTab(rows) {
+  if (!rows || !rows.length) return _emptyTab('No public projects');
+
+  return rows.map(p => {
+    const tasks   = (p.project_tasks || []).sort((a, b) => a.order_index - b.order_index);
+    const done    = tasks.filter(t => t.done).length;
+    const pct     = tasks.length ? Math.round(done / tasks.length * 100) : 0;
+    const status  = p.status || 'Active';
+
+    return `
+      <div class="card" style="padding:14px;margin-bottom:10px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
+          <div style="min-width:0;flex:1">
+            <div style="font-size:0.88rem;color:var(--cream);font-weight:600;margin-bottom:2px">${escapeHtml(p.title || '')}</div>
+            ${p.type ? `<div style="font-size:0.66rem;color:var(--muted)">${escapeHtml(p.type)}</div>` : ''}
+          </div>
+          <span class="spill s-${status.toLowerCase()}" style="flex-shrink:0;margin-left:8px">${escapeHtml(status)}</span>
+        </div>
+        ${tasks.length ? `
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+              <span style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em">Progress</span>
+              <span style="font-size:0.60rem;color:var(--blush);font-family:'DM Mono',monospace">${done}/${tasks.length} · ${pct}%</span>
+            </div>
+            <div style="height:3px;background:var(--mid);border-radius:2px;overflow:hidden">
+              <div style="height:100%;width:${pct}%;background:var(--blush);border-radius:2px;transition:width 0.3s"></div>
+            </div>
+          </div>
+          ${tasks.slice(0, 8).map(tk => `
+            <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)">
+              <div style="width:13px;height:13px;border-radius:3px;border:1px solid var(--border-lt);flex-shrink:0;background:${tk.done ? 'var(--blush)' : 'transparent'};display:flex;align-items:center;justify-content:center">
+                ${tk.done ? `<span style="font-size:8px;color:var(--ink);font-weight:700">✓</span>` : ''}
+              </div>
+              <div style="font-size:0.74rem;color:var(--mist);flex:1;${tk.done ? 'text-decoration:line-through;opacity:0.45' : ''}">${escapeHtml(tk.text || '')}</div>
+              ${tk.due_date ? `<div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;flex-shrink:0">${tk.due_date}</div>` : ''}
+            </div>`).join('')}
+          ${tasks.length > 8 ? `<div style="font-size:0.62rem;color:var(--muted);padding-top:7px;font-family:'DM Mono',monospace">+${tasks.length - 8} more tasks</div>` : ''}
+        ` : `<div style="font-size:0.72rem;color:var(--muted)">No tasks yet</div>`}
+        ${p.deadline ? `<div style="font-size:0.62rem;color:var(--muted);margin-top:10px;font-family:'DM Mono',monospace">Due: ${p.deadline}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function _buildMediaTab(rows) {
+  if (!rows || !rows.length) return _emptyTab('No media shared yet');
+
+  const TYPE_ORDER  = ['book', 'film', 'show', 'album', 'game'];
+  const TYPE_LABELS = { book: 'Books', film: 'Films', show: 'Shows', album: 'Albums', game: 'Games' };
+  const TYPE_ICONS  = { book: '📖', film: '🎬', show: '📺', album: '🎵', game: '🎮' };
+  const STATUS_MAP  = {
+    book:  { unread: 'To Read',     reading: 'Reading',   done: 'Finished' },
+    film:  { unread: 'Queued',      reading: 'Watching',  done: 'Watched' },
+    show:  { unread: 'Queued',      reading: 'Watching',  done: 'Finished' },
+    album: { unread: 'Not Started', reading: 'Listening', done: 'Finished' },
+    game:  { unread: 'Backlog',     reading: 'Playing',   done: 'Completed' }
+  };
+
+  let html = '';
+  for (const type of TYPE_ORDER) {
+    const items = rows.filter(r => r.media_type === type);
+    if (!items.length) continue;
+
+    html += `<div style="font-size:0.64rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:10px">${TYPE_ICONS[type]} ${TYPE_LABELS[type]}</div>`;
+
+    html += items.map(item => {
+      const statusLabel = (STATUS_MAP[type] || {})[item.status] || item.status;
+      const rating = item.rating ? Math.round(item.rating) : 0;
+      const stars  = rating ? `${'★'.repeat(rating)}${'☆'.repeat(5 - rating)}` : '';
+      const prog   = (type === 'book' && item.total_pages > 0)
+        ? Math.min(100, Math.round((item.current_page / item.total_pages) * 100))
+        : (item.status === 'done' ? 100 : 0);
+
+      return `
+        <div style="display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--border)">
+          ${item.cover_url
+            ? `<img src="${escapeAttr(item.cover_url)}" style="width:38px;height:52px;object-fit:cover;border-radius:5px;flex-shrink:0">`
+            : `<div style="width:38px;height:52px;background:var(--mid);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.1rem">${TYPE_ICONS[type]}</div>`}
+          <div style="flex:1;min-width:0">
+            <div style="font-size:0.80rem;color:var(--cream);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px">${escapeHtml(item.title || '')}</div>
+            ${item.creator ? `<div style="font-size:0.64rem;color:var(--muted);margin-bottom:4px">${escapeHtml(item.creator)}</div>` : ''}
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span class="bstatus bs-${item.status}" style="font-size:0.56rem">${statusLabel}</span>
+              ${stars ? `<span style="font-size:0.64rem;color:var(--blush);letter-spacing:-0.5px">${stars}</span>` : ''}
+              ${prog > 0 && prog < 100 ? `<span style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace">${prog}%</span>` : ''}
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    html += '<div style="margin-bottom:16px"></div>';
+  }
+  return html;
+}
+
+function _emptyTab(msg) {
+  return `<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:0.76rem">${escapeHtml(msg || 'Nothing here yet')}</div>`;
 }
 
 // ── Refresh feed after a feed event is pushed ─────────────────────────────────
