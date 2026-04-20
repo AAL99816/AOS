@@ -693,8 +693,8 @@ function openSessionDetail(id){
   if(s.exercises && s.exercises.length){
     ex.innerHTML = s.exercises.map(e => {
       // Support both old flat format { weight, reps, sets } and new { loggedSets: [...] }
-      const setsArr = Array.isArray(e.loggedSets) ? e.loggedSets
-        : (e.weight != null ? [{ weight: e.weight, reps: e.reps, sets: e.sets }] : []);
+      const setsArr = Array.isArray(e.loggedSets) && e.loggedSets.length ? e.loggedSets
+        : (e.weight != null || e.reps != null ? [{ weight: e.weight, reps: e.reps, sets: e.sets }] : []);
       return `
         <div style="padding:8px 0;border-bottom:1px solid var(--border)">
           <div style="font-size:0.82rem;color:var(--mist);margin-bottom:5px">${escapeHtml(e.name||'')}</div>

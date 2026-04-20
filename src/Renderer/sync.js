@@ -638,10 +638,11 @@ async function loadFitness() {
         .filter(e => e.app_id)
         .sort((a, b) => a.order_index - b.order_index)
         .map(e => ({
-          name:   e.name      || '',
-          sets:   e.sets      ?? '',
-          weight: e.weight_kg ?? null,
-          reps:   e.reps      ?? null
+          name:       e.name        || '',
+          sets:       e.sets        ?? '',
+          weight:     e.weight_kg   ?? null,
+          reps:       e.reps        ?? null,
+          loggedSets: Array.isArray(e.logged_sets) && e.logged_sets.length ? e.logged_sets : null
         }))
     }));
     // Rebuild gymLog from sessions
@@ -726,7 +727,8 @@ async function saveFitness() {
       await sb.from('workout_exercises').upsert(
         exs.map((e, j) => ({
           app_id: `${s.id}_${j}`, session_id: sessUuid, user_id: currentUser.id,
-          name: e.name || '', sets: e.sets || null, reps: e.reps || null, weight_kg: e.weight || null, order_index: j
+          name: e.name || '', sets: e.sets || null, reps: e.reps || null, weight_kg: e.weight || null, order_index: j,
+          logged_sets: Array.isArray(e.loggedSets) && e.loggedSets.length ? e.loggedSets : null
         })),
         { onConflict: 'app_id' }
       );
@@ -1105,7 +1107,7 @@ async function fetchPublicFoodLog(userId) {
 async function fetchPublicFitness(userId) {
   const [sessRes, cardioRes] = await Promise.all([
     sb.from('workout_sessions')
-      .select('id, session_date, title, summary, workout_exercises(name, sets, reps, weight_kg, order_index)')
+      .select('id, session_date, title, summary, workout_exercises(name, sets, reps, weight_kg, logged_sets, order_index)')
       .eq('user_id', userId)
       .order('session_date', { ascending: false })
       .limit(50),
