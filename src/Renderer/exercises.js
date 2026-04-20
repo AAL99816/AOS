@@ -666,6 +666,67 @@ const EXERCISE_DB = [
   { id:'e-lacrosse-ball-traps',    name:'Lacrosse Ball — Traps',            muscles:['traps'],          secondary:['shoulders'],                   equipment:'other',       pattern:'stretch',category:'stretch' },
   { id:'e-lacrosse-ball-glutes',   name:'Lacrosse Ball — Glutes',           muscles:['glutes'],         secondary:[],                              equipment:'other',       pattern:'stretch',category:'stretch' },
 
+  // ══════════════════════════════════════════
+  // LOWER BACK / ERECTORS
+  // ══════════════════════════════════════════
+  { id:'e-back-extension',          name:'Back Extension (Hyperextension)',  muscles:['back'],           secondary:['glutes','hamstrings'],          equipment:'bodyweight',  pattern:'hinge',  category:'bodyweight' },
+  { id:'e-back-extension-weighted', name:'Weighted Back Extension',          muscles:['back'],           secondary:['glutes','hamstrings'],          equipment:'other',       pattern:'hinge',  category:'other' },
+  { id:'e-back-extension-machine',  name:'Back Extension Machine',           muscles:['back'],           secondary:['glutes'],                      equipment:'machine',     pattern:'hinge',  category:'machine' },
+  { id:'e-45-back-ext',             name:'45° Back Extension',               muscles:['back'],           secondary:['glutes','hamstrings'],          equipment:'bodyweight',  pattern:'hinge',  category:'bodyweight' },
+  { id:'e-45-back-ext-weighted',    name:'Weighted 45° Back Extension',      muscles:['back'],           secondary:['glutes','hamstrings'],          equipment:'other',       pattern:'hinge',  category:'other' },
+  { id:'e-reverse-hyper',           name:'Reverse Hyperextension',           muscles:['glutes'],         secondary:['hamstrings','back'],            equipment:'machine',     pattern:'hinge',  category:'machine' },
+  { id:'e-db-good-morning',         name:'Dumbbell Good Morning',            muscles:['hamstrings'],     secondary:['back','glutes'],                equipment:'dumbbell',    pattern:'hinge',  category:'dumbbell' },
+
+  // ══════════════════════════════════════════
+  // BICEPS — machine / cable additions
+  // ══════════════════════════════════════════
+  { id:'e-preacher-curl-machine',   name:'Machine Preacher Curl',            muscles:['biceps'],         secondary:[],                              equipment:'machine',     pattern:'pull',   category:'machine' },
+  { id:'e-preacher-curl-cable',     name:'Cable Preacher Curl',              muscles:['biceps'],         secondary:[],                              equipment:'cable',       pattern:'pull',   category:'cable' },
+  { id:'e-preacher-curl-ez-cable',  name:'EZ Bar Cable Preacher Curl',       muscles:['biceps'],         secondary:['forearms'],                    equipment:'cable',       pattern:'pull',   category:'cable' },
+  { id:'e-scott-curl',              name:'Scott Curl (Machine)',              muscles:['biceps'],         secondary:[],                              equipment:'machine',     pattern:'pull',   category:'machine' },
+
+  // ══════════════════════════════════════════
+  // TRICEPS — pushdown variations
+  // ══════════════════════════════════════════
+  { id:'e-vbar-pushdown',           name:'V-Bar Tricep Pushdown',            muscles:['triceps'],        secondary:[],                              equipment:'cable',       pattern:'push',   category:'cable' },
+  { id:'e-straight-bar-pushdown',   name:'Straight Bar Tricep Pushdown',     muscles:['triceps'],        secondary:[],                              equipment:'cable',       pattern:'push',   category:'cable' },
+  { id:'e-tri-pushdown-machine',    name:'Tricep Pushdown Machine',          muscles:['triceps'],        secondary:[],                              equipment:'machine',     pattern:'push',   category:'machine' },
+
+  // ══════════════════════════════════════════
+  // BACK — rows / pulldowns
+  // ══════════════════════════════════════════
+  { id:'e-landmine-row',            name:'Landmine Row',                     muscles:['back'],           secondary:['lats','biceps'],                equipment:'barbell',     pattern:'pull',   category:'barbell' },
+  { id:'e-landmine-row-single',     name:'Single Arm Landmine Row',          muscles:['back'],           secondary:['lats','biceps'],                equipment:'barbell',     pattern:'pull',   category:'barbell' },
+  { id:'e-incline-db-row',          name:'Incline Bench Dumbbell Row',       muscles:['back'],           secondary:['lats','biceps'],                equipment:'dumbbell',    pattern:'pull',   category:'dumbbell' },
+  { id:'e-cable-row-high',          name:'High Cable Row',                   muscles:['back'],           secondary:['lats','biceps'],                equipment:'cable',       pattern:'pull',   category:'cable' },
+  { id:'e-smith-row',               name:'Smith Machine Row',                muscles:['back'],           secondary:['lats','biceps'],                equipment:'machine',     pattern:'pull',   category:'machine' },
+  { id:'e-iso-lateral-pulldown',    name:'Iso-Lateral Lat Pulldown',         muscles:['lats'],           secondary:['biceps'],                      equipment:'machine',     pattern:'pull',   category:'machine' },
+
+  // ══════════════════════════════════════════
+  // LEGS — additional
+  // ══════════════════════════════════════════
+  { id:'e-adductor-machine',        name:'Adductor Machine (Inner Thigh)',   muscles:['quads'],          secondary:['glutes'],                      equipment:'machine',     pattern:'other',  category:'machine' },
+  { id:'e-abductor-machine',        name:'Abductor Machine (Outer Thigh)',   muscles:['glutes'],         secondary:[],                              equipment:'machine',     pattern:'other',  category:'machine' },
+  { id:'e-leg-press-single',        name:'Single Leg Press',                 muscles:['quads'],          secondary:['glutes','hamstrings'],          equipment:'machine',     pattern:'squat',  category:'machine' },
+  { id:'e-smith-lunge',             name:'Smith Machine Lunge',              muscles:['quads'],          secondary:['glutes','hamstrings'],          equipment:'machine',     pattern:'squat',  category:'machine' },
+  { id:'e-smith-split-squat',       name:'Smith Machine Split Squat',        muscles:['quads'],          secondary:['glutes'],                      equipment:'machine',     pattern:'squat',  category:'machine' },
+  { id:'e-hack-squat-db',           name:'Dumbbell Hack Squat',              muscles:['quads'],          secondary:['glutes'],                      equipment:'dumbbell',    pattern:'squat',  category:'dumbbell' },
+  { id:'e-glute-ham-raise',         name:'Glute Ham Raise',                  muscles:['hamstrings'],     secondary:['glutes','back'],                equipment:'machine',     pattern:'hinge',  category:'machine' },
+
+  // ══════════════════════════════════════════
+  // SHOULDERS — cable / machine
+  // ══════════════════════════════════════════
+  { id:'e-cable-ohp',               name:'Cable Overhead Press',             muscles:['shoulders'],      secondary:['triceps'],                     equipment:'cable',       pattern:'push',   category:'cable' },
+  { id:'e-machine-front-raise',     name:'Machine Front Raise',              muscles:['shoulders'],      secondary:[],                              equipment:'machine',     pattern:'push',   category:'machine' },
+  { id:'e-cable-upright-row-single',name:'Single Arm Cable Upright Row',     muscles:['traps'],          secondary:['shoulders'],                   equipment:'cable',       pattern:'pull',   category:'cable' },
+
+  // ══════════════════════════════════════════
+  // CHEST — machine / cable
+  // ══════════════════════════════════════════
+  { id:'e-neutral-grip-db-press',   name:'Neutral Grip Dumbbell Press',      muscles:['chest'],          secondary:['triceps','shoulders'],          equipment:'dumbbell',    pattern:'push',   category:'dumbbell' },
+  { id:'e-converging-chest-press',  name:'Converging Chest Press Machine',   muscles:['chest'],          secondary:['shoulders','triceps'],          equipment:'machine',     pattern:'push',   category:'machine' },
+  { id:'e-cable-fly-mid',           name:'Cable Fly (Mid — Parallel)',       muscles:['chest'],          secondary:['shoulders'],                   equipment:'cable',       pattern:'push',   category:'cable' },
+
 ];
 
 // Fast lookup by id
