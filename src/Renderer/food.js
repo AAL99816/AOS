@@ -1326,9 +1326,15 @@ function setFoodEntryNote(id, value) {
 }
 
 function _resolvePerServing(e) {
-  // Returns per-serving macros regardless of whether entry was saved with new or old format
-  return e.perServing ||
-    (!e.per100g && !e.grams ? { kcal: e.kcal, protein: e.protein, carbs: e.carbs, fat: e.fat, fiber: e.fiber || 0 } : null);
+  // Returns per-serving macros regardless of whether entry was saved with new or old format.
+  // When perServing is absent, divide stored totals by current servings so repeated +/- calls
+  // always scale from the true per-serving base rather than the already-scaled total.
+  if (e.perServing) return e.perServing;
+  if (!e.per100g && !e.grams) {
+    const s = e.servings || 1;
+    return { kcal: (e.kcal || 0) / s, protein: (e.protein || 0) / s, carbs: (e.carbs || 0) / s, fat: (e.fat || 0) / s, fiber: (e.fiber || 0) / s };
+  }
+  return null;
 }
 
 function setFoodEntryQty(id, rawVal) {

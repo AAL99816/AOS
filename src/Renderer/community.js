@@ -39,10 +39,10 @@ async function renderCommunity() {
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <h2 style="font-family:'Cormorant Garamond',serif;font-size:1.4rem;color:var(--cream);font-weight:600;margin:0;letter-spacing:0.02em">Community</h2>
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:20px;overflow-x:auto;scrollbar-width:none">
-      <button class="fpill${_communityView==='feed'?' active':''}" onclick="switchCommunityView('feed')">Feed</button>
-      <button class="fpill${_communityView==='discover'?' active':''}" onclick="switchCommunityView('discover')">Discover</button>
-      <button class="fpill${_communityView==='my-profile'?' active':''}" onclick="switchCommunityView('my-profile')">My Profile</button>
+    <div style="display:flex;gap:6px;margin-bottom:20px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px">
+      <button class="fpill${_communityView==='feed'?' active':''}" style="flex-shrink:0;min-height:34px;padding:6px 16px" onclick="switchCommunityView('feed')">Feed</button>
+      <button class="fpill${_communityView==='discover'?' active':''}" style="flex-shrink:0;min-height:34px;padding:6px 16px" onclick="switchCommunityView('discover')">Discover</button>
+      <button class="fpill${_communityView==='my-profile'?' active':''}" style="flex-shrink:0;min-height:34px;padding:6px 16px" onclick="switchCommunityView('my-profile')">My Profile</button>
     </div>
     <div id="communityContent"></div>
   `;
@@ -178,7 +178,7 @@ function _buildDiscoverView() {
   return `
     <div style="position:relative;margin-bottom:16px">
       <input id="discoverSearch" type="text" placeholder="Search by name or @username…"
-        style="width:100%;box-sizing:border-box;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:0.82rem;color:var(--cream);outline:none;font-family:inherit"
+        style="width:100%;box-sizing:border-box;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:16px;color:var(--cream);outline:none;font-family:inherit"
         oninput="onDiscoverSearch(this.value)" autocomplete="off">
     </div>
     <div id="discoverResults">${resultsHtml}</div>`;
@@ -210,7 +210,7 @@ function _buildProfileCard(p) {
           ${shares.length ? `<div style="font-size:0.60rem;color:var(--muted);margin-top:4px;font-family:'DM Mono',monospace">${shares.join(' · ')}</div>` : ''}
         </div>
       </div>
-      <button class="btn ${isFollowing ? 'btn-g' : 'btn-p'}" style="font-size:0.68rem;padding:6px 14px;flex-shrink:0"
+      <button class="btn ${isFollowing ? 'btn-g' : 'btn-p'}" style="font-size:0.68rem;padding:6px 14px;flex-shrink:0;min-height:36px;min-width:72px"
         onclick="toggleFollow('${escapeAttr(p.id)}',this)">${isFollowing ? 'Following' : 'Follow'}</button>
     </div>`;
 }
@@ -282,7 +282,7 @@ function _buildMyProfileView() {
       <div style="display:flex;justify-content:center;margin-bottom:12px">${avatar}</div>
       <div style="font-family:'Cormorant Garamond',serif;font-size:1.15rem;color:var(--cream);font-weight:600">${escapeHtml(name)}</div>
       ${p.username ? `<div style="font-size:0.68rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">@${escapeHtml(p.username)}</div>` : ''}
-      ${p.bio ? `<div style="font-size:0.76rem;color:var(--muted);margin-top:10px;line-height:1.6;max-width:300px;margin-left:auto;margin-right:auto">${escapeHtml(p.bio)}</div>` : ''}
+      ${p.bio ? `<div style="font-size:0.76rem;color:var(--muted);margin-top:10px;line-height:1.6;max-width:min(300px,100%);margin-left:auto;margin-right:auto;word-break:break-word">${escapeHtml(p.bio)}</div>` : ''}
       ${shares.length ? `
         <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:12px">
           ${shares.map(s => `<span class="fpill">${s}</span>`).join('')}
@@ -326,14 +326,14 @@ function openCommunityNoteEditor(id) {
   overlay.id = 'communityNoteModal';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.72);display:flex;align-items:flex-end;justify-content:center';
   overlay.innerHTML = `
-    <div style="background:var(--panel);border:1px solid var(--border-lt);border-radius:18px 18px 0 0;padding:24px;width:100%;max-width:640px;max-height:85vh;overflow-y:auto;box-sizing:border-box">
+    <div style="background:var(--panel);border:1px solid var(--border-lt);border-radius:18px 18px 0 0;padding:16px;width:100%;max-width:640px;max-height:88vh;overflow-y:auto;box-sizing:border-box">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
         <div style="font-size:0.92rem;color:var(--cream);font-weight:600">${id ? 'Edit Note' : 'New Community Note'}</div>
-        <button class="icon-del" onclick="closeCommunityNoteEditor()">×</button>
+        <button class="icon-del" style="min-width:36px;min-height:36px" onclick="closeCommunityNoteEditor()">×</button>
       </div>
       <div class="mf" style="margin-bottom:14px">
         <label>Title</label>
-        <input id="cnTitle" placeholder="Note title…" value="${escapeAttr(note?.title || '')}" style="font-size:0.88rem">
+        <input id="cnTitle" placeholder="Note title…" value="${escapeAttr(note?.title || '')}" style="font-size:16px">
       </div>
       <div style="display:flex;gap:8px;margin-bottom:10px">
         <button class="fpill active" id="cnTabWrite" onclick="toggleCnTab('write',this)">Write</button>
@@ -341,8 +341,8 @@ function openCommunityNoteEditor(id) {
       </div>
       <div id="cnWriteArea" class="mf" style="margin-bottom:14px">
         <label style="display:flex;align-items:center;gap:6px">Body <span style="font-size:0.60rem;color:var(--muted);font-weight:400">Markdown supported</span></label>
-        <textarea id="cnBody" placeholder="Write in markdown…" rows="12"
-          style="font-family:'DM Mono',monospace;font-size:0.76rem;line-height:1.6;resize:vertical">${escapeHtml(note?.body || '')}</textarea>
+        <textarea id="cnBody" placeholder="Write in markdown…" rows="10"
+          style="font-family:'DM Mono',monospace;font-size:16px;line-height:1.6;resize:vertical">${escapeHtml(note?.body || '')}</textarea>
       </div>
       <div id="cnPreviewArea" style="display:none;border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;min-height:120px">
         <div id="cnPreviewContent" class="markdown-body" style="font-size:0.76rem;color:var(--muted);line-height:1.7"></div>
@@ -426,9 +426,9 @@ async function openProfileOverlay(userId) {
   overlay.id = 'profileOverlay';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.78);display:flex;align-items:flex-end;justify-content:center';
   overlay.innerHTML = `
-    <div id="profileOverlaySheet" style="background:var(--ink);border:1px solid var(--border-lt);border-radius:18px 18px 0 0;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;padding:24px;box-sizing:border-box">
+    <div id="profileOverlaySheet" style="background:var(--ink);border:1px solid var(--border-lt);border-radius:18px 18px 0 0;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;padding:16px;box-sizing:border-box">
       <div style="display:flex;justify-content:flex-start;margin-bottom:16px">
-        <button class="btn btn-g" style="font-size:0.70rem;padding:6px 14px" onclick="closeProfileOverlay()">← Back</button>
+        <button class="btn btn-g" style="font-size:0.70rem;padding:6px 14px;min-height:36px" onclick="closeProfileOverlay()">← Back</button>
       </div>
       <div style="text-align:center;padding:40px 0;color:var(--muted);font-size:0.76rem">Loading profile…</div>
     </div>`;
@@ -479,25 +479,25 @@ async function openProfileOverlay(userId) {
   ].filter(Boolean);
 
   const tabStrip = availTabs.map((t, i) =>
-    `<button class="fpill${i === 0 ? ' active' : ''}" data-ptab="${t.id}" onclick="switchProfileTab('${t.id}')" style="white-space:nowrap">${t.label}</button>`
+    `<button class="fpill${i === 0 ? ' active' : ''}" data-ptab="${t.id}" onclick="switchProfileTab('${t.id}')" style="white-space:nowrap;flex-shrink:0;min-height:34px;padding:6px 14px">${t.label}</button>`
   ).join('');
 
   sheet.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-      <button class="btn btn-g" style="font-size:0.70rem;padding:6px 14px" onclick="closeProfileOverlay()">← Back</button>
-      <button id="overlayFollowBtn" class="btn ${isFollowing ? 'btn-g' : 'btn-p'}" style="font-size:0.72rem;padding:7px 18px"
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:18px">
+      <button class="btn btn-g" style="font-size:0.70rem;padding:6px 12px;min-height:36px;flex-shrink:0" onclick="closeProfileOverlay()">← Back</button>
+      <button id="overlayFollowBtn" class="btn ${isFollowing ? 'btn-g' : 'btn-p'}" style="font-size:0.72rem;padding:7px 16px;min-height:36px;flex-shrink:0"
         onclick="toggleFollowFromOverlay('${escapeAttr(userId)}',this)">${isFollowing ? 'Following' : 'Follow'}</button>
     </div>
 
-    <div style="text-align:center;margin-bottom:20px">
+    <div style="text-align:center;margin-bottom:18px">
       <div style="display:flex;justify-content:center;margin-bottom:10px">${avatar}</div>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--cream);font-weight:600">${escapeHtml(name)}</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--cream);font-weight:600;word-break:break-word">${escapeHtml(name)}</div>
       ${profile.username ? `<div style="font-size:0.68rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">@${escapeHtml(profile.username)}</div>` : ''}
       <div style="font-size:0.64rem;color:var(--muted);margin-top:3px;font-family:'DM Mono',monospace">${followerCount} follower${followerCount !== 1 ? 's' : ''}</div>
-      ${profile.bio ? `<div style="font-size:0.74rem;color:var(--muted);margin-top:8px;line-height:1.6;max-width:300px;margin-left:auto;margin-right:auto">${escapeHtml(profile.bio)}</div>` : ''}
+      ${profile.bio ? `<div style="font-size:0.74rem;color:var(--muted);margin-top:8px;line-height:1.6;padding:0 4px;word-break:break-word">${escapeHtml(profile.bio)}</div>` : ''}
     </div>
 
-    <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:18px;padding-bottom:2px">
+    <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin-bottom:18px;padding-bottom:4px">
       ${tabStrip}
     </div>
 
