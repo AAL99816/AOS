@@ -601,6 +601,34 @@ async function saveBodyWeight() {
   );
 }
 
+/* ── exercise catalog seeding ── */
+async function seedExerciseCatalog() {
+  if (!currentUser) return;
+  if (typeof EXERCISE_DB === 'undefined' || !EXERCISE_DB.length) return;
+  // Run only once per device — localStorage flag prevents repeat seeding on every login
+  const FLAG = 'aos_catalog_seeded_v2';
+  if (localStorage.getItem(FLAG)) return;
+
+  const rows = EXERCISE_DB.map(e => ({
+    db_id:     e.id,
+    name:      e.name,
+    muscles:   e.muscles   || [],
+    secondary: e.secondary || [],
+    equipment: e.equipment || '',
+    pattern:   e.pattern   || '',
+    category:  e.category  || ''
+  }));
+
+  // Batch in chunks of 100 to stay within Supabase request limits
+  for (let i = 0; i < rows.length; i += 100) {
+    const { error } = await sb.from('exercise_catalog')
+      .upsert(rows.slice(i, i + 100), { onConflict: 'db_id' });
+    if (error) { console.warn('[seedExerciseCatalog]', error.message); return; }
+  }
+  localStorage.setItem(FLAG, '1');
+  console.log('[seedExerciseCatalog] seeded', rows.length, 'exercises');
+}
+
 /* ── fitness: workout templates, sessions, cardio, calories ── */
 async function loadFitness() {
   if (!currentUser) return;
@@ -638,11 +666,12 @@ async function loadFitness() {
         .filter(e => e.app_id)
         .sort((a, b) => a.order_index - b.order_index)
         .map(e => ({
-          name:       e.name        || '',
-          sets:       e.sets        ?? '',
-          weight:     e.weight_kg   ?? null,
-          reps:       e.reps        ?? null,
-          loggedSets: Array.isArray(e.logged_sets) && e.logged_sets.length ? e.logged_sets : null
+          name:       e.name           || '',
+          sets:       e.sets           ?? '',
+          weight:     e.weight_kg      ?? null,
+          reps:       e.reps           ?? null,
+          loggedSets: Array.isArray(e.logged_sets) && e.logged_sets.length ? e.logged_sets : null,
+          dbId:       e.exercise_db_id || null
         }))
     }));
     // Rebuild gymLog from sessions
@@ -728,7 +757,8 @@ async function saveFitness() {
         exs.map((e, j) => ({
           app_id: `${s.id}_${j}`, session_id: sessUuid, user_id: currentUser.id,
           name: e.name || '', sets: e.sets || null, reps: e.reps || null, weight_kg: e.weight || null, order_index: j,
-          logged_sets: Array.isArray(e.loggedSets) && e.loggedSets.length ? e.loggedSets : null
+          logged_sets: Array.isArray(e.loggedSets) && e.loggedSets.length ? e.loggedSets : null,
+          exercise_db_id: e.dbId || (typeof EXERCISE_DB !== 'undefined' ? (EXERCISE_DB.find(ex => ex.name === e.name)?.id || null) : null)
         })),
         { onConflict: 'app_id' }
       );
@@ -938,6 +968,7 @@ async function loadFromSupabase() {
 
   S = normalizeAppState(data.data);
   await Promise.all([loadUserSettings(), loadProjects(), loadMedia(), loadHabits(), loadPrayer(), loadNotes(), loadBodyWeight(), loadWorkoutSchedule(), loadFitness(), loadFocusItems(), loadNotesDB()]);
+  seedExerciseCatalog().catch(e => console.warn('[seedExerciseCatalog]', e));
   _subscribeNotesRealtime();
   setSyncStatus('synced');
   return true;
