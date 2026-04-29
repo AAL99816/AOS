@@ -1073,6 +1073,28 @@ async function loadFollowersCount(userId) {
   return count || 0;
 }
 
+// Returns profile cards for a user's followers
+async function fetchFollowersList(userId) {
+  const { data, error } = await sb
+    .from('community_follows')
+    .select('profiles!community_follows_follower_id_fkey(id, username, display_name, avatar_url, bio)')
+    .eq('following_id', userId)
+    .limit(100);
+  if (error) { console.warn('[community] fetchFollowersList:', error.message); return []; }
+  return (data || []).map(r => r.profiles).filter(Boolean);
+}
+
+// Returns profile cards for everyone a user follows
+async function fetchFollowingList(userId) {
+  const { data, error } = await sb
+    .from('community_follows')
+    .select('profiles!community_follows_following_id_fkey(id, username, display_name, avatar_url, bio)')
+    .eq('follower_id', userId)
+    .limit(100);
+  if (error) { console.warn('[community] fetchFollowingList:', error.message); return []; }
+  return (data || []).map(r => r.profiles).filter(Boolean);
+}
+
 /* ── Feed ── */
 async function loadCommunityFeed(followingIds) {
   if (!currentUser || !followingIds.length) return [];

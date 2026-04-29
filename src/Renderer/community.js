@@ -134,13 +134,18 @@ async function renderCommunity() {
 
 function switchCommunityView(v) {
   _communityView = v;
-  // Re-render just the subnav + content without re-fetching
+  // Reset my-profile cache so data is fresh each time
+  if (v === 'my-profile') {
+    _myProfileCache = {};
+    _myProfileTab   = 'notes';
+  }
+  // Update top-level nav pills
   document.querySelectorAll('#panel-community .fpill').forEach(btn => {
-    const map = { feed: 'feed', discover: 'discover', 'my-profile': 'my-profile' };
-    btn.classList.toggle('active', btn.textContent.toLowerCase().replace(' ', '-') === v ||
-      (v === 'my-profile' && btn.textContent === 'My Profile') ||
-      (v === 'discover'   && btn.textContent === 'Discover') ||
-      (v === 'feed'       && btn.textContent === 'Feed'));
+    btn.classList.toggle('active',
+      btn.textContent === 'Feed'       && v === 'feed' ||
+      btn.textContent === 'Discover'   && v === 'discover' ||
+      btn.textContent === 'My Profile' && v === 'my-profile'
+    );
   });
   _renderCommunityContent();
 }
@@ -344,14 +349,46 @@ async function toggleFollow(userId, btn) {
 }
 
 // ── My Profile view ───────────────────────────────────────────────────────────
+let _myProfileTab   = 'notes';
+let _myProfileCache = {};   // { fitness, food, projects, media, followers, following }
+let _myFollowerCount = 0;
+let _myFollowingCount = 0;
+
+async function _initMyProfile() {
+  if (!currentUser) return;
+  // Fetch counts in parallel
+  const [fCount, followingIds] = await Promise.all([
+    loadFollowersCount(currentUser.id),
+    loadFollowing()
+  ]);
+  _myFollowerCount  = fCount;
+  _myFollowingCount = followingIds.length;
+  // Re-render the header counts
+  const cEl = eid('myProfileFollowCounts');
+  if (cEl) cEl.innerHTML = _myProfileFollowCountsHtml();
+}
+
+function _myProfileFollowCountsHtml() {
+  return `
+    <button onclick="switchMyProfileTab('followers')"
+      style="background:none;border:none;cursor:pointer;padding:0;text-align:center">
+      <div style="font-size:0.92rem;color:var(--cream);font-family:'DM Mono',monospace;font-weight:600">${_myFollowerCount}</div>
+      <div style="font-size:0.56rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Followers</div>
+    </button>
+    <button onclick="switchMyProfileTab('following')"
+      style="background:none;border:none;cursor:pointer;padding:0;text-align:center">
+      <div style="font-size:0.92rem;color:var(--cream);font-family:'DM Mono',monospace;font-weight:600">${_myFollowingCount}</div>
+      <div style="font-size:0.56rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Following</div>
+    </button>`;
+}
+
 function _buildMyProfileView() {
   const p = currentProfile || {};
   if (!p.is_public) {
     return `
       <div style="text-align:center;padding:56px 0">
-        <div style="font-size:2.2rem;margin-bottom:14px">🔒</div>
         <div style="font-family:'Cormorant Garamond',serif;font-size:1.05rem;color:var(--cream);margin-bottom:8px">Your profile is private</div>
-        <div style="font-size:0.72rem;color:var(--muted);line-height:1.6;max-width:260px;margin:0 auto 20px">Enable your community profile in Settings → Profile to share your activity with others</div>
+        <div style="font-size:0.72rem;color:var(--muted);line-height:1.6;max-width:260px;margin:0 auto 20px">Enable your community profile in Settings to share your activity with others</div>
         <button class="btn btn-p" style="font-size:0.76rem" onclick="openSettings()">Open Settings</button>
       </div>`;
   }
@@ -359,33 +396,125 @@ function _buildMyProfileView() {
   const name    = p.display_name || p.username || 'You';
   const initial = (name[0] || '?').toUpperCase();
   const avatar  = p.avatar_url
-    ? `<img src="${escapeAttr(p.avatar_url)}" style="width:68px;height:68px;border-radius:50%;object-fit:cover">`
-    : `<div style="width:68px;height:68px;border-radius:50%;background:var(--border-lt);display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:var(--muted);font-weight:600">${escapeHtml(initial)}</div>`;
+    ? `<img src="${escapeAttr(p.avatar_url)}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid var(--border-lt)">`
+    : `<div style="width:72px;height:72px;border-radius:50%;background:var(--border-lt);display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:var(--muted);font-weight:600">${escapeHtml(initial)}</div>`;
 
-  const shares = [
-    p.share_fitness  && 'Fitness',
-    p.share_food     && 'Food',
-    p.share_projects && 'Projects',
-    p.share_media    && 'Media'
+  // Build tab list — always show Notes; add data tabs only if user shares them
+  const tabs = [
+    { id: 'notes',     label: 'Notes' },
+    p.share_fitness  && { id: 'fitness',  label: 'Fitness' },
+    p.share_food     && { id: 'food',     label: 'Food' },
+    p.share_projects && { id: 'projects', label: 'Projects' },
+    p.share_media    && { id: 'media',    label: 'Media' },
+    { id: 'followers', label: 'Followers' },
+    { id: 'following', label: 'Following' },
   ].filter(Boolean);
 
+  const tabStrip = tabs.map(t =>
+    `<button class="fpill${_myProfileTab === t.id ? ' active' : ''}" data-mptab="${t.id}"
+      onclick="switchMyProfileTab('${t.id}')"
+      style="white-space:nowrap;flex-shrink:0;min-height:34px;padding:6px 14px">${t.label}</button>`
+  ).join('');
+
+  // Kick off counts async
+  _initMyProfile();
+
   return `
-    <div style="text-align:center;margin-bottom:24px">
+    <div style="text-align:center;margin-bottom:20px">
       <div style="display:flex;justify-content:center;margin-bottom:12px">${avatar}</div>
       <div style="font-family:'Cormorant Garamond',serif;font-size:1.15rem;color:var(--cream);font-weight:600">${escapeHtml(name)}</div>
       ${p.username ? `<div style="font-size:0.68rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">@${escapeHtml(p.username)}</div>` : ''}
-      ${p.bio ? `<div style="font-size:0.76rem;color:var(--muted);margin-top:10px;line-height:1.6;max-width:min(300px,100%);margin-left:auto;margin-right:auto;word-break:break-word">${escapeHtml(p.bio)}</div>` : ''}
-      ${shares.length ? `
-        <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:12px">
-          ${shares.map(s => `<span class="fpill">${s}</span>`).join('')}
-        </div>` : ''}
+      ${p.bio ? `<div style="font-size:0.76rem;color:var(--muted);margin-top:8px;line-height:1.6;max-width:min(300px,100%);margin-left:auto;margin-right:auto;word-break:break-word">${escapeHtml(p.bio)}</div>` : ''}
+
+      <!-- Followers / Following counts -->
+      <div id="myProfileFollowCounts" style="display:flex;gap:28px;justify-content:center;margin-top:14px">
+        ${_myProfileFollowCountsHtml()}
+      </div>
     </div>
 
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div style="font-size:0.68rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace">Community Notes</div>
-      <button class="btn btn-p" style="font-size:0.66rem;padding:5px 14px" onclick="openCommunityNoteEditor()">+ New Note</button>
+    <!-- Tab strip -->
+    <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin-bottom:18px;padding-bottom:4px">
+      ${tabStrip}
     </div>
-    ${_buildCommunityNotesList()}`;
+
+    <!-- Tab content -->
+    <div id="myProfileTabContent">
+      ${_buildMyProfileTabContent(_myProfileTab)}
+    </div>`;
+}
+
+async function switchMyProfileTab(tab) {
+  _myProfileTab = tab;
+
+  // Update pill states
+  document.querySelectorAll('[data-mptab]').forEach(b => {
+    b.classList.toggle('active', b.dataset.mptab === tab);
+  });
+
+  const content = eid('myProfileTabContent');
+  if (!content) return;
+
+  // Lazy-load data on first visit
+  if (!_myProfileCache[tab] && ['fitness','food','projects','media','followers','following'].includes(tab)) {
+    content.innerHTML = `<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:0.76rem">Loading…</div>`;
+    const uid = currentUser?.id;
+    if (tab === 'fitness')   _myProfileCache.fitness   = await fetchPublicFitness(uid);
+    if (tab === 'food')      _myProfileCache.food      = await fetchPublicFoodLog(uid);
+    if (tab === 'projects')  _myProfileCache.projects  = await fetchPublicProjects(uid);
+    if (tab === 'media')     _myProfileCache.media     = await fetchPublicMedia(uid);
+    if (tab === 'followers') _myProfileCache.followers = await fetchFollowersList(uid);
+    if (tab === 'following') _myProfileCache.following = await fetchFollowingList(uid);
+  }
+
+  content.innerHTML = _buildMyProfileTabContent(tab);
+}
+
+function _buildMyProfileTabContent(tab) {
+  if (tab === 'notes') {
+    return `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:0.56rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;font-family:'DM Mono',monospace">Community Notes</div>
+        <button class="btn btn-p" style="font-size:0.66rem;padding:5px 14px" onclick="openCommunityNoteEditor()">+ New Note</button>
+      </div>
+      ${_buildCommunityNotesList()}`;
+  }
+
+  if (tab === 'fitness')  return _buildFitnessTab(_myProfileCache.fitness);
+  if (tab === 'food')     return _buildFoodTab(_myProfileCache.food);
+  if (tab === 'projects') return _buildProjectsTab(_myProfileCache.projects);
+  if (tab === 'media')    return _buildMediaTab(_myProfileCache.media);
+
+  if (tab === 'followers' || tab === 'following') {
+    const list = _myProfileCache[tab];
+    if (!list) return `<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:0.76rem">Loading…</div>`;
+    if (!list.length) {
+      const empty = tab === 'followers' ? 'No followers yet' : 'Not following anyone yet';
+      return `<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:0.76rem">${empty}</div>`;
+    }
+    return list.map(u => {
+      const uName    = u.display_name || u.username || 'Anonymous';
+      const uInitial = (uName[0] || '?').toUpperCase();
+      const uAvatar  = u.avatar_url
+        ? `<img src="${escapeAttr(u.avatar_url)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0">`
+        : `<div style="width:40px;height:40px;border-radius:50%;background:var(--border-lt);display:flex;align-items:center;justify-content:center;font-size:0.9rem;color:var(--muted);font-weight:600;flex-shrink:0">${escapeHtml(uInitial)}</div>`;
+      const isFollowing = _communityFollowing.includes(u.id);
+      return `
+        <div class="card" style="padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px">
+          <div style="flex:1;display:flex;align-items:center;gap:12px;cursor:pointer;min-width:0" onclick="openProfileOverlay('${escapeAttr(u.id)}')">
+            ${uAvatar}
+            <div style="min-width:0">
+              <div style="font-size:0.82rem;color:var(--cream);font-weight:600">${escapeHtml(uName)}</div>
+              ${u.username ? `<div style="font-size:0.64rem;color:var(--muted);font-family:'DM Mono',monospace">@${escapeHtml(u.username)}</div>` : ''}
+            </div>
+          </div>
+          <button class="btn ${isFollowing ? 'btn-g' : 'btn-p'}"
+            style="font-size:0.68rem;padding:5px 12px;flex-shrink:0;min-height:34px"
+            onclick="toggleFollow('${escapeAttr(u.id)}',this)">${isFollowing ? 'Following' : 'Follow'}</button>
+        </div>`;
+    }).join('');
+  }
+
+  return '';
 }
 
 function _buildCommunityNotesList() {
