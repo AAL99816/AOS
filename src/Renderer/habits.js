@@ -35,6 +35,18 @@ function weekLabelForOffset(offset) {
 /* ══ PRAYER ══ */
 function haptic(ms) { if (navigator.vibrate) navigator.vibrate(ms || 10); }
 
+/* Returns only the prayers the user has enabled (defaults to all 5) */
+function getActivePrayers() {
+  const active = S?.appPrefs?.activePrayers;
+  if (!active || !Array.isArray(active) || !active.length) return PRAYERS;
+  return PRAYERS.filter(p => active.includes(p));
+}
+
+/* Returns true if the prayer tracker section is enabled */
+function isPrayerTrackerOn() {
+  return S?.appPrefs?.showPrayerTracker !== false;
+}
+
 function togglePrayer(name) {
   haptic(12);
   const d = today();
@@ -42,8 +54,9 @@ function togglePrayer(name) {
   if (!S.prayerLog[d]) S.prayerLog[d] = {};
   S.prayerLog[d][name] = !S.prayerLog[d][name];
 
-  // Auto-sync: if all 5 done, mark the prayer habit for today
-  const allDone = PRAYERS.every(p => !!S.prayerLog[d][p]);
+  // Auto-sync: if all active prayers done, mark the prayer habit for today
+  const active = getActivePrayers();
+  const allDone = active.every(p => !!S.prayerLog[d][p]);
   const ph = hfind('prayer','salah','salat','صلاة','صلاه');
   if (ph) {
     if (!ph.days) ph.days = {};
@@ -61,14 +74,15 @@ function renderPrayer() {
   const c = eid('prayerRow');
   if (!c) return;
   const todayStr = today(), log = (S.prayerLog && S.prayerLog[todayStr]) || {};
-  const allDone  = PRAYERS.every(p => !!log[p]);
+  const active   = getActivePrayers();
+  const allDone  = active.every(p => !!log[p]);
   c.innerHTML = `
     <div class="prayer-grid">
-      ${PRAYERS.map(p => {
+      ${active.map(p => {
         const done = !!log[p];
         return `<div class="prayer-slot${done?' done':''}" onclick="togglePrayer('${p}')">
           <div class="prayer-name">${PRAYER_LABEL[p]}</div>
-          <div class="prayer-dot">${done ? '✓' : ''}</div>
+          <div class="prayer-dot">${done ? '&#10003;' : ''}</div>
         </div>`;
       }).join('')}
     </div>

@@ -414,12 +414,25 @@ async function deleteCommunityNoteUI(id) {
 // ── Profile overlay — tabbed ──────────────────────────────────────────────────
 let _profileCache         = {};   // { [userId]: { feedEvents, notes, profileCtx, fitness, food, projects, media } }
 let _currentProfileUserId = null;
+const _profileShowAll     = { fitness: false, food: false };
+
+function _showMoreProfileTab(tab) {
+  _profileShowAll[tab] = true;
+  const content = eid('profileTabContent');
+  if (!content) return;
+  const cache = _profileCache[_currentProfileUserId];
+  if (!cache) return;
+  if (tab === 'fitness') content.innerHTML = _buildFitnessTab(cache.fitness, true);
+  if (tab === 'food')    content.innerHTML = _buildFoodTab(cache.food, true);
+}
 
 async function openProfileOverlay(userId) {
   if (currentUser && userId === currentUser.id) { switchCommunityView('my-profile'); return; }
 
   _currentProfileUserId = userId;
   if (!_profileCache[userId]) _profileCache[userId] = {};
+  _profileShowAll.fitness = false;
+  _profileShowAll.food    = false;
 
   // Mount skeleton immediately
   const overlay = document.createElement('div');
@@ -540,8 +553,8 @@ async function switchProfileTab(tab) {
     if (tab === 'media')    cache.media    = await fetchPublicMedia(userId);
   }
 
-  if (tab === 'fitness')  content.innerHTML = _buildFitnessTab(cache.fitness);
-  if (tab === 'food')     content.innerHTML = _buildFoodTab(cache.food);
+  if (tab === 'fitness')  content.innerHTML = _buildFitnessTab(cache.fitness, _profileShowAll.fitness);
+  if (tab === 'food')     content.innerHTML = _buildFoodTab(cache.food, _profileShowAll.food);
   if (tab === 'projects') content.innerHTML = _buildProjectsTab(cache.projects);
   if (tab === 'media')    content.innerHTML = _buildMediaTab(cache.media);
 }
@@ -588,14 +601,16 @@ function _buildActivityTab(userId) {
   return html || `<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:0.76rem">No activity yet</div>`;
 }
 
-function _buildFitnessTab(data) {
+function _buildFitnessTab(data, showAll) {
   if (!data) return _emptyTab();
   const { sessions, cardio } = data;
+  const LIMIT = 5;
   let html = '';
 
   if (sessions.length) {
+    const visible = showAll ? sessions : sessions.slice(0, LIMIT);
     html += `<div style="font-size:0.64rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:10px">Workouts</div>`;
-    html += sessions.map(s => {
+    html += visible.map(s => {
       const exs = (s.workout_exercises || []).sort((a, b) => a.order_index - b.order_index);
       const exNames = exs.map(e => escapeHtml(e.name || '')).filter(Boolean);
       return `
@@ -611,11 +626,15 @@ function _buildFitnessTab(data) {
             </div>` : ''}
         </div>`;
     }).join('');
+    if (!showAll && sessions.length > LIMIT) {
+      html += `<button class="btn btn-g" onclick="_showMoreProfileTab('fitness')" style="width:100%;margin-bottom:14px;font-size:0.72rem">View more (${sessions.length - LIMIT} more)</button>`;
+    }
   }
 
   if (cardio.length) {
+    const visibleCardio = showAll ? cardio : cardio.slice(0, LIMIT);
     html += `<div style="font-size:0.64rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;margin:16px 0 10px">Cardio</div>`;
-    html += cardio.map(c => {
+    html += visibleCardio.map(c => {
       const meta = [
         c.duration_minutes && `${c.duration_minutes}min`,
         c.distance_km      && `${c.distance_km}km`,
@@ -630,15 +649,19 @@ function _buildFitnessTab(data) {
           <div style="font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace">${c.session_date || ''}</div>
         </div>`;
     }).join('');
+    if (!showAll && cardio.length > LIMIT) {
+      html += `<button class="btn btn-g" onclick="_showMoreProfileTab('fitness')" style="width:100%;font-size:0.72rem">View more</button>`;
+    }
   }
 
   return html || _emptyTab('No fitness data yet');
 }
 
-function _buildFoodTab(entries) {
+function _buildFoodTab(entries, showAll) {
   if (!entries || !entries.length) return _emptyTab('No food data yet');
 
   const MEAL_LABELS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack', other: 'Other' };
+  const LIMIT = 5;
 
   // Group by date
   const byDate = {};
@@ -647,49 +670,55 @@ function _buildFoodTab(entries) {
     byDate[e.log_date].push(e);
   }
 
-  return Object.entries(byDate)
-    .sort((a, b) => b[0].localeCompare(a[0]))
-    .map(([date, items]) => {
-      const totalKcal = items.reduce((s, e) => s + (Number(e.calories) || 0), 0);
-      const totalProt = items.reduce((s, e) => s + (Number(e.protein_g) || 0), 0);
-      const dateStr   = new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const allDates = Object.entries(byDate).sort((a, b) => b[0].localeCompare(a[0]));
+  const visibleDates = showAll ? allDates : allDates.slice(0, LIMIT);
+  const hasMore = !showAll && allDates.length > LIMIT;
 
-      // Group by meal
-      const byMeal = {};
-      for (const item of items) {
-        const m = item.meal_type || 'other';
-        if (!byMeal[m]) byMeal[m] = [];
-        byMeal[m].push(item);
-      }
-      const MEAL_ORDER = ['breakfast','lunch','dinner','snack','other'];
-      const sortedMeals = MEAL_ORDER.filter(m => byMeal[m]);
+  const rows = visibleDates.map(([date, items]) => {
+    const totalKcal = items.reduce((s, e) => s + (Number(e.calories) || 0), 0);
+    const totalProt = items.reduce((s, e) => s + (Number(e.protein_g) || 0), 0);
+    const dateStr   = new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
-      return `
-        <div class="card" style="padding:14px;margin-bottom:10px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <div style="font-size:0.84rem;color:var(--cream);font-weight:600">${dateStr}</div>
-            <div style="text-align:right">
-              <div style="font-size:0.72rem;color:var(--blush);font-family:'DM Mono',monospace;font-weight:600">${Math.round(totalKcal)} kcal</div>
-              ${totalProt > 0 ? `<div style="font-size:0.60rem;color:var(--muted);font-family:'DM Mono',monospace">${Math.round(totalProt)}g protein</div>` : ''}
-            </div>
+    // Group by meal
+    const byMeal = {};
+    for (const item of items) {
+      const m = item.meal_type || 'other';
+      if (!byMeal[m]) byMeal[m] = [];
+      byMeal[m].push(item);
+    }
+    const MEAL_ORDER = ['breakfast','lunch','dinner','snack','other'];
+    const sortedMeals = MEAL_ORDER.filter(m => byMeal[m]);
+
+    return `
+      <div class="card" style="padding:14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:0.84rem;color:var(--cream);font-weight:600">${dateStr}</div>
+          <div style="text-align:right">
+            <div style="font-size:0.72rem;color:var(--blush);font-family:'DM Mono',monospace;font-weight:600">${Math.round(totalKcal)} kcal</div>
+            ${totalProt > 0 ? `<div style="font-size:0.60rem;color:var(--muted);font-family:'DM Mono',monospace">${Math.round(totalProt)}g protein</div>` : ''}
           </div>
-          ${sortedMeals.map(meal => `
-            <div style="margin-bottom:10px">
-              <div style="font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;font-family:'DM Mono',monospace;margin-bottom:5px">${MEAL_LABELS[meal] || meal}</div>
-              ${byMeal[meal].map(item => `
-                <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)">
-                  <div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">
-                    <span style="font-size:0.76rem;color:var(--mist)">${escapeHtml(item.name || '')}</span>
-                    ${item.brand ? `<span style="font-size:0.62rem;color:var(--muted);margin-left:5px">${escapeHtml(item.brand)}</span>` : ''}
-                  </div>
-                  <div style="flex-shrink:0;margin-left:12px;text-align:right">
-                    <span style="font-size:0.68rem;color:var(--muted);font-family:'DM Mono',monospace">${Math.round(Number(item.calories) || 0)} kcal</span>
-                    ${item.grams > 0 ? `<span style="font-size:0.60rem;color:var(--muted);font-family:'DM Mono',monospace;margin-left:6px">${item.grams}g</span>` : ''}
-                  </div>
-                </div>`).join('')}
-            </div>`).join('')}
-        </div>`;
-    }).join('');
+        </div>
+        ${sortedMeals.map(meal => `
+          <div style="margin-bottom:10px">
+            <div style="font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;font-family:'DM Mono',monospace;margin-bottom:5px">${MEAL_LABELS[meal] || meal}</div>
+            ${byMeal[meal].map(item => `
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)">
+                <div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">
+                  <span style="font-size:0.76rem;color:var(--mist)">${escapeHtml(item.name || '')}</span>
+                  ${item.brand ? `<span style="font-size:0.62rem;color:var(--muted);margin-left:5px">${escapeHtml(item.brand)}</span>` : ''}
+                </div>
+                <div style="flex-shrink:0;margin-left:12px;text-align:right">
+                  <span style="font-size:0.68rem;color:var(--muted);font-family:'DM Mono',monospace">${Math.round(Number(item.calories) || 0)} kcal</span>
+                  ${item.grams > 0 ? `<span style="font-size:0.60rem;color:var(--muted);font-family:'DM Mono',monospace;margin-left:6px">${item.grams}g</span>` : ''}
+                </div>
+              </div>`).join('')}
+          </div>`).join('')}
+      </div>`;
+  }).join('');
+
+  return rows + (hasMore
+    ? `<button class="btn btn-g" onclick="_showMoreProfileTab('food')" style="width:100%;font-size:0.72rem">View more (${allDates.length - LIMIT} more days)</button>`
+    : '');
 }
 
 function _buildProjectsTab(rows) {

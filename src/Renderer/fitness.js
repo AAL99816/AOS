@@ -58,6 +58,8 @@ function fmtPct(pct) {
 let _restTimerInterval = null;
 let _restTimerRemaining = 0;
 let _restTimerTotal = 0;
+let _restTimerStartMs  = 0;   // wall-clock start time
+let _restTimerNotifTO  = null; // notification timeout handle
 
 function getRestTimerSecs() {
   return parseInt((S.appPrefs && S.appPrefs.restTimerSecs) || 90);
@@ -65,30 +67,70 @@ function getRestTimerSecs() {
 
 function startRestTimer(secs) {
   secs = secs || getRestTimerSecs();
-  _restTimerTotal = secs;
-  _restTimerRemaining = secs;
+  _restTimerTotal   = secs;
+  _restTimerStartMs = Date.now();
   clearInterval(_restTimerInterval);
-  const bar = eid('restTimerBar');
-  if (bar) { bar.style.display = 'flex'; }
-  _renderRestTimer();
-  _restTimerInterval = setInterval(() => {
-    _restTimerRemaining--;
-    _renderRestTimer();
-    if (_restTimerRemaining <= 0) {
-      clearInterval(_restTimerInterval);
-      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-      toast('Rest done — next set!');
-      setTimeout(restTimerStop, 1500);
+  _cancelRestNotification();
+
+  // Request / schedule local notification
+  if (typeof Notification !== 'undefined') {
+    if (Notification.permission === 'granted') {
+      _scheduleRestNotification(secs);
+    } else if (Notification.permission === 'default') {
+      Notification.requestPermission().then(p => {
+        if (p === 'granted') _scheduleRestNotification(secs);
+      });
     }
-  }, 1000);
+  }
+
+  const bar = eid('restTimerBar');
+  if (bar) bar.style.display = 'flex';
+  _restTimerRemaining = secs;
+  _renderRestTimer();
+  // Tick at 500 ms so display stays smooth; remaining is always from wall clock
+  _restTimerInterval = setInterval(_restTimerTick, 500);
+}
+
+function _restTimerTick() {
+  const elapsed = (Date.now() - _restTimerStartMs) / 1000;
+  _restTimerRemaining = Math.max(0, _restTimerTotal - elapsed);
+  _renderRestTimer();
+  if (_restTimerRemaining <= 0) {
+    clearInterval(_restTimerInterval);
+    _restTimerInterval = null;
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    toast('Rest done — next set!');
+    setTimeout(restTimerStop, 1500);
+  }
+}
+
+// Re-sync when tab becomes visible after being backgrounded
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && _restTimerStartMs > 0 && _restTimerInterval) {
+    _restTimerTick();
+  }
+});
+
+function _scheduleRestNotification(secs) {
+  _restTimerNotifTO = setTimeout(() => {
+    _restTimerNotifTO = null;
+    try {
+      new Notification('Rest complete', { body: 'Time for your next set!', silent: false });
+    } catch (_) {}
+  }, secs * 1000);
+}
+
+function _cancelRestNotification() {
+  if (_restTimerNotifTO) { clearTimeout(_restTimerNotifTO); _restTimerNotifTO = null; }
 }
 
 function _renderRestTimer() {
   const label = eid('restTimerLabel');
   const fill  = eid('restTimerFill');
   if (!label || !fill) return;
-  const m = Math.floor(_restTimerRemaining / 60);
-  const s = _restTimerRemaining % 60;
+  const rem = Math.ceil(_restTimerRemaining);
+  const m = Math.floor(rem / 60);
+  const s = rem % 60;
   label.textContent = `${m}:${String(s).padStart(2, '0')}`;
   const pct = _restTimerTotal > 0 ? Math.max(0, (_restTimerRemaining / _restTimerTotal) * 100) : 0;
   fill.style.width = pct + '%';
@@ -97,12 +139,17 @@ function _renderRestTimer() {
 
 function restTimerSkip() {
   clearInterval(_restTimerInterval);
+  _restTimerInterval = null;
+  _cancelRestNotification();
   restTimerStop();
   toast('Rest skipped');
 }
 
 function restTimerStop() {
   clearInterval(_restTimerInterval);
+  _restTimerInterval = null;
+  _restTimerStartMs  = 0;
+  _cancelRestNotification();
   const bar = eid('restTimerBar');
   if (bar) bar.style.display = 'none';
 }

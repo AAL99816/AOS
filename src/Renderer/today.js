@@ -78,9 +78,11 @@ function renderToday() {
   const habitsDone  = habits.filter(h => h.days && h.days[d]).length;
   const habitsTotal = habits.length;
 
-  const prayerLog   = (S.prayerLog && S.prayerLog[d]) || {};
-  const prayersDone = (typeof PRAYERS !== 'undefined') ? PRAYERS.filter(p => !!prayerLog[p]).length : 0;
-  const prayersTotal = (typeof PRAYERS !== 'undefined') ? PRAYERS.length : 5;
+  const prayerLog    = (S.prayerLog && S.prayerLog[d]) || {};
+  const showPrayer   = (typeof isPrayerTrackerOn === 'function') ? isPrayerTrackerOn() : true;
+  const activePrays  = (typeof getActivePrayers === 'function') ? getActivePrayers() : (typeof PRAYERS !== 'undefined' ? PRAYERS : []);
+  const prayersDone  = activePrays.filter(p => !!prayerLog[p]).length;
+  const prayersTotal = activePrays.length;
 
   const gymDone    = !!(S.gymLog && S.gymLog[d]);
   const cardioMins = (S.cardioLog && S.cardioLog[d]) || 0;
@@ -159,12 +161,12 @@ function renderToday() {
   }).join('');
 
   // ── Prayer row ──
-  const prayerRowHtml = (typeof PRAYERS !== 'undefined') ? PRAYERS.map(p => {
+  const prayerRowHtml = activePrays.map(p => {
     const done = !!prayerLog[p];
-    return `<button onclick="togglePrayer('${p}')" style="flex:1;padding:8px 2px;border-radius:8px;border:none;background:${done ? 'var(--blush)' : 'var(--mid)'};color:${done ? 'var(--cream)' : 'var(--muted)'};font-size:0.58rem;font-family:'DM Mono',monospace;cursor:pointer;transition:all 0.15s;letter-spacing:0.04em">
+    return `<button onclick="togglePrayer('${p}')" style="flex:1;padding:8px 2px;border-radius:8px;border:none;background:${done ? 'var(--blush)' : 'var(--mid)'};color:${done ? 'var(--cream)' : 'var(--muted)'};font-size:0.58rem;font-family:'DM Mono',monospace;cursor:pointer;transition:all 0.15s;letter-spacing:0.04em;min-height:36px;-webkit-tap-highlight-color:transparent">
       ${escapeHtml(p.charAt(0).toUpperCase() + p.slice(1))}
     </button>`;
-  }).join('') : '';
+  }).join('');
 
   // ── Water bubbles (cap at 20 bubbles; for litre/oz use numeric +/- only) ──
   const maxBubbles = Math.min(waterTarget, 20);
@@ -195,7 +197,7 @@ function renderToday() {
 
     <!-- Progress rings row -->
     <div id="todayRingsRow" class="card" style="margin-bottom:16px;padding:14px 18px">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center">
+      <div style="display:grid;grid-template-columns:repeat(${showPrayer && prayersTotal > 0 ? 4 : 3},1fr);gap:8px;text-align:center">
 
         <!-- Habits ring -->
         <div style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer" onclick="scrollToSection('todayHabitsSection')">
@@ -225,13 +227,14 @@ function renderToday() {
         </div>
 
         <!-- Prayer ring -->
+        ${showPrayer && prayersTotal > 0 ? `
         <div style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer" onclick="scrollToSection('todayPrayerSection')">
           <div style="position:relative;width:54px;height:54px">
             ${ring(Math.round((prayersDone/prayersTotal)*100), 'var(--gold)', 54)}
             <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:0.72rem;color:var(--cream);font-family:'DM Mono',monospace">${prayersDone}/${prayersTotal}</div>
           </div>
           <div style="font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em">Prayer</div>
-        </div>
+        </div>` : ''}
 
       </div>
     </div>
@@ -266,15 +269,16 @@ function renderToday() {
     </div>
 
     <!-- Prayer -->
+    ${showPrayer ? `
     <div id="todayPrayerSection" style="margin-bottom:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div class="sec" style="margin:0;font-size:0.66rem">Prayer</div>
         <span style="font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace">${prayersDone}/${prayersTotal}</span>
       </div>
-      <div style="display:flex;gap:6px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
         ${prayerRowHtml}
       </div>
-    </div>
+    </div>` : ''}
 
     <!-- Mood (feature-flagged) -->
     ${typeof feat === 'function' && feat('moodTracking') ? `

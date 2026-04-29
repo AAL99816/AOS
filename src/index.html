@@ -690,6 +690,10 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
   nav{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;padding:0 8px;-webkit-overflow-scrolling:touch;}
   nav::-webkit-scrollbar{display:none;}
   .tab{padding:10px 12px;font-size:0.62rem;flex-shrink:0;}
+  /* Summary: prevent any child overflowing */
+  .review-block{overflow:hidden;max-width:100%;}
+  .review-prayer-row{flex-wrap:wrap;}
+  .review-week-lbl{font-size:0.92rem;}
 }
 /* ── Pull-to-refresh indicator ── */
 #pullIndicator{
@@ -750,6 +754,16 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
   .habit-del{opacity:1;}
   .book-del{opacity:1;}
   .goal-del{opacity:1;}
+  /* Summary: clamp all content to viewport */
+  #panel-summary{overflow-x:hidden;max-width:100vw;}
+  #reviewContent{overflow-x:hidden;}
+  .review-grid{gap:10px;}
+  .review-block{padding:12px;overflow:hidden;max-width:100%;}
+  .review-prayer-row{flex-wrap:wrap;gap:3px;}
+  .review-habit-name{width:80px;font-size:0.66rem;}
+  .review-habit-bar{min-width:40px;}
+  /* Today dashboard: no horizontal bleed */
+  #todayDashboard{overflow-x:hidden;}
   /* Training log: remove horizontal overflow */
   #trainingLog{overflow-x:hidden;}
   .progs-grid{grid-template-columns:1fr;}
@@ -2022,21 +2036,11 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
     <!-- Focus tab — filled dynamically by renderFocusSettingsPane() -->
     <div id="stPane-focus" style="display:none"></div>
 
-    <!-- Projects tab -->
-    <div id="stPane-projects" style="display:none">
-      <div class="settings-section">
-        <div class="settings-kicker">Projects</div>
-        <div style="font-size:0.72rem;color:var(--muted);line-height:1.6">Project settings coming soon.</div>
-      </div>
-    </div>
+    <!-- Projects tab — filled dynamically by renderProjectsSettingsPane() -->
+    <div id="stPane-projects" style="display:none"></div>
 
-    <!-- Media tab -->
-    <div id="stPane-media" style="display:none">
-      <div class="settings-section">
-        <div class="settings-kicker">Media</div>
-        <div style="font-size:0.72rem;color:var(--muted);line-height:1.6">Media settings coming soon.</div>
-      </div>
-    </div>
+    <!-- Media tab — filled dynamically by renderMediaSettingsPane() -->
+    <div id="stPane-media" style="display:none"></div>
 
     <!-- FEATURE: Features pane — remove this block to disable feature flags -->
     <div id="stPane-features" style="display:none"></div>

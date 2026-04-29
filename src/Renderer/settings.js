@@ -279,6 +279,8 @@ function openSettings() {
   renderTodaySettingsPane();
   renderFitnessSettingsPane();
   renderFocusSettingsPane();
+  renderProjectsSettingsPane();
+  renderMediaSettingsPane();
   renderFeaturesPane();
   if (typeof renderModulesPane === 'function') renderModulesPane();
 
@@ -342,9 +344,11 @@ function switchSettingsTab(tab) {
     if (btn)  btn.classList.toggle('active', t2 === tab);
     if (pane) pane.style.display = t2 === tab ? '' : 'none';
   });
-  if (tab === 'today')   renderTodaySettingsPane();
-  if (tab === 'fitness') renderFitnessSettingsPane();
-  if (tab === 'focus')   renderFocusSettingsPane();
+  if (tab === 'today')    renderTodaySettingsPane();
+  if (tab === 'fitness')  renderFitnessSettingsPane();
+  if (tab === 'focus')    renderFocusSettingsPane();
+  if (tab === 'projects') renderProjectsSettingsPane();
+  if (tab === 'media')    renderMediaSettingsPane();
   if (tab === 'summary') {
     const swRef = eid('st-weekly-reflection');
     if (swRef) swRef.checked = S.appPrefs?.showWeeklyReflection !== false;
@@ -394,13 +398,42 @@ function _settingsSection(kicker, body) {
 function renderTodaySettingsPane() {
   const pane = eid('stPane-today');
   if (!pane) return;
-  const feats = S.features || {};
-  const unit  = (S.appPrefs && S.appPrefs.waterUnit) || 'glasses';
-  const todayMods = (typeof MODULE_REGISTRY !== 'undefined' ? MODULE_REGISTRY : []).filter(m => m.group === 'Today');
+  const feats         = S.features || {};
+  const unit          = (S.appPrefs && S.appPrefs.waterUnit) || 'glasses';
+  const prayerOn      = S.appPrefs?.showPrayerTracker !== false;
+  const activePrays   = (typeof getActivePrayers === 'function') ? getActivePrayers() : (typeof PRAYERS !== 'undefined' ? PRAYERS : []);
+  const todayMods     = (typeof MODULE_REGISTRY !== 'undefined' ? MODULE_REGISTRY : []).filter(m => m.group === 'Today');
+  const allPrayers    = (typeof PRAYERS !== 'undefined') ? PRAYERS : [];
+
   pane.innerHTML =
     _settingsSection('Display', `
       <div class="mf"><label><input type="checkbox" id="st-reflection" ${S.appPrefs?.showReflection !== false ? 'checked' : ''} onchange="toggleReflection(this.checked)"> <span>Daily Reflection</span></label></div>
       <div style="font-size:0.68rem;color:var(--muted);margin-top:4px;line-height:1.5">Show the daily reflection card on your Today page.</div>
+    `) +
+    _settingsSection('Habits', `
+      <div style="font-size:0.68rem;color:var(--muted);margin-bottom:10px;line-height:1.5">Add, rename, hide or remove habits from your Today and Summary views.</div>
+      <button class="btn btn-g" onclick="openHabitManager()" style="font-size:0.76rem">Manage Habits</button>
+    `) +
+    _settingsSection('Prayer Tracker', `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div>
+          <div style="font-size:0.82rem;color:var(--cream);margin-bottom:2px">Show Prayer Tracker</div>
+          <div style="font-size:0.68rem;color:var(--muted)">Show the prayer section on Today and Summary</div>
+        </div>
+        <label class="toggle-switch" style="flex-shrink:0;margin-left:12px">
+          <input type="checkbox" ${prayerOn ? 'checked' : ''} onchange="setPrayerTrackerVisible(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      ${prayerOn && allPrayers.length ? `
+      <div style="font-size:0.68rem;color:var(--muted);margin-bottom:8px">Active prayers:</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${allPrayers.map(p => {
+          const isActive = activePrays.includes(p);
+          const label = (typeof PRAYER_LABEL !== 'undefined') ? PRAYER_LABEL[p] : (p.charAt(0).toUpperCase() + p.slice(1));
+          return `<button class="btn btn-g${isActive?' active':''}" onclick="toggleActivePrayer('${p}',this)" style="font-size:0.7rem;min-height:34px">${escapeHtml(label)}</button>`;
+        }).join('')}
+      </div>` : ''}
     `) +
     _settingsSection('Water Tracking', `
       <div class="mf">
@@ -411,7 +444,7 @@ function renderTodaySettingsPane() {
           <button class="btn btn-g${unit==='cups'?' active':''}"    id="wuBtn-cups"    onclick="setWaterUnit('cups')"    style="font-size:0.7rem">Cups (240ml)</button>
           <button class="btn btn-g${unit==='oz'?' active':''}"      id="wuBtn-oz"      onclick="setWaterUnit('oz')"      style="font-size:0.7rem">Fl oz</button>
         </div>
-        <div style="font-size:0.68rem;color:var(--muted);margin-top:6px;line-height:1.5">Changing unit resets today's log count display — raw ml data is always preserved.</div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:6px;line-height:1.5">Changing unit resets today's log count display — raw data is preserved.</div>
       </div>
     `) +
     _settingsSection('Features',
@@ -424,6 +457,34 @@ function renderTodaySettingsPane() {
       `<div style="font-size:0.66rem;color:var(--muted);margin-bottom:10px;line-height:1.5">Show or hide sections on your Today dashboard.</div>` +
       todayMods.map(_modRow).join('')
     );
+}
+
+function setPrayerTrackerVisible(on) {
+  if (!S.appPrefs) S.appPrefs = {};
+  S.appPrefs.showPrayerTracker = on;
+  scheduleSave();
+  renderToday();
+  if (typeof renderWeeklyReview === 'function') renderWeeklyReview();
+  // Re-render the pane so prayer buttons appear/disappear instantly
+  renderTodaySettingsPane();
+}
+
+function toggleActivePrayer(key, btn) {
+  if (!S.appPrefs) S.appPrefs = {};
+  const all = (typeof PRAYERS !== 'undefined') ? PRAYERS : [];
+  if (!S.appPrefs.activePrayers) S.appPrefs.activePrayers = [...all];
+  const idx = S.appPrefs.activePrayers.indexOf(key);
+  if (idx >= 0) {
+    if (S.appPrefs.activePrayers.length <= 1) return; // keep at least one
+    S.appPrefs.activePrayers.splice(idx, 1);
+    btn.classList.remove('active');
+  } else {
+    S.appPrefs.activePrayers.push(key);
+    btn.classList.add('active');
+  }
+  scheduleSave();
+  renderToday();
+  if (typeof renderWeeklyReview === 'function') renderWeeklyReview();
 }
 
 function renderFitnessSettingsPane() {
@@ -481,49 +542,117 @@ function renderFocusSettingsPane() {
     );
 }
 
+function renderProjectsSettingsPane() {
+  const pane = eid('stPane-projects');
+  if (!pane) return;
+  const feats    = S.features || {};
+  const projMods = (typeof MODULE_REGISTRY !== 'undefined' ? MODULE_REGISTRY : []).filter(m => m.group === 'Projects');
+  pane.innerHTML =
+    _settingsSection('Display', `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0">
+        <div>
+          <div style="font-size:0.82rem;color:var(--cream);margin-bottom:2px">Show Done Projects</div>
+          <div style="font-size:0.68rem;color:var(--muted)">Include completed projects in the project list</div>
+        </div>
+        <label class="toggle-switch" style="flex-shrink:0;margin-left:12px">
+          <input type="checkbox" ${S.appPrefs?.showDoneProjects ? 'checked' : ''} onchange="setProjectPref('showDoneProjects',this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-top:1px solid var(--border)">
+        <div>
+          <div style="font-size:0.82rem;color:var(--cream);margin-bottom:2px">Show Task Count</div>
+          <div style="font-size:0.68rem;color:var(--muted)">Show remaining task count badge on project cards</div>
+        </div>
+        <label class="toggle-switch" style="flex-shrink:0;margin-left:12px">
+          <input type="checkbox" ${S.appPrefs?.showProjectTaskCount !== false ? 'checked' : ''} onchange="setProjectPref('showProjectTaskCount',this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    `) +
+    (projMods.length ? _settingsSection('Sections',
+      `<div style="font-size:0.66rem;color:var(--muted);margin-bottom:10px;line-height:1.5">Show or hide sections on your Projects tab.</div>` +
+      projMods.map(_modRow).join('')) : '');
+}
+
+function renderMediaSettingsPane() {
+  const pane = eid('stPane-media');
+  if (!pane) return;
+  const feats    = S.features || {};
+  const mediaMods = (typeof MODULE_REGISTRY !== 'undefined' ? MODULE_REGISTRY : []).filter(m => m.group === 'Media');
+  pane.innerHTML =
+    _settingsSection('Display', `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0">
+        <div>
+          <div style="font-size:0.82rem;color:var(--cream);margin-bottom:2px">Show Ratings</div>
+          <div style="font-size:0.68rem;color:var(--muted)">Display star ratings on book and media cards</div>
+        </div>
+        <label class="toggle-switch" style="flex-shrink:0;margin-left:12px">
+          <input type="checkbox" ${S.appPrefs?.showMediaRatings !== false ? 'checked' : ''} onchange="setMediaPref('showMediaRatings',this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-top:1px solid var(--border)">
+        <div>
+          <div style="font-size:0.82rem;color:var(--cream);margin-bottom:2px">Show Progress Bars</div>
+          <div style="font-size:0.68rem;color:var(--muted)">Show reading/watching progress on in-progress items</div>
+        </div>
+        <label class="toggle-switch" style="flex-shrink:0;margin-left:12px">
+          <input type="checkbox" ${S.appPrefs?.showMediaProgress !== false ? 'checked' : ''} onchange="setMediaPref('showMediaProgress',this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    `) +
+    (mediaMods.length ? _settingsSection('Sections',
+      `<div style="font-size:0.66rem;color:var(--muted);margin-bottom:10px;line-height:1.5">Show or hide sections on your Media tab.</div>` +
+      mediaMods.map(_modRow).join('')) : '');
+}
+
+function setProjectPref(key, val) {
+  if (!S.appPrefs) S.appPrefs = {};
+  S.appPrefs[key] = val;
+  scheduleSave();
+  if (typeof renderProjects === 'function') renderProjects();
+}
+
+function setMediaPref(key, val) {
+  if (!S.appPrefs) S.appPrefs = {};
+  S.appPrefs[key] = val;
+  scheduleSave();
+  if (typeof renderMedia === 'function') renderMedia();
+}
+
 function renderFeaturesPane() {
   const pane = eid('stPane-features');
   if (!pane) return;
-  // Only features without a dedicated settings tab live here
-  const feats = S.features || {};
-  const remaining = [
-    { key:'dataExport',        label:'Data Export',        desc:'Export your data as CSV files' },
-    { key:'financialTracking', label:'Financial Tracking', desc:'Log income and expenses (coming soon)' },
-    { key:'aiInsights',        label:'AI Insights',        desc:'Weekly summary generated from your data (coming soon)' },
-  ];
-  pane.innerHTML = `
-    <div style="margin-bottom:14px">
-      ${remaining.map(f => _featRow(f, feats)).join('')}
-    </div>
-    <div style="margin-top:20px">
-      <div style="font-size:0.72rem;color:var(--cream);margin-bottom:10px;font-weight:500">Export Data (CSV)</div>
+  pane.innerHTML =
+    _settingsSection('Export Data', `
+      <div style="font-size:0.68rem;color:var(--muted);margin-bottom:10px;line-height:1.5">Download your data as CSV files.</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px" id="exportBtns">
-        <button class="btn btn-g" onclick="exportCSV('media')" style="font-size:0.68rem">📚 Media</button>
-        <button class="btn btn-g" onclick="exportCSV('workouts')" style="font-size:0.68rem">🏋️ Workouts</button>
-        <button class="btn btn-g" onclick="exportCSV('habits')" style="font-size:0.68rem">🔥 Habits</button>
-        <button class="btn btn-g" onclick="exportCSV('cardio')" style="font-size:0.68rem">🏃 Cardio</button>
-        <button class="btn btn-g" onclick="exportCSV('calories')" style="font-size:0.68rem">🥗 Calories</button>
-        <button class="btn btn-g" onclick="exportCSV('weight')" style="font-size:0.68rem">⚖️ Weight</button>
+        <button class="btn btn-g" onclick="exportCSV('media')"    style="font-size:0.68rem">Media</button>
+        <button class="btn btn-g" onclick="exportCSV('workouts')" style="font-size:0.68rem">Workouts</button>
+        <button class="btn btn-g" onclick="exportCSV('habits')"   style="font-size:0.68rem">Habits</button>
+        <button class="btn btn-g" onclick="exportCSV('cardio')"   style="font-size:0.68rem">Cardio</button>
+        <button class="btn btn-g" onclick="exportCSV('calories')" style="font-size:0.68rem">Calories</button>
+        <button class="btn btn-g" onclick="exportCSV('weight')"   style="font-size:0.68rem">Weight</button>
       </div>
-    </div>
-    <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border)">
-      <div style="font-size:0.72rem;color:var(--cream);margin-bottom:10px;font-weight:500">Full Backup</div>
-      <div style="font-size:0.66rem;color:var(--muted);margin-bottom:10px">Export or import your complete AOS data as JSON.</div>
+    `) +
+    _settingsSection('Backup', `
+      <div style="font-size:0.66rem;color:var(--muted);margin-bottom:10px;line-height:1.5">Export or import your complete AOS data as JSON.</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-g" onclick="doExport()" style="font-size:0.68rem">Export JSON Backup</button>
         <button class="btn btn-g" onclick="doImport()" style="font-size:0.68rem">Import JSON Backup</button>
       </div>
       ${(()=>{ const ls = localStorage.getItem('aos_last_synced'); if(!ls) return ''; const d = new Date(ls); return `<div style="font-size:0.62rem;color:var(--muted);margin-top:8px;font-family:'DM Mono',monospace">Last synced: ${d.toLocaleString()}</div>`; })()}
-    </div>
-    <div style="margin-top:20px;padding-top:14px;border-top:1px solid rgba(180,60,60,0.28)">
+    `) +
+    `<div style="margin-top:20px;padding-top:14px;border-top:1px solid rgba(180,60,60,0.28)">
       <div style="font-size:0.72rem;color:#f09090;margin-bottom:10px;font-weight:500">Danger Zone</div>
       <div style="font-size:0.66rem;color:var(--muted);margin-bottom:10px">Permanently delete all your AOS data. This cannot be undone.</div>
       <button class="btn" onclick="clearAllData()"
         style="font-size:0.68rem;background:rgba(180,60,60,0.15);border:1px solid rgba(180,60,60,0.35);color:#f09090;padding:6px 14px;border-radius:8px;cursor:pointer">
         Clear All Data
       </button>
-    </div>
-  `;
+    </div>`;
 }
 
 async function clearAllData() {

@@ -49,15 +49,16 @@ function renderWeeklyReview() {
   const prevDays  = weekDaysFor(prevStart);
 
   /* ── Prayer ── */
-  const prayerCounts = PRAYERS.map(key => ({
+  const activePrayers = (typeof getActivePrayers === 'function') ? getActivePrayers() : PRAYERS;
+  const prayerCounts = activePrayers.map(key => ({
     key,
     label: PRAYER_LABEL[key],
     count: days.filter(d => !!((S.prayerLog||{})[d]||{})[key]).length
   }));
-  const fullDays = days.filter(d => PRAYERS.every(k => !!((S.prayerLog||{})[d]||{})[k])).length;
+  const fullDays = days.filter(d => activePrayers.every(k => !!((S.prayerLog||{})[d]||{})[k])).length;
 
   /* ── Habits ── */
-  const habitStats = (S.habits||[]).map(h => ({
+  const habitStats = (S.habits||[]).filter(h => !h.hidden).map(h => ({
     name: h.name,
     count: days.filter(d => !!(h.days||{})[d]).length
   }));
