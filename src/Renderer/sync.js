@@ -1099,6 +1099,23 @@ async function loadCommunityFeedByUser(userId) {
 }
 
 /* ── Discover ── */
+
+// Fetch a broad set of public profiles for ranked discover feed (excludes self + followed)
+async function fetchDiscoverProfiles(excludeIds) {
+  if (!currentUser) return [];
+  let query = sb
+    .from('profiles')
+    .select('id, username, display_name, avatar_url, bio, share_fitness, share_food, share_projects, share_media')
+    .eq('is_public', true)
+    .neq('id', currentUser.id);
+  if (excludeIds && excludeIds.length) {
+    query = query.not('id', 'in', `(${excludeIds.join(',')})`);
+  }
+  const { data, error } = await query.limit(80);
+  if (error) { console.warn('[discover] fetchDiscoverProfiles:', error.message); return []; }
+  return data || [];
+}
+
 async function searchCommunityProfiles(query) {
   if (!currentUser) return [];
   const clean = query.replace(/'/g, "''");

@@ -9,9 +9,78 @@ let _communityNotes   = [];
 let _communityFeed    = [];
 let _communityFollowing = [];
 let _communityLoaded  = false;
-let _discoverResults  = [];
+let _discoverResults  = [];       // active search results (non-empty while searching)
 let _discoverSearchT  = null;
+let _discoverRanked   = [];       // scored + sorted profiles for ranked feed
+let _discoverPage     = 0;        // pagination cursor for ranked feed
+let _discoverLoading  = false;
 let _editingCommunityNoteId = null;
+
+const DISCOVER_PAGE_SIZE = 12;
+
+// ── Interest scoring ──────────────────────────────────────────────────────────
+
+// Derives viewer's interest weights from their local data (0–1 each, sums to 1)
+function _computeViewerInterests() {
+  const fitnessAct  = (S.workoutHistory || []).length + Object.keys(S.cardioLog   || {}).length;
+  const foodAct     = Object.keys(S.foodLog    || {}).length;
+  const mediaAct    = (S.media          || []).length;
+  const projectsAct = (S.projects       || []).length;
+
+  const fw = Math.min(fitnessAct  / 15, 1);
+  const fo = Math.min(foodAct     / 20, 1);
+  const mw = Math.min(mediaAct    / 10, 1);
+  const pw = Math.min(projectsAct /  8, 1);
+
+  const total = fw + fo + mw + pw || 1; // avoid /0
+  return { fitness: fw / total, food: fo / total, media: mw / total, projects: pw / total };
+}
+
+// Dot product of candidate's share flags against viewer's interest weights
+function _scoreProfile(p, interests) {
+  return (p.share_fitness  ? interests.fitness  : 0)
+       + (p.share_food     ? interests.food     : 0)
+       + (p.share_media    ? interests.media    : 0)
+       + (p.share_projects ? interests.projects : 0);
+}
+
+async function _loadDiscoverRanked() {
+  if (_discoverLoading) return;
+  _discoverLoading = true;
+  const excludeIds = [currentUser?.id, ..._communityFollowing].filter(Boolean);
+  const profiles   = await fetchDiscoverProfiles(excludeIds);
+  const interests  = _computeViewerInterests();
+  _discoverRanked  = profiles
+    .map(p => ({ ...p, _score: _scoreProfile(p, interests) }))
+    .sort((a, b) => b._score - a._score);
+  _discoverPage   = 0;
+  _discoverLoading = false;
+}
+
+function _discoverLoadMore() {
+  _discoverPage++;
+  const el = eid('discoverResults');
+  if (el) el.innerHTML = _discoverResultsHtml();
+}
+
+function _discoverResultsHtml() {
+  // Search active — show search results
+  if (_discoverResults.length) {
+    return _discoverResults.map(p => _buildProfileCard(p)).join('');
+  }
+  // Ranked feed
+  if (_discoverLoading) {
+    return `<div style="text-align:center;padding:36px 0;color:var(--muted);font-size:0.76rem">Loading…</div>`;
+  }
+  if (!_discoverRanked.length) {
+    return `<div style="text-align:center;padding:36px 0;color:var(--muted);font-size:0.76rem;line-height:1.6">No public profiles to discover yet</div>`;
+  }
+  const end     = (_discoverPage + 1) * DISCOVER_PAGE_SIZE;
+  const visible = _discoverRanked.slice(0, end);
+  const hasMore = _discoverRanked.length > end;
+  return visible.map(p => _buildProfileCard(p)).join('')
+    + (hasMore ? `<button class="btn btn-g" style="width:100%;margin-top:6px;font-size:0.72rem" onclick="_discoverLoadMore()">Load more</button>` : '');
+}
 
 // ── Markdown renderer ─────────────────────────────────────────────────────────
 function _renderMarkdown(text) {
@@ -54,6 +123,10 @@ async function renderCommunity() {
     _communityFollowing = await loadFollowing();
     _communityFeed      = await loadCommunityFeed(_communityFollowing);
     _communityNotes     = await loadCommunityNotes();
+    // Reset ranked discover cache so it re-scores with the fresh follow list
+    _discoverRanked  = [];
+    _discoverPage    = 0;
+    _discoverLoading = false;
   }
 
   _renderCommunityContent();
@@ -171,17 +244,26 @@ function _buildFeedCard(ev) {
 
 // ── Discover view ─────────────────────────────────────────────────────────────
 function _buildDiscoverView() {
-  const resultsHtml = _discoverResults.length
-    ? _discoverResults.map(p => _buildProfileCard(p)).join('')
-    : `<div style="color:var(--muted);font-size:0.76rem;text-align:center;padding:28px 0;line-height:1.6">Search for people by name or username</div>`;
+  // Kick off ranked load if not already done (fire-and-forget, renders inline)
+  if (!_discoverRanked.length && !_discoverLoading) {
+    _loadDiscoverRanked().then(() => {
+      const el = eid('discoverResults');
+      if (el && !_discoverResults.length) el.innerHTML = _discoverResultsHtml();
+    });
+  }
+
+  const kicker = !_discoverResults.length && _discoverRanked.length
+    ? `<div style="font-size:0.56rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;font-family:'DM Mono',monospace;margin-bottom:10px">Suggested for you</div>`
+    : '';
 
   return `
-    <div style="position:relative;margin-bottom:16px">
+    <div style="position:relative;margin-bottom:14px">
       <input id="discoverSearch" type="text" placeholder="Search by name or @username…"
         style="width:100%;box-sizing:border-box;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:16px;color:var(--cream);outline:none;font-family:inherit"
         oninput="onDiscoverSearch(this.value)" autocomplete="off">
     </div>
-    <div id="discoverResults">${resultsHtml}</div>`;
+    ${kicker}
+    <div id="discoverResults">${_discoverResultsHtml()}</div>`;
 }
 
 function _buildProfileCard(p) {
@@ -221,8 +303,9 @@ async function onDiscoverSearch(q) {
     const el = eid('discoverResults');
     if (!el) return;
     if (!q.trim()) {
+      // Cleared — restore ranked feed
       _discoverResults = [];
-      el.innerHTML = `<div style="color:var(--muted);font-size:0.76rem;text-align:center;padding:28px 0">Search for people by name or @username</div>`;
+      el.innerHTML = _discoverResultsHtml();
       return;
     }
     el.innerHTML = `<div style="color:var(--muted);font-size:0.76rem;text-align:center;padding:16px 0">Searching…</div>`;
@@ -241,13 +324,22 @@ async function toggleFollow(userId, btn) {
     _communityFollowing = _communityFollowing.filter(id => id !== userId);
     btn.textContent = 'Follow';
     btn.className   = 'btn btn-p';
+    // Re-add to ranked discover feed (re-score with current interests)
+    const interests = _computeViewerInterests();
+    const profile   = await fetchPublicProfileById(userId);
+    if (profile) {
+      _discoverRanked = [..._discoverRanked, { ...profile, _score: _scoreProfile(profile, interests) }]
+        .sort((a, b) => b._score - a._score);
+    }
   } else {
     await followUser(userId);
     _communityFollowing = [..._communityFollowing, userId];
     btn.textContent = 'Following';
     btn.className   = 'btn btn-g';
+    // Remove from ranked discover feed immediately
+    _discoverRanked = _discoverRanked.filter(p => p.id !== userId);
   }
-  btn.style.cssText = 'font-size:0.68rem;padding:6px 14px;flex-shrink:0';
+  btn.style.cssText = 'font-size:0.68rem;padding:6px 14px;flex-shrink:0;min-height:36px;min-width:72px';
   btn.disabled = false;
 }
 
