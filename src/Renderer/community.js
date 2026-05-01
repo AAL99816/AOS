@@ -167,14 +167,14 @@ function _buildFeedView() {
   if (!_communityFollowing.length) {
     return `
       <div style="text-align:center;padding:56px 0">
-        <div style="font-size:2.2rem;margin-bottom:14px">👋</div>
-        <div style="font-size:0.86rem;color:var(--cream);margin-bottom:6px;font-family:'Cormorant Garamond',serif;font-size:1.05rem">Your feed is empty</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:14px">◆</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:1.05rem;color:var(--cream);margin-bottom:6px">Your feed is empty</div>
         <div style="font-size:0.72rem;color:var(--muted);line-height:1.6;max-width:260px;margin:0 auto 20px">Follow people to see their workouts, food, projects and media here</div>
         <button class="btn btn-p" style="font-size:0.76rem" onclick="switchCommunityView('discover')">Discover People</button>
       </div>`;
   }
   if (!_communityFeed.length) {
-    return `<div style="text-align:center;padding:48px 0;color:var(--muted);font-size:0.78rem">No recent activity from people you follow</div>`;
+    return `<div style="text-align:center;padding:48px 0"><div style="font-size:0.56rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">No recent activity</div></div>`;
   }
   return _communityFeed.map(ev => _buildFeedCard(ev)).join('');
 }
@@ -221,28 +221,45 @@ function _buildFeedCard(ev) {
       typeLabel = 'finished';
       detail = `<div style="font-size:0.70rem;color:var(--muted);margin-top:2px">${escapeHtml(summary.title || '')}${summary.rating ? ` · ${'★'.repeat(Math.round(summary.rating))}` : ''}</div>`;
       break;
-    case 'community_note':
-      icon = '📝';
+    case 'community_note': {
+      icon = '◆';
       typeLabel = 'shared a note';
-      detail = summary.title ? `<div style="font-size:0.70rem;color:var(--muted);margin-top:2px;font-style:italic">"${escapeHtml(summary.title.slice(0, 70))}${summary.title.length > 70 ? '…' : ''}"</div>` : '';
+      const noteId = `note-body-${ev.id || Math.random().toString(36).slice(2)}`;
+      const noteTitle = summary.title || '';
+      const noteBody  = summary.body  || summary.content || '';
+      detail = `
+        <div style="margin-top:4px">
+          ${noteTitle ? `<div style="font-size:0.78rem;color:var(--cream);font-family:'Cormorant Garamond',serif;line-height:1.4">${escapeHtml(noteTitle)}</div>` : ''}
+          ${noteBody ? `
+            <div id="${noteId}" style="display:none;font-size:0.74rem;color:var(--muted-lt);line-height:1.65;margin-top:6px;padding-top:6px;border-top:1px solid var(--border);white-space:pre-wrap">${escapeHtml(noteBody.slice(0,600))}${noteBody.length>600?'…':''}</div>
+            <button onclick="event.stopPropagation();var el=document.getElementById('${noteId}');var expanded=el.style.display!=='none';el.style.display=expanded?'none':'block';this.textContent=expanded?'Read more':'Collapse';"
+              style="margin-top:5px;background:none;border:none;color:var(--blush);font-size:0.62rem;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;padding:0">Read more</button>
+          ` : ''}
+        </div>`;
       break;
+    }
     default:
       icon = '·'; typeLabel = ev.event_type; detail = '';
   }
 
+  const isNote = ev.event_type === 'community_note';
+  const cardClick = isNote ? '' : `onclick="openProfileOverlay('${escapeAttr(ev.user_id)}')"`;
+  const iconStyle = isNote
+    ? `font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--blush);flex-shrink:0`
+    : `font-size:1.1rem;flex-shrink:0`;
   return `
-    <div class="card" style="padding:12px 14px;margin-bottom:10px;cursor:pointer" onclick="openProfileOverlay('${escapeAttr(ev.user_id)}')">
+    <div class="card" style="padding:12px 14px;margin-bottom:10px;${isNote?'':'cursor:pointer'}" ${cardClick}>
       <div style="display:flex;align-items:center;gap:10px">
-        ${avatar}
+        <div onclick="openProfileOverlay('${escapeAttr(ev.user_id)}')" style="cursor:pointer;flex-shrink:0">${avatar}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:0.78rem;color:var(--cream);line-height:1.4">
-            <span style="font-weight:600">${escapeHtml(name)}</span>
+            <span style="font-weight:600;cursor:pointer" onclick="openProfileOverlay('${escapeAttr(ev.user_id)}')">${escapeHtml(name)}</span>
             <span style="color:var(--muted)"> ${typeLabel}</span>
             ${dateStr ? `<span style="font-size:0.62rem;color:var(--muted);margin-left:6px;font-family:'DM Mono',monospace">${dateStr}</span>` : ''}
           </div>
           ${detail}
         </div>
-        <span style="font-size:1.1rem;flex-shrink:0">${icon}</span>
+        <span style="${iconStyle}">${icon}</span>
       </div>
     </div>`;
 }
@@ -459,11 +476,47 @@ async function switchMyProfileTab(tab) {
     content.innerHTML = `<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:0.76rem">Loading…</div>`;
     const uid = currentUser?.id;
     if (tab === 'fitness')   _myProfileCache.fitness   = await fetchPublicFitness(uid);
-    if (tab === 'food')      _myProfileCache.food      = await fetchPublicFoodLog(uid);
     if (tab === 'projects')  _myProfileCache.projects  = await fetchPublicProjects(uid);
-    if (tab === 'media')     _myProfileCache.media     = await fetchPublicMedia(uid);
     if (tab === 'followers') _myProfileCache.followers = await fetchFollowersList(uid);
     if (tab === 'following') _myProfileCache.following = await fetchFollowingList(uid);
+
+    // Use local state for food and media — avoids sync delay and RLS edge cases
+    if (tab === 'food') {
+      const foodLog = (typeof S !== 'undefined' && S.foodLog) ? S.foodLog : {};
+      const entries = [];
+      for (const [date, dayEntries] of Object.entries(foodLog)) {
+        for (const e of (dayEntries || [])) {
+          entries.push({
+            log_date:  date,
+            name:      e.name    || '',
+            brand:     e.brand   || '',
+            meal_type: e.meal    || 'other',
+            calories:  e.kcal    || 0,
+            protein_g: e.protein || 0,
+            carbs_g:   e.carbs   || 0,
+            fat_g:     e.fat     || 0,
+            grams:     e.grams   || 0,
+          });
+        }
+      }
+      _myProfileCache.food = entries;
+    }
+
+    if (tab === 'media') {
+      const media = (typeof S !== 'undefined' && S.media) ? S.media : [];
+      _myProfileCache.media = media.map(m => ({
+        id:           String(m.id),
+        media_type:   m.mediaType   || 'book',
+        title:        m.title       || '',
+        creator:      m.author      || '',
+        status:       m.status      || 'unread',
+        rating:       m.rating      ?? null,
+        cover_url:    m.coverUrl    || '',
+        finished_on:  m.finishedOn  || null,
+        current_page: m.currentPage || 0,
+        total_pages:  m.totalPages  || 0,
+      }));
+    }
   }
 
   content.innerHTML = _buildMyProfileTabContent(tab);
@@ -967,7 +1020,7 @@ function _buildProjectsTab(rows) {
               <span style="font-size:0.60rem;color:var(--blush);font-family:'DM Mono',monospace">${done}/${tasks.length} · ${pct}%</span>
             </div>
             <div style="height:3px;background:var(--mid);border-radius:2px;overflow:hidden">
-              <div style="height:100%;width:${pct}%;background:var(--blush);border-radius:2px;transition:width 0.3s"></div>
+              <div style="height:100%;width:100%;background:var(--blush);border-radius:2px;transform-origin:left;transform:scaleX(${pct/100});transition:transform 0.3s"></div>
             </div>
           </div>
           ${tasks.slice(0, 8).map(tk => `

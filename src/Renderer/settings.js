@@ -19,77 +19,89 @@ const APP_THEMES = {
     '--border':'rgba(192,96,122,0.20)','--border-lt':'rgba(232,160,176,0.32)',
     '--blush':'#c0607a','--rose':'#8b3252','--petal':'#e8a0b0','--mist':'#f0ccd5',
     '--cream':'#faf0f2','--gold':'#c9956a','--gold-lt':'#e8b990','--muted':'#8a5060','--muted-lt':'#b07888',
-    '--blush-dim':'rgba(192,96,122,0.07)','--border-hi':'rgba(192,96,122,0.38)','--ink-glass':'rgba(13,4,8,0.85)'
+    '--blush-dim':'rgba(192,96,122,0.07)','--border-hi':'rgba(192,96,122,0.38)','--ink-glass':'rgba(13,4,8,0.85)',
+    '--ambient-a':'rgba(139,50,82,0.16)','--ambient-b':'rgba(74,26,40,0.28)','--ambient-c':'rgba(36,14,20,0.44)'
   },
   slate: {
     '--ink':'#060c18','--deep':'#0a1322','--panel':'#0f1e35','--mid':'#162840',
     '--border':'rgba(70,130,210,0.22)','--border-lt':'rgba(110,175,245,0.34)',
     '--blush':'#5a9fd4','--rose':'#2d6a9a','--petal':'#a0cce8','--mist':'#d0e8f5',
     '--cream':'#f0f6fc','--gold':'#6aaac9','--gold-lt':'#90cce8','--muted':'#4a7898','--muted-lt':'#70a0b8',
-    '--blush-dim':'rgba(70,130,210,0.07)','--border-hi':'rgba(70,130,210,0.38)','--ink-glass':'rgba(6,12,24,0.85)'
+    '--blush-dim':'rgba(70,130,210,0.07)','--border-hi':'rgba(70,130,210,0.38)','--ink-glass':'rgba(6,12,24,0.85)',
+    '--ambient-a':'rgba(45,106,154,0.16)','--ambient-b':'rgba(22,40,64,0.28)','--ambient-c':'rgba(15,30,53,0.44)'
   },
   coffee: {
     '--ink':'#0e0803','--deep':'#180f05','--panel':'#261508','--mid':'#35200c',
     '--border':'rgba(200,140,55,0.20)','--border-lt':'rgba(230,175,90,0.32)',
     '--blush':'#c9956a','--rose':'#9a6a3a','--petal':'#e8c4a0','--mist':'#f5e0cc',
     '--cream':'#fdf5ed','--gold':'#c9a040','--gold-lt':'#e8c060','--muted':'#907050','--muted-lt':'#b09070',
-    '--blush-dim':'rgba(200,140,55,0.07)','--border-hi':'rgba(200,140,55,0.38)','--ink-glass':'rgba(14,8,3,0.85)'
+    '--blush-dim':'rgba(200,140,55,0.07)','--border-hi':'rgba(200,140,55,0.38)','--ink-glass':'rgba(14,8,3,0.85)',
+    '--ambient-a':'rgba(154,106,58,0.14)','--ambient-b':'rgba(62,32,12,0.26)','--ambient-c':'rgba(38,21,8,0.42)'
   },
   forest: {
     '--ink':'#050d07','--deep':'#08140a','--panel':'#0e2014','--mid':'#142c1c',
     '--border':'rgba(65,165,90,0.20)','--border-lt':'rgba(100,200,120,0.32)',
     '--blush':'#5aaa70','--rose':'#2a7a45','--petal':'#a0d8b0','--mist':'#ccecd4',
     '--cream':'#f0f8f2','--gold':'#a0c96a','--gold-lt':'#c0e890','--muted':'#48885a','--muted-lt':'#70a878',
-    '--blush-dim':'rgba(65,165,90,0.07)','--border-hi':'rgba(65,165,90,0.38)','--ink-glass':'rgba(5,13,7,0.85)'
+    '--blush-dim':'rgba(65,165,90,0.07)','--border-hi':'rgba(65,165,90,0.38)','--ink-glass':'rgba(5,13,7,0.85)',
+    '--ambient-a':'rgba(42,122,69,0.14)','--ambient-b':'rgba(20,44,28,0.26)','--ambient-c':'rgba(14,32,20,0.42)'
   },
   void: {
     '--ink':'#070707','--deep':'#0d0d0d','--panel':'#141414','--mid':'#1e1e1e',
     '--border':'rgba(150,150,165,0.16)','--border-lt':'rgba(205,205,215,0.24)',
     '--blush':'#9898aa','--rose':'#606074','--petal':'#c4c4d4','--mist':'#e0e0e8',
     '--cream':'#f5f5f8','--gold':'#b0aa90','--gold-lt':'#d0c8a8','--muted':'#707080','--muted-lt':'#9898a8',
-    '--blush-dim':'rgba(150,150,170,0.07)','--border-hi':'rgba(150,150,170,0.38)','--ink-glass':'rgba(7,7,7,0.85)'
+    '--blush-dim':'rgba(150,150,170,0.07)','--border-hi':'rgba(150,150,170,0.38)','--ink-glass':'rgba(7,7,7,0.85)',
+    '--ambient-a':'rgba(96,96,116,0.10)','--ambient-b':'rgba(30,30,30,0.28)','--ambient-c':'rgba(20,20,20,0.40)'
   },
   lavender: {
     '--ink':'#08050f','--deep':'#100b1c','--panel':'#1c1330','--mid':'#2a1d46',
     '--border':'rgba(160,120,220,0.22)','--border-lt':'rgba(200,168,255,0.34)',
     '--blush':'#9b7fc7','--rose':'#6a4a9a','--petal':'#c9b0f0','--mist':'#e8dafa',
     '--cream':'#f5f0ff','--gold':'#c0a060','--gold-lt':'#ddc080','--muted':'#7a6098','--muted-lt':'#a090c8',
-    '--blush-dim':'rgba(155,127,199,0.08)','--border-hi':'rgba(155,127,199,0.40)','--ink-glass':'rgba(8,5,15,0.85)'
+    '--blush-dim':'rgba(155,127,199,0.08)','--border-hi':'rgba(155,127,199,0.40)','--ink-glass':'rgba(8,5,15,0.85)',
+    '--glow':'0 0 40px rgba(155,127,199,0.10)','--glow-lg':'0 0 60px rgba(200,168,255,0.18)',
+    '--ambient-a':'rgba(106,74,154,0.18)','--ambient-b':'rgba(42,29,70,0.32)','--ambient-c':'rgba(28,19,48,0.48)'
   },
   rose: {
     '--ink':'#100508','--deep':'#1c0a10','--panel':'#2e1018','--mid':'#3e1820',
     '--border':'rgba(200,90,120,0.22)','--border-lt':'rgba(240,140,165,0.34)',
     '--blush':'#c0607a','--rose':'#8b3252','--petal':'#e8a0b0','--mist':'#f5d0da',
     '--cream':'#fdf0f3','--gold':'#c9956a','--gold-lt':'#e8b990','--muted':'#905060','--muted-lt':'#b87888',
-    '--blush-dim':'rgba(192,96,122,0.08)','--border-hi':'rgba(192,96,122,0.40)','--ink-glass':'rgba(16,5,8,0.85)'
+    '--blush-dim':'rgba(192,96,122,0.08)','--border-hi':'rgba(192,96,122,0.40)','--ink-glass':'rgba(16,5,8,0.85)',
+    '--ambient-a':'rgba(139,50,82,0.18)','--ambient-b':'rgba(62,24,32,0.32)','--ambient-c':'rgba(46,16,24,0.48)'
   },
   dusk: {
     '--ink':'#0c080f','--deep':'#180f22','--panel':'#241530','--mid':'#322040',
     '--border':'rgba(180,120,160,0.22)','--border-lt':'rgba(220,170,210,0.34)',
     '--blush':'#b07898','--rose':'#7a4868','--petal':'#d8b0c8','--mist':'#f0daea',
     '--cream':'#fdf4fa','--gold':'#c9a070','--gold-lt':'#e0c090','--muted':'#887080','--muted-lt':'#b098a8',
-    '--blush-dim':'rgba(176,120,152,0.08)','--border-hi':'rgba(176,120,152,0.40)','--ink-glass':'rgba(12,8,15,0.85)'
+    '--blush-dim':'rgba(176,120,152,0.08)','--border-hi':'rgba(176,120,152,0.40)','--ink-glass':'rgba(12,8,15,0.85)',
+    '--ambient-a':'rgba(122,72,104,0.16)','--ambient-b':'rgba(50,32,64,0.28)','--ambient-c':'rgba(36,21,48,0.44)'
   },
   ash: {
     '--ink':'#0c0e0f','--deep':'#141618','--panel':'#1e2224','--mid':'#2a3035',
     '--border':'rgba(140,160,180,0.18)','--border-lt':'rgba(180,205,220,0.28)',
     '--blush':'#8aa0b8','--rose':'#5a7898','--petal':'#b8d0e0','--mist':'#d8e8f0',
     '--cream':'#f0f6fa','--gold':'#b0a888','--gold-lt':'#d0c8a8','--muted':'#606e78','--muted-lt':'#909aa4',
-    '--blush-dim':'rgba(140,160,180,0.07)','--border-hi':'rgba(140,160,180,0.36)','--ink-glass':'rgba(12,14,15,0.85)'
+    '--blush-dim':'rgba(140,160,180,0.07)','--border-hi':'rgba(140,160,180,0.36)','--ink-glass':'rgba(12,14,15,0.85)',
+    '--ambient-a':'rgba(90,120,152,0.12)','--ambient-b':'rgba(42,48,53,0.26)','--ambient-c':'rgba(30,34,36,0.40)'
   },
   aurora: {
     '--ink':'#05080f','--deep':'#0a1020','--panel':'#101828','--mid':'#182534',
     '--border':'rgba(80,180,190,0.20)','--border-lt':'rgba(120,220,230,0.32)',
     '--blush':'#48bac0','--rose':'#20888e','--petal':'#88d8dc','--mist':'#c0ece8',
     '--cream':'#f0fafa','--gold':'#90c0a0','--gold-lt':'#b8dac0','--muted':'#408890','--muted-lt':'#70b0b8',
-    '--blush-dim':'rgba(80,180,190,0.07)','--border-hi':'rgba(80,180,190,0.38)','--ink-glass':'rgba(5,8,15,0.85)'
+    '--blush-dim':'rgba(80,180,190,0.07)','--border-hi':'rgba(80,180,190,0.38)','--ink-glass':'rgba(5,8,15,0.85)',
+    '--ambient-a':'rgba(32,136,142,0.14)','--ambient-b':'rgba(24,37,52,0.26)','--ambient-c':'rgba(16,24,40,0.40)'
   },
   mocha: {
     '--ink':'#100a06','--deep':'#1c140c','--panel':'#2c1e12','--mid':'#3c2c1a',
     '--border':'rgba(180,140,90,0.20)','--border-lt':'rgba(220,180,120,0.32)',
     '--blush':'#b89060','--rose':'#886030','--petal':'#d8b888','--mist':'#f0dcc0',
     '--cream':'#fdf5e8','--gold':'#c0a060','--gold-lt':'#e0c080','--muted':'#887058','--muted-lt':'#a89078',
-    '--blush-dim':'rgba(180,140,90,0.07)','--border-hi':'rgba(180,140,90,0.38)','--ink-glass':'rgba(16,10,6,0.85)'
+    '--blush-dim':'rgba(180,140,90,0.07)','--border-hi':'rgba(180,140,90,0.38)','--ink-glass':'rgba(16,10,6,0.85)',
+    '--ambient-a':'rgba(136,96,48,0.14)','--ambient-b':'rgba(60,44,26,0.26)','--ambient-c':'rgba(44,30,18,0.42)'
   }
 };
 /* Keep BOX_THEMES alias for any legacy references */

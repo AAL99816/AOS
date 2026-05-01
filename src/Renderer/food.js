@@ -405,7 +405,7 @@ function renderFoodMacroBar() {
     </div>
     <!-- Calorie progress bar -->
     <div style="height:5px;background:var(--mid);border-radius:3px;overflow:hidden;margin-bottom:14px">
-      <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px;transition:width 0.3s"></div>
+      <div style="height:100%;width:100%;background:${barColor};border-radius:3px;transform-origin:left;transform:scaleX(${pct/100});transition:transform 0.3s"></div>
     </div>
     <!-- Macro grid -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
@@ -432,7 +432,7 @@ function _macroCell(label, val, target, unit, color) {
     <div style="font-size:1rem;color:${over ? 'var(--petal)' : 'var(--cream)'};font-family:'DM Mono',monospace;font-weight:500">${Math.round(val)}</div>
     <div style="font-size:0.58rem;color:var(--muted)">${unit}${target ? ' / ' + target : ''}</div>
     <div style="height:4px;background:var(--mid);border-radius:3px;margin-top:4px;overflow:hidden">
-      <div style="height:100%;width:${pct}%;background:${over ? 'var(--petal)' : color};border-radius:3px;transition:width 0.3s"></div>
+      <div style="height:100%;width:100%;background:${over ? 'var(--petal)' : color};border-radius:3px;transform-origin:left;transform:scaleX(${pct/100});transition:transform 0.3s"></div>
     </div>
   </div>`;
 }
@@ -468,7 +468,7 @@ function renderFoodMeals() {
               ${items.length ? `<button onclick="event.stopPropagation();copyMealTo('${meal}')" title="Copy meal to another slot" style="background:none;border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;font-size:0.56rem;padding:1px 5px;line-height:1.4">copy ⤴</button>` : ''}
             </div>
           </div>
-          ${items.length ? `<div style="height:2px;background:var(--mid);border-radius:2px;overflow:hidden"><div style="height:100%;width:${mealPct}%;background:var(--blush);opacity:0.55;border-radius:2px;transition:width 0.3s"></div></div>` : ''}
+          ${items.length ? `<div style="height:2px;background:var(--mid);border-radius:2px;overflow:hidden"><div style="height:100%;width:100%;background:var(--blush);opacity:0.55;border-radius:2px;transform-origin:left;transform:scaleX(${mealPct/100});transition:transform 0.3s"></div></div>` : ''}
         </div>
         <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden">
           ${items.length ? items.map(e => _foodEntryRow(e)).join('') : ''}

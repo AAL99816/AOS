@@ -41,7 +41,7 @@ if (window.updater) {
       sub.textContent = 'Downloading in the background.';
       wrap.classList.remove('hidden');
       actions.classList.add('hidden');
-      fill.style.width = '0%';
+      fill.style.transform = 'scaleX(0)';
       text.textContent = '0%';
     }
 
@@ -51,7 +51,7 @@ if (window.updater) {
       sub.textContent = 'AOS is updating in the background.';
       wrap.classList.remove('hidden');
       actions.classList.add('hidden');
-      fill.style.width = pct + '%';
+      fill.style.transform = `scaleX(${pct / 100})`;
       text.textContent = pct + '% downloaded';
     }
 

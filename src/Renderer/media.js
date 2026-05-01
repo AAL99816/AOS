@@ -169,7 +169,7 @@ function buildBookCard(b, idx) {
     </div>
     <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')" title="Remove"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M5.5 3.5V2.5h3v1M5.5 6v4.5M8.5 6v4.5M3 3.5l.7 7h6.6l.7-7"/></svg></button>
     <button onclick="event.stopPropagation();_mediaOpenNotes('${b.id}')"
-      style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.65rem;padding:3px 7px;line-height:1;backdrop-filter:blur(4px);font-family:'DM Mono',monospace" title="Open notes">&rarr;</button>
+      style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.72rem;padding:4px 8px;line-height:1;backdrop-filter:blur(4px);font-family:'DM Mono',monospace" title="Open notes">&rarr;</button>
   `;
   return div;
 }
@@ -198,16 +198,16 @@ function buildFilmCard(b, idx) {
       <input class="editable book-title-inp" value="${escapeAttr(b.title)}" onchange="event.stopPropagation();updateBF('${b.id}','title',this.value)">
       <input class="editable book-author-inp" value="${escapeAttr(b.author)}" onchange="event.stopPropagation();updateBF('${b.id}','author',this.value)" placeholder="${t('director')}">
       ${b.runtime ? `<div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">${escapeHtml(b.runtime)}</div>` : ''}
-      <div style="height:2px;background:var(--border);border-radius:1px;margin-top:5px"><div style="height:2px;width:${watched?'100':'0'}%;background:var(--blush);border-radius:1px;transition:width 0.3s"></div></div>
+      <div style="height:2px;background:var(--border);border-radius:1px;margin-top:5px;overflow:hidden"><div style="height:2px;width:100%;background:var(--blush);border-radius:1px;transform-origin:left;transform:scaleX(${watched?1:0});transition:transform 0.3s"></div></div>
       <div class="book-row" style="margin-top:6px">
         <span class="bstatus bs-${b.status}" onclick="event.stopPropagation();cycleBook('${b.id}')">${watched ? t('watched') : t('queued')}</span>
         ${stars ? `<span class="b-stars">${stars}</span>` : ''}
       </div>
-      ${b.watchCount > 1 ? `<div style="font-size:0.55rem;color:var(--muted);margin-top:3px;font-family:'DM Mono',monospace">${b.watchCount}× ${t('watched').toLowerCase()}</div>` : ''}
+      ${b.watchCount > 1 ? `<div style="font-size:0.62rem;color:var(--muted);margin-top:3px;font-family:'DM Mono',monospace">${b.watchCount}× ${t('watched').toLowerCase()}</div>` : ''}
     </div>
     <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')" title="Remove"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M5.5 3.5V2.5h3v1M5.5 6v4.5M8.5 6v4.5M3 3.5l.7 7h6.6l.7-7"/></svg></button>
     <button onclick="event.stopPropagation();_mediaOpenNotes('${b.id}')"
-      style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.65rem;padding:3px 7px;line-height:1;backdrop-filter:blur(4px);font-family:'DM Mono',monospace" title="Open notes">&rarr;</button>
+      style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.72rem;padding:4px 8px;line-height:1;backdrop-filter:blur(4px);font-family:'DM Mono',monospace" title="Open notes">&rarr;</button>
   `;
   return div;
 }
@@ -224,7 +224,7 @@ function buildShowCard(b, idx) {
   const seBadge = `S${b.currentSeason} E${b.currentEpisode}`;
   const pct = getBookPct(b);
   const progressBar = b.totalEpisodes
-    ? `<div style="height:2px;background:var(--border);border-radius:1px;margin-top:5px"><div style="height:2px;width:${pct}%;background:var(--blush);border-radius:1px;transition:width 0.3s"></div></div>`
+    ? `<div style="height:2px;background:var(--border);border-radius:1px;margin-top:5px;overflow:hidden"><div style="height:2px;width:100%;background:var(--blush);border-radius:1px;transform-origin:left;transform:scaleX(${pct/100});transition:transform 0.3s"></div></div>`
     : '';
 
   div.innerHTML = `
@@ -250,7 +250,7 @@ function buildShowCard(b, idx) {
     </div>
     <button class="book-del" onclick="event.stopPropagation();delBook('${b.id}')" title="Remove"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M5.5 3.5V2.5h3v1M5.5 6v4.5M8.5 6v4.5M3 3.5l.7 7h6.6l.7-7"/></svg></button>
     <button onclick="event.stopPropagation();_mediaOpenNotes('${b.id}')"
-      style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.65rem;padding:3px 7px;line-height:1;backdrop-filter:blur(4px);font-family:'DM Mono',monospace" title="Open notes">&rarr;</button>
+      style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.72rem;padding:4px 8px;line-height:1;backdrop-filter:blur(4px);font-family:'DM Mono',monospace" title="Open notes">&rarr;</button>
   `;
   return div;
 }
@@ -280,7 +280,7 @@ function buildAlbumCard(b, idx) {
       <input class="editable book-title-inp" value="${escapeAttr(b.title)}" onchange="event.stopPropagation();updateBF('${b.id}','title',this.value)">
       <input class="editable book-author-inp" value="${escapeAttr(b.author)}" onchange="event.stopPropagation();updateBF('${b.id}','author',this.value)" placeholder="${t('artist')}">
       ${trackCount > 0 ? `<div style="font-size:0.56rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">${trackCount} ${t('tracks')}</div>` : ''}
-      ${(() => { const rated = (b.tracks||[]).filter(tr => tr.rating > 0).length; const pct = trackCount ? Math.round(rated/trackCount*100) : (b.status==='done'?100:0); return `<div style="height:2px;background:var(--border);border-radius:1px;margin-top:5px"><div style="height:2px;width:${pct}%;background:var(--blush);border-radius:1px;transition:width 0.3s"></div></div>`; })()}
+      ${(() => { const rated = (b.tracks||[]).filter(tr => tr.rating > 0).length; const pct = trackCount ? Math.round(rated/trackCount*100) : (b.status==='done'?100:0); return `<div style="height:2px;background:var(--border);border-radius:1px;margin-top:5px;overflow:hidden"><div style="height:2px;width:100%;background:var(--blush);border-radius:1px;transform-origin:left;transform:scaleX(${pct/100});transition:transform 0.3s"></div></div>`; })()}
       <div class="book-row" style="margin-top:6px">
         <span class="bstatus bs-${b.status}" onclick="event.stopPropagation();cycleBook('${b.id}')">${mediaStatusLabel(b.status,'album')}</span>
         ${stars ? `<span class="b-stars">${stars}</span>` : ''}
@@ -316,7 +316,7 @@ function buildGameCard(b, idx) {
       <input class="editable book-title-inp" value="${escapeAttr(b.title)}" onchange="event.stopPropagation();updateBF(${b.id},'title',this.value)">
       <input class="editable book-author-inp" value="${escapeAttr(b.author)}" onchange="event.stopPropagation();updateBF(${b.id},'author',this.value)" placeholder="${t('developer')}">
       ${b.hoursPlayed > 0 ? `<div style="font-size:0.58rem;color:var(--gold-lt);margin-top:4px;font-family:'DM Mono',monospace">${b.hoursPlayed}h ${t('hours_played').toLowerCase()}</div>` : ''}
-      ${(() => { const pct = b.status==='done' ? 100 : b.hoursPlayed > 0 ? Math.min(100, Math.round(b.hoursPlayed/50*100)) : 0; return `<div style="height:2px;background:var(--border);border-radius:1px;margin-top:5px"><div style="height:2px;width:${pct}%;background:var(--blush);border-radius:1px;transition:width 0.3s"></div></div>`; })()}
+      ${(() => { const pct = b.status==='done' ? 100 : b.hoursPlayed > 0 ? Math.min(100, Math.round(b.hoursPlayed/50*100)) : 0; return `<div style="height:2px;background:var(--border);border-radius:1px;margin-top:5px;overflow:hidden"><div style="height:2px;width:100%;background:var(--blush);border-radius:1px;transform-origin:left;transform:scaleX(${pct/100});transition:transform 0.3s"></div></div>`; })()}
       <div class="book-row" style="margin-top:6px">
         <span class="bstatus bs-${b.status}" onclick="event.stopPropagation();cycleBook('${b.id}')">${slbl}</span>
         ${stars ? `<span class="b-stars">${stars}</span>` : ''}
@@ -571,7 +571,7 @@ function renderBookDetails() {
     eid('bdCurrentPageLabel').textContent = `Current ${mediaUnitLabel(b.mediaType)}`;
     eid('bdTotalPagesLabel').textContent  = `Total ${mediaUnitLabel(b.mediaType)}s`;
     const pct = getBookPct(b);
-    eid('bdProgressFill').style.width = `${pct}%`;
+    eid('bdProgressFill').style.transform = `scaleX(${pct / 100})`;
     eid('bdProgressText').textContent = b.totalPages > 0
       ? `${b.currentPage} / ${b.totalPages} · ${pct}%`
       : t('set_total_pages');

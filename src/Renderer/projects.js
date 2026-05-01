@@ -2,6 +2,7 @@
 
 /* ══ PROJECTS ══ */
 let projectF        = 'all';
+let projectSearch   = '';
 let _activeProjectId = null;
 let _pdTab           = 'tasks'; // 'tasks' | 'notes'
 
@@ -43,7 +44,9 @@ function renderProjects() {
   c.innerHTML = '';
 
   const projects = ensureProjects();
-  const list = projectF === 'all' ? projects : projects.filter(p => p.status === projectF);
+  const q = projectSearch.trim().toLowerCase();
+  let list = projectF === 'all' ? projects : projects.filter(p => p.status === projectF);
+  if (q) list = list.filter(p => (p.name||'').toLowerCase().includes(q) || (p.school||'').toLowerCase().includes(q) || (p.notes||'').toLowerCase().includes(q));
 
   if (!list.length) {
     c.innerHTML = `<div style="text-align:center;padding:48px 24px"><div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:10px">◆</div><div style="font-size:0.66rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">${t('no_projects')}</div></div>`;
@@ -95,7 +98,7 @@ function renderProjects() {
           </div>
         </div>
         <div style="height:4px;background:var(--mid);border-radius:2px;overflow:hidden">
-          <div style="height:100%;width:${pct}%;background:var(--blush);border-radius:2px;transition:width 0.3s"></div>
+          <div style="height:100%;width:100%;background:var(--blush);border-radius:2px;transform-origin:left;transform:scaleX(${pct/100});transition:transform 0.3s"></div>
         </div>
       </div>
 
@@ -254,10 +257,10 @@ function renderPdNotes(p) {
   const c = eid('pdNotesList');
   c.innerHTML = notes.length ? notes.map(n => `
     <div style="padding:8px 0;border-bottom:1px solid var(--border)">
-      ${n.title ? `<div style="font-size:0.52rem;color:var(--muted-lt);font-family:'DM Mono',monospace;margin-bottom:3px">${escapeHtml(n.title)}</div>` : ''}
+      ${n.title ? `<div style="font-size:0.62rem;color:var(--muted-lt);font-family:'DM Mono',monospace;margin-bottom:3px">${escapeHtml(n.title)}</div>` : ''}
       <textarea class="editable" style="width:100%;font-size:0.78rem;color:var(--mist);line-height:1.5;background:none;border:none;resize:vertical;min-height:48px"
         onchange="editProjectNote('${n.id}',this.value)">${escapeHtml(n.body||'')}</textarea>
-      <button class="habit-del" style="opacity:0.4;font-size:0.6rem" onclick="deleteProjectNote('${n.id}')">&#10005;</button>
+      <button class="habit-del" style="opacity:0.4;font-size:0.66rem" onclick="deleteProjectNote('${n.id}')">&#10005;</button>
     </div>`).join('')
     : `<div style="font-size:0.72rem;color:var(--muted);padding:8px 0">No notes yet.</div>`;
 }
@@ -349,6 +352,11 @@ function setProjectF(f, btn) {
   projectF = f;
   document.querySelectorAll('#projectFilters .fpill').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
+  renderProjects();
+}
+
+function setProjectSearch(val) {
+  projectSearch = val;
   renderProjects();
 }
 

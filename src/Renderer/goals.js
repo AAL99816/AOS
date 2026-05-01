@@ -63,7 +63,7 @@ function renderGoals() {
         <textarea class="editable-area" style="font-size:0.72rem;color:var(--muted);margin-bottom:7px;min-height:42px;" placeholder="${t('notes_ph')}" onchange="updateGoalField('${g.id}','notes',this.value)">${escapeHtml(g.notes||'')}</textarea>
 
         <div class="goal-bar">
-          <div class="goal-fill" style="width:${pct}%"></div>
+          <div class="goal-fill" style="transform:scaleX(${pct/100})"></div>
         </div>
 
         <div class="goal-footer">

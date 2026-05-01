@@ -8,7 +8,7 @@ const DAY_SHORT = new Proxy([], {
   }
 });
 const ALL_CATS=['Academic','Career','Health','Personal','Creative'];
-const PALS=['linear-gradient(145deg,#3d0f1c,#1a0a0f)','linear-gradient(145deg,#2d1019,#0f060a)','linear-gradient(145deg,#1e0d28,#0a0614)','linear-gradient(145deg,#0d1a2d,#070d18)','linear-gradient(145deg,#0d2420,#060f0d)'];
+const PALS=['#1c1330','#18112a','#201540','#151028','#0e0b1c'];
 
 function today(){return new Date().toISOString().slice(0,10);}
 function dStr(d){return d.toISOString().slice(0,10);}

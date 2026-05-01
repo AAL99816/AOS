@@ -3,3 +3,8 @@ dist/
 .claude/
 .env
 .env.*
+.agents/
+skills-lock.json
+DESIGN.md
+DESIGN.json
+PRODUCT.md

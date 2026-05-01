@@ -184,7 +184,7 @@ function renderWeeklyReview() {
             const pct = Math.round(h.count / 7 * 100);
             return `<div class="review-habit-row">
               <div class="review-habit-name">${escapeHtml(h.name)}</div>
-              <div class="review-habit-bar"><div class="review-habit-fill" style="width:${pct}%"></div></div>
+              <div class="review-habit-bar"><div class="review-habit-fill" style="transform:scaleX(${pct/100})"></div></div>
               <div class="review-pct">${h.count}/7</div>
             </div>`;
           }).join('')

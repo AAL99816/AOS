@@ -1,5 +1,7 @@
 'use strict';
 
+let _lastFoodHash = null;
+
 async function uploadAsset(path, file) {
   if (!currentUser) throw new Error('Not signed in');
   const ext = (file.type || '').split('/')[1] || 'jpg';
@@ -273,6 +275,42 @@ async function saveMedia() {
     } else {
       await sb.from('media_tracks').delete().eq('media_item_id', itemUuid);
     }
+  }
+}
+
+/* ── food_log table ── */
+async function saveFood() {
+  if (!currentUser) return;
+  const foodLog = S.foodLog || {};
+  const hash = JSON.stringify(foodLog).length + Object.keys(foodLog).join(',');
+  if (hash === _lastFoodHash) return;
+  _lastFoodHash = hash;
+
+  // Flatten local foodLog into rows
+  const rows = [];
+  for (const [date, entries] of Object.entries(foodLog)) {
+    for (const e of (entries || [])) {
+      rows.push({
+        user_id:   currentUser.id,
+        log_date:  date,
+        name:      e.name    || '',
+        brand:     e.brand   || '',
+        meal_type: e.meal    || 'other',
+        calories:  e.kcal    || 0,
+        protein_g: e.protein || 0,
+        carbs_g:   e.carbs   || 0,
+        fat_g:     e.fat     || 0,
+        grams:     e.grams   || 0,
+      });
+    }
+  }
+
+  // Replace all rows for this user
+  await sb.from('food_log').delete().eq('user_id', currentUser.id);
+  if (!rows.length) return;
+  for (let i = 0; i < rows.length; i += 200) {
+    const { error } = await sb.from('food_log').insert(rows.slice(i, i + 200));
+    if (error) { console.warn('[sync] saveFood batch error:', error.message); break; }
   }
 }
 
@@ -626,7 +664,6 @@ async function seedExerciseCatalog() {
     if (error) { console.warn('[seedExerciseCatalog]', error.message); return; }
   }
   localStorage.setItem(FLAG, '1');
-  console.log('[seedExerciseCatalog] seeded', rows.length, 'exercises');
 }
 
 /* ── fitness: workout templates, sessions, cardio, calories ── */
@@ -879,6 +916,7 @@ async function saveToSupabase() {
     saveUserSettings().catch(e => console.error('[sync] saveUserSettings failed:', e)),
     saveProjects().catch(e => console.error('[sync] saveProjects failed:', e)),
     saveMedia().catch(e => console.error('[sync] saveMedia failed:', e)),
+    saveFood().catch(e => console.error('[sync] saveFood failed:', e)),
     saveHabits().catch(e => console.error('[sync] saveHabits failed:', e)),
     savePrayer().catch(e => console.error('[sync] savePrayer failed:', e)),
     saveNotes().catch(e => console.error('[sync] saveNotes failed:', e)),
@@ -1075,24 +1113,38 @@ async function loadFollowersCount(userId) {
 
 // Returns profile cards for a user's followers
 async function fetchFollowersList(userId) {
-  const { data, error } = await sb
+  const { data: follows, error } = await sb
     .from('community_follows')
-    .select('profiles!community_follows_follower_id_fkey(id, username, display_name, avatar_url, bio)')
+    .select('follower_id')
     .eq('following_id', userId)
     .limit(100);
-  if (error) { console.warn('[community] fetchFollowersList:', error.message); return []; }
-  return (data || []).map(r => r.profiles).filter(Boolean);
+  if (error) { console.warn('[community] fetchFollowersList follows:', error.message); return []; }
+  const ids = (follows || []).map(r => r.follower_id).filter(Boolean);
+  if (!ids.length) return [];
+  const { data: profiles, error: pe } = await sb
+    .from('profiles')
+    .select('id, username, display_name, avatar_url, bio')
+    .in('id', ids);
+  if (pe) { console.warn('[community] fetchFollowersList profiles:', pe.message); return []; }
+  return profiles || [];
 }
 
 // Returns profile cards for everyone a user follows
 async function fetchFollowingList(userId) {
-  const { data, error } = await sb
+  const { data: follows, error } = await sb
     .from('community_follows')
-    .select('profiles!community_follows_following_id_fkey(id, username, display_name, avatar_url, bio)')
+    .select('following_id')
     .eq('follower_id', userId)
     .limit(100);
-  if (error) { console.warn('[community] fetchFollowingList:', error.message); return []; }
-  return (data || []).map(r => r.profiles).filter(Boolean);
+  if (error) { console.warn('[community] fetchFollowingList follows:', error.message); return []; }
+  const ids = (follows || []).map(r => r.following_id).filter(Boolean);
+  if (!ids.length) return [];
+  const { data: profiles, error: pe } = await sb
+    .from('profiles')
+    .select('id, username, display_name, avatar_url, bio')
+    .in('id', ids);
+  if (pe) { console.warn('[community] fetchFollowingList profiles:', pe.message); return []; }
+  return profiles || [];
 }
 
 /* ── Feed ── */

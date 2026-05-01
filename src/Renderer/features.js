@@ -129,7 +129,7 @@ function _goalBar(label, done, target, pct, onchange, color) {
           style="width:48px;background:rgba(255,255,255,0.06);border:1px solid var(--border-lt);border-radius:4px;color:var(--gold-lt);text-align:center;font-size:0.74rem;outline:none;padding:1px 4px"> in ${_annualGoalYear}</span>
       </div>
       <div style="height:6px;background:var(--mid);border-radius:4px;overflow:hidden">
-        <div style="height:100%;width:${pct}%;background:${color};border-radius:4px;transition:width 0.4s"></div>
+        <div style="height:100%;width:100%;background:${color};border-radius:4px;transform-origin:left;transform:scaleX(${pct/100});transition:transform 0.4s"></div>
       </div>
       <div style="font-size:0.62rem;color:var(--muted);margin-top:3px">${pct}% · ${Math.max(0, target - done)} to go</div>
     </div>`;
@@ -615,8 +615,8 @@ function renderFocusItems() {
     html += `
       <div style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 0;margin-top:4px;user-select:none"
         onclick="toggleFocusArchive()">
-        <span style="font-size:0.5rem;display:inline-block;transform:${_focusArchiveExpanded ? 'rotate(90deg)' : 'rotate(0deg)'};transition:transform 0.15s;color:var(--muted)">&#9658;</span>
-        <span style="font-size:0.58rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace">Completed (${archived.length})</span>
+        <span style="font-size:0.60rem;display:inline-block;transform:${_focusArchiveExpanded ? 'rotate(90deg)' : 'rotate(0deg)'};transition:transform 0.15s;color:var(--muted)">&#9658;</span>
+        <span style="font-size:0.64rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace">Completed (${archived.length})</span>
       </div>`;
     if (_focusArchiveExpanded) {
       html += archived.map(renderItem).join('');

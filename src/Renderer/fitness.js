@@ -132,9 +132,9 @@ function _renderRestTimer() {
   const m = Math.floor(rem / 60);
   const s = rem % 60;
   label.textContent = `${m}:${String(s).padStart(2, '0')}`;
-  const pct = _restTimerTotal > 0 ? Math.max(0, (_restTimerRemaining / _restTimerTotal) * 100) : 0;
-  fill.style.width = pct + '%';
-  fill.style.background = pct < 20 ? 'var(--petal)' : pct < 50 ? 'var(--gold)' : 'var(--blush)';
+  const pct = _restTimerTotal > 0 ? Math.max(0, _restTimerRemaining / _restTimerTotal) : 0;
+  fill.style.transform = `scaleX(${pct})`;
+  fill.style.background = pct < 0.20 ? 'var(--petal)' : pct < 0.50 ? 'var(--gold)' : 'var(--blush)';
 }
 
 function restTimerSkip() {
@@ -217,8 +217,8 @@ function _weightSparklineSVG(ascEntries) {
   // Y-axis ticks: 3 even steps
   const yTicks = [lo, lo + range / 2, hi];
   const yTicksHtml = yTicks.map(v =>
-    `<text x="${(PAD.left - 6).toFixed(1)}" y="${(yOf(v) + 3.5).toFixed(1)}" font-size="8.5" fill="#666" font-family="DM Mono,monospace" text-anchor="end">${v.toFixed(1)}</text>
-     <line x1="${PAD.left}" y1="${yOf(v).toFixed(1)}" x2="${(PAD.left + iW).toFixed(1)}" y2="${yOf(v).toFixed(1)}" stroke="#2a2a2a" stroke-width="1"/>`
+    `<text x="${(PAD.left - 6).toFixed(1)}" y="${(yOf(v) + 3.5).toFixed(1)}" font-size="8.5" fill="var(--muted)" font-family="DM Mono,monospace" text-anchor="end">${v.toFixed(1)}</text>
+     <line x1="${PAD.left}" y1="${yOf(v).toFixed(1)}" x2="${(PAD.left + iW).toFixed(1)}" y2="${yOf(v).toFixed(1)}" stroke="var(--border)" stroke-width="1"/>`
   ).join('');
 
   // X-axis date labels (max 5)
@@ -227,12 +227,12 @@ function _weightSparklineSVG(ascEntries) {
     .filter((_, i) => i % step === 0 || i === ascEntries.length - 1)
     .map((e, _, arr) => {
       const origIdx = ascEntries.indexOf(e);
-      return `<text x="${xOf(origIdx).toFixed(1)}" y="${(H - 4).toFixed(1)}" font-size="8" fill="#555" font-family="DM Mono,monospace" text-anchor="middle">${e.date.slice(5)}</text>`;
+      return `<text x="${xOf(origIdx).toFixed(1)}" y="${(H - 4).toFixed(1)}" font-size="8" fill="var(--muted)" font-family="DM Mono,monospace" text-anchor="middle">${e.date.slice(5)}</text>`;
     }).join('');
 
   // Dots
   const dots = ascEntries.map((e, i) =>
-    `<circle cx="${xOf(i).toFixed(1)}" cy="${yOf(+e.weight).toFixed(1)}" r="3" fill="var(--blush)" stroke="#111" stroke-width="1.2"><title>${e.date}: ${e.weight} kg</title></circle>`
+    `<circle cx="${xOf(i).toFixed(1)}" cy="${yOf(+e.weight).toFixed(1)}" r="3" fill="var(--blush)" stroke="var(--ink)" stroke-width="1.2"><title>${e.date}: ${e.weight} kg</title></circle>`
   ).join('');
 
   // Current weight label at last point
@@ -343,7 +343,7 @@ function renderGymWeek() {
       <div class="dn">${DAY_SHORT[i]}</div>
       ${wd.cardId
         ? `<div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap;justify-content:center">
-             <span style="font-size:0.52rem;background:var(--rose);padding:2px 6px;border-radius:20px;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px">${escapeHtml(wd.type||'')}</span>
+             <span style="font-size:0.60rem;background:var(--rose);padding:2px 6px;border-radius:20px;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px">${escapeHtml(wd.type||'')}</span>
              <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.75rem;line-height:1;padding:0 2px" onclick="event.stopPropagation();unlinkPreset(${i})" title="Unlink preset">×</button>
            </div>`
         : `<input class="editable wt-inp" value="${escapeHtml(wd.type || '')}" onchange="updateWDay(${i},this.value)" onclick="event.stopPropagation()" title="${t('click_rename')}">`
@@ -2205,7 +2205,7 @@ function epDrawCompareChart(series) {
   // Gridlines
   const yTicks = [minV, minV + vRange * 0.5, maxV];
   const grids = yTicks.map(v =>
-    `<line x1="${PAD.left}" y1="${yOf(v).toFixed(1)}" x2="${(PAD.left+iW).toFixed(1)}" y2="${yOf(v).toFixed(1)}" stroke="#2a2a2a" stroke-width="1"/>`
+    `<line x1="${PAD.left}" y1="${yOf(v).toFixed(1)}" x2="${(PAD.left+iW).toFixed(1)}" y2="${yOf(v).toFixed(1)}" stroke="var(--border)" stroke-width="1"/>`
   ).join('');
 
   // Y labels
