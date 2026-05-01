@@ -104,16 +104,6 @@ const APP_THEMES = {
     '--ambient-a':'rgba(136,96,48,0.14)','--ambient-b':'rgba(60,44,26,0.26)','--ambient-c':'rgba(44,30,18,0.42)'
   }
 };
-/* Keep BOX_THEMES alias for any legacy references */
-const BOX_THEMES = APP_THEMES;
-/* Keep THEMES alias for any legacy references */
-const THEMES = {
-  rose:     { ...ACCENT_THEMES.rose,     '--mid':'#4a1a28', '--deep':'#230d14', '--panel':'#2d1019', '--ink':'#1a0a0f' },
-  ocean:    { ...ACCENT_THEMES.ocean,    '--mid':'#1a3a4a', '--deep':'#0d2030', '--panel':'#152838', '--ink':'#0a1520' },
-  forest:   { ...ACCENT_THEMES.forest,   '--mid':'#1a3a22', '--deep':'#0d2014', '--panel':'#152818', '--ink':'#0a150c' },
-  midnight: { ...ACCENT_THEMES.midnight, '--mid':'#2a2a3a', '--deep':'#151520', '--panel':'#1e1e2a', '--ink':'#0f0f18' },
-  ember:    { ...ACCENT_THEMES.ember,    '--mid':'#4a2a10', '--deep':'#231508', '--panel':'#2d1c0a', '--ink':'#1a0f05' }
-};
 
 const FONTS = {
   elegant: { body: "'Jost', sans-serif",        heading: "'Cormorant Garamond', serif", mono: "'DM Mono', monospace", label: 'Elegant' },

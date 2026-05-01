@@ -492,7 +492,7 @@ function fabClose() {
 
 function _fabContentToday() {
   return `
-    <div style="font-size:0.60rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:10px">Quick Add</div>
+    <div class="section-lbl">Quick Add</div>
     <div style="display:flex;flex-direction:column;gap:8px">
       <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();if(typeof addWater==='function')addWater(1)">+ Water</button>
       <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();if(typeof openHabitManager==='function')openHabitManager()">Manage Habits</button>
@@ -507,7 +507,7 @@ function _fabContentFitness() {
     ? cards.map(wc => `<button class="btn btn-g" style="text-align:left;font-size:0.74rem" onclick="fabClose();toggleWorkoutCard('${wc.id}')">${escapeHtml(wc.title||'Workout')}</button>`).join('')
     : `<button class="btn btn-g" style="text-align:left;font-size:0.74rem" onclick="fabClose();addWorkoutCard()">+ New Card</button>`;
   return `
-    <div style="font-size:0.60rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:10px">Fitness</div>
+    <div class="section-lbl">Fitness</div>
     <div style="display:flex;flex-direction:column;gap:8px">
       ${cardBtns}
       <button class="btn btn-g" style="text-align:left;font-size:0.74rem" onclick="fabClose();addWater(1)">+ Water</button>
@@ -517,7 +517,7 @@ function _fabContentFitness() {
 
 function _fabContentFood() {
   return `
-    <div style="font-size:0.60rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:10px">Food</div>
+    <div class="section-lbl">Food</div>
     <div style="display:flex;flex-direction:column;gap:8px">
       <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();go('food');if(typeof openFoodSearch==='function')openFoodSearch('other')">+ Log Food</button>
       <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();go('food')">Open Food</button>
@@ -531,7 +531,7 @@ function _fabContentProjects() {
     ? projs.map(p => `<button class="btn btn-g" style="text-align:left;font-size:0.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(220px,calc(100vw - 90px))" onclick="fabClose();openProjectDetail('${p.id}')">${escapeHtml(p.title||'Project')}</button>`).join('')
     : '';
   return `
-    <div style="font-size:0.60rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:10px">Projects</div>
+    <div class="section-lbl">Projects</div>
     <div style="display:flex;flex-direction:column;gap:8px">
       ${projBtns}
       <button class="btn btn-p" style="text-align:left;font-size:0.74rem" onclick="fabClose();openModal('mProject')">+ New Project</button>
@@ -540,7 +540,7 @@ function _fabContentProjects() {
 
 function _fabContentMedia() {
   return `
-    <div style="font-size:0.60rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;font-family:'DM Mono',monospace;margin-bottom:10px">Media</div>
+    <div class="section-lbl">Media</div>
     <div style="display:flex;flex-direction:column;gap:8px">
       <button class="btn btn-g" style="text-align:left;font-size:0.76rem" onclick="fabClose();openModal('mBook')">+ Add Book / Show</button>
     </div>`;

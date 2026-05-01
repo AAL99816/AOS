@@ -8,7 +8,7 @@ function weekStartFor(offsetWeeks) {
   const day = d.getDay();
   const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff + offsetWeeks * 7);
-  return d.toISOString().slice(0, 10);
+  return dStr(d);
 }
 
 function weekDaysFor(start) {
@@ -16,7 +16,7 @@ function weekDaysFor(start) {
   return Array.from({length:7}, (_, i) => {
     const nd = new Date(d);
     nd.setDate(d.getDate() + i);
-    return nd.toISOString().slice(0, 10);
+    return dStr(nd);
   });
 }
 
@@ -58,7 +58,7 @@ function renderWeeklyReview() {
   const fullDays = days.filter(d => activePrayers.every(k => !!((S.prayerLog||{})[d]||{})[k])).length;
 
   /* ── Habits ── */
-  const habitStats = (S.habits||[]).filter(h => !h.hidden).map(h => ({
+  const habitStats = getVisibleHabits().map(h => ({
     name: h.name,
     count: days.filter(d => !!(h.days||{})[d]).length
   }));
@@ -223,7 +223,7 @@ function renderWeeklyReview() {
       const todayStr = today();
       const cutoff = new Date(todayStr + 'T00:00:00');
       cutoff.setDate(cutoff.getDate() + 14);
-      const cutoffStr = cutoff.toISOString().slice(0, 10);
+      const cutoffStr = dStr(cutoff);
       const upcoming = (S.projects || [])
         .filter(p => p.deadline && p.status !== 'Done' && p.deadline <= cutoffStr)
         .sort((a, b) => a.deadline.localeCompare(b.deadline));
@@ -333,7 +333,7 @@ function renderDayDetail(dateStr) {
     (p.tasks || []).filter(t => t.done).forEach(t => {
       // We don't store completion date on tasks yet — skip for now
     });
-    (Array.isArray(S.notesDB) ? S.notesDB : [])
+    getNotes()
       .filter(n => n.entityId === p._uuid && (n.updatedAt || '').slice(0, 10) === dateStr)
       .forEach(n => { tasksCompleted.push({ project: p.title, note: n.body || n.title || '' }); });
   });

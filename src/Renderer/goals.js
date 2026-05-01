@@ -18,7 +18,7 @@ function renderGoals() {
   const cats = Object.keys(grouped);
 
   if (!cats.length) {
-    c.innerHTML = `<div style="grid-column:span 2;text-align:center;padding:48px 24px"><div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:10px">◆</div><div style="font-size:0.66rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">${t('no_goals')}</div></div>`;
+    c.innerHTML = emptyStateHtml(t('no_goals'), 2);
     return;
   }
 
@@ -102,7 +102,7 @@ function renderGoals() {
 }
 
 function updateGoalField(id, field, value) {
-  const g = S.goals.find(x => String(x.id) === String(id));
+  const g = findById(S.goals, id);
   if (!g) return;
 
   g[field] = value;
@@ -118,7 +118,7 @@ function updateGoalField(id, field, value) {
 }
 
 function nudgeGoal(id) {
-  const g = S.goals.find(x => String(x.id) === String(id));
+  const g = findById(S.goals, id);
   if (!g) return;
 
   const steps = [0, 25, 50, 75, 100];
@@ -134,7 +134,7 @@ function nudgeGoal(id) {
 }
 
 function setGoalPct(id, value) {
-  const g = S.goals.find(x => String(x.id) === String(id));
+  const g = findById(S.goals, id);
   if (!g) return;
 
   g.progress = clampPct(value);
@@ -145,7 +145,7 @@ function setGoalPct(id, value) {
 function delGoal(id) {
   if (!confirm(t('remove_goal_confirm'))) return;
 
-  S.goals = S.goals.filter(x => String(x.id) !== String(id));
+  S.goals = filterOutById(S.goals, id);
   scheduleSave();
   renderGoals();
 }

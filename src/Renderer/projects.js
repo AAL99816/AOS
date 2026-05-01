@@ -16,13 +16,13 @@ function ensureProjects() {
 /* ── Notes helpers ── */
 function _projectEntityNotes(p) {
   if (!p || !p._uuid) return [];
-  return (Array.isArray(S.notesDB) ? S.notesDB : [])
+  return getNotes()
     .filter(n => n.entityId === p._uuid)
     .sort((a, b) => (a.orderIndex - b.orderIndex) || (a.createdAt || '').localeCompare(b.createdAt || ''));
 }
 
 function _projectOpenNotes(appId) {
-  const p = ensureProjects().find(x => String(x.id) === String(appId));
+  const p = findById(ensureProjects(), appId);
   if (!p) return;
   if (!p._uuid) {
     toast('Notes will be available after your first sync — try again in a moment.');
@@ -49,7 +49,7 @@ function renderProjects() {
   if (q) list = list.filter(p => (p.name||'').toLowerCase().includes(q) || (p.school||'').toLowerCase().includes(q) || (p.notes||'').toLowerCase().includes(q));
 
   if (!list.length) {
-    c.innerHTML = `<div style="text-align:center;padding:48px 24px"><div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:10px">◆</div><div style="font-size:0.66rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">${t('no_projects')}</div></div>`;
+    c.innerHTML = emptyStateHtml(t('no_projects'));
     return;
   }
 
@@ -97,9 +97,7 @@ function renderProjects() {
             <span style="font-size:0.6rem;color:var(--blush);font-family:'DM Mono',monospace">${doneCnt}/${tasks.length} · ${pct}%</span>
           </div>
         </div>
-        <div style="height:4px;background:var(--mid);border-radius:2px;overflow:hidden">
-          <div style="height:100%;width:100%;background:var(--blush);border-radius:2px;transform-origin:left;transform:scaleX(${pct/100});transition:transform 0.3s"></div>
-        </div>
+        ${progressBarHtml(pct)}
       </div>
 
       <!-- Notes preview -->
@@ -140,7 +138,7 @@ function renderProjects() {
 }
 
 function addProjectNote(id) {
-  const p = ensureProjects().find(x => String(x.id) === String(id));
+  const p = findById(ensureProjects(), id);
   if (!p || !p._uuid) return;
   const inp = eid(`pNote-${id}`);
   const text = (inp && inp.value || '').trim();
@@ -159,7 +157,7 @@ function addProjectNote(id) {
 }
 
 function editProjectNote(noteId, val) {
-  const n = (Array.isArray(S.notesDB) ? S.notesDB : []).find(x => String(x.id) === String(noteId));
+  const n = findById(getNotes(), noteId);
   if (!n) return;
   n.body = val;
   if (typeof saveNoteDB === 'function') saveNoteDB(n);
@@ -169,7 +167,7 @@ function deleteProjectNote(noteId) {
   if (typeof deleteNoteDB === 'function') deleteNoteDB(noteId).then(() => {
     renderProjects();
     if (_activeProjectId) {
-      const p = ensureProjects().find(x => String(x.id) === String(_activeProjectId));
+      const p = findById(ensureProjects(), _activeProjectId);
       if (p) renderPdNotes(p);
     }
   });
@@ -177,7 +175,7 @@ function deleteProjectNote(noteId) {
 
 /* ══ PROJECT DETAIL MODAL (Tasks | Notes) ══ */
 function openProjectDetail(id) {
-  const p = ensureProjects().find(x => String(x.id) === String(id));
+  const p = findById(ensureProjects(), id);
   if (!p) return;
   _activeProjectId = id;
   _pdTab = 'tasks';
@@ -190,7 +188,7 @@ function openProjectDetail(id) {
 }
 
 function renderPdTabs() {
-  const p = _activeProjectId ? ensureProjects().find(x => String(x.id) === String(_activeProjectId)) : null;
+  const p = _activeProjectId ? findById(ensureProjects(), _activeProjectId) : null;
   if (!p) return;
 
   // Tab buttons
@@ -271,7 +269,7 @@ function addProjectTask() {
   const dueDate   = eid('pdNewTaskDate').value || '';
   const taskNotes = (eid('pdNewTaskNotes').value || '').trim();
   const timeEst   = parseInt(eid('pdNewTaskEst')?.value) || null;
-  const p = ensureProjects().find(x => String(x.id) === String(_activeProjectId));
+  const p = findById(ensureProjects(), _activeProjectId);
   if (!p) return;
   if (!Array.isArray(p.tasks)) p.tasks = [];
   p.tasks.push({ id: uid(), text, done: false, dueDate, taskNotes, timeEst });
@@ -284,18 +282,18 @@ function addProjectTask() {
 }
 
 function updateProjectTask(id, taskId, field, value) {
-  const p = ensureProjects().find(x => String(x.id) === String(id));
+  const p = findById(ensureProjects(), id);
   if (!p) return;
-  const tk = (p.tasks || []).find(t => String(t.id) === String(taskId));
+  const tk = findById(p.tasks, taskId);
   if (!tk) return;
   tk[field] = value;
   scheduleSave();
 }
 
 function toggleProjectTask(id, taskId) {
-  const p = ensureProjects().find(x => String(x.id) === String(id));
+  const p = findById(ensureProjects(), id);
   if (!p) return;
-  const tk = (p.tasks || []).find(t => String(t.id) === String(taskId));
+  const tk = findById(p.tasks, taskId);
   if (!tk) return;
   tk.done = !tk.done;
   tk.completedOn = tk.done ? today() : null;
@@ -307,7 +305,7 @@ function toggleProjectTask(id, taskId) {
 }
 
 function toggleProjectPublic(id, isPublic) {
-  const p = ensureProjects().find(x => String(x.id) === String(id));
+  const p = findById(ensureProjects(), id);
   if (!p) return;
   p.isPublic = isPublic;
   p.updatedOn = today();
@@ -315,7 +313,7 @@ function toggleProjectPublic(id, isPublic) {
 }
 
 function reorderTask(projectId, fromIdx, dir) {
-  const p = ensureProjects().find(x => String(x.id) === String(projectId));
+  const p = findById(ensureProjects(), projectId);
   if (!p || !Array.isArray(p.tasks)) return;
   const toIdx = fromIdx + dir;
   if (toIdx < 0 || toIdx >= p.tasks.length) return;
@@ -326,22 +324,22 @@ function reorderTask(projectId, fromIdx, dir) {
 }
 
 function deleteProjectTask(id, taskId) {
-  const p = ensureProjects().find(x => String(x.id) === String(id));
+  const p = findById(ensureProjects(), id);
   if (!p) return;
-  const removed = (p.tasks || []).find(t => String(t.id) === String(taskId));
-  p.tasks = (p.tasks || []).filter(t => String(t.id) !== String(taskId));
+  const removed = findById(p.tasks, taskId);
+  p.tasks = filterOutById(p.tasks, taskId);
   scheduleSave();
   renderPdTasks(p);
   renderProjects();
   if (removed) toastUndo(`"${removed.text || 'Task'}" removed`, () => {
-    const pp = ensureProjects().find(x => String(x.id) === String(id));
+    const pp = findById(ensureProjects(), id);
     if (pp) { if (!Array.isArray(pp.tasks)) pp.tasks = []; pp.tasks.push(removed); scheduleSave(); renderPdTasks(pp); renderProjects(); }
   });
 }
 
 /* ══ PROJECT CRUD ══ */
 function updateProjectField(id, field, value) {
-  const p = ensureProjects().find(x => String(x.id) === String(id));
+  const p = findById(ensureProjects(), id);
   if (!p) return;
   p[field] = value;
   p.updatedOn = today();
@@ -361,7 +359,7 @@ function setProjectSearch(val) {
 }
 
 function cycleProjectStatus(id) {
-  const p = ensureProjects().find(x => String(x.id) === String(id));
+  const p = findById(ensureProjects(), id);
   if (!p) return;
   const i = PROJECT_STATUSES.indexOf(p.status);
   p.status = PROJECT_STATUSES[(i + 1) % PROJECT_STATUSES.length];
@@ -373,7 +371,7 @@ function cycleProjectStatus(id) {
 
 function deleteProject(id) {
   if (!confirm(t('remove_project'))) return;
-  S.projects = ensureProjects().filter(x => String(x.id) !== String(id));
+  S.projects = filterOutById(ensureProjects(), id);
   scheduleSave();
   renderProjects();
 }

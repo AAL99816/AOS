@@ -1001,7 +1001,7 @@ function _buildProjectsTab(rows) {
   return rows.map(p => {
     const tasks   = (p.project_tasks || []).sort((a, b) => a.order_index - b.order_index);
     const done    = tasks.filter(t => t.done).length;
-    const pct     = tasks.length ? Math.round(done / tasks.length * 100) : 0;
+    const pct     = calcPercent(done, tasks.length);
     const status  = p.status || 'Active';
 
     return `
@@ -1019,9 +1019,7 @@ function _buildProjectsTab(rows) {
               <span style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em">Progress</span>
               <span style="font-size:0.60rem;color:var(--blush);font-family:'DM Mono',monospace">${done}/${tasks.length} · ${pct}%</span>
             </div>
-            <div style="height:3px;background:var(--mid);border-radius:2px;overflow:hidden">
-              <div style="height:100%;width:100%;background:var(--blush);border-radius:2px;transform-origin:left;transform:scaleX(${pct/100});transition:transform 0.3s"></div>
-            </div>
+            ${progressBarHtml(pct, 'var(--blush)', '3px')}
           </div>
           ${tasks.slice(0, 8).map(tk => `
             <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)">
@@ -1064,7 +1062,7 @@ function _buildMediaTab(rows) {
       const rating = item.rating ? Math.round(item.rating) : 0;
       const stars  = rating ? `${'★'.repeat(rating)}${'☆'.repeat(5 - rating)}` : '';
       const prog   = (type === 'book' && item.total_pages > 0)
-        ? Math.min(100, Math.round((item.current_page / item.total_pages) * 100))
+        ? calcPercent(item.current_page, item.total_pages)
         : (item.status === 'done' ? 100 : 0);
 
       return `

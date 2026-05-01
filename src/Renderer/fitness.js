@@ -19,7 +19,7 @@ function normExerciseKey(name) {
 
 /* ── Notes helpers ── */
 function _fitnessOpenNotes(workoutCardId) {
-  const wc = (S.workoutCards || []).find(x => String(x.id) === String(workoutCardId));
+  const wc = findById(S.workoutCards, workoutCardId);
   if (!wc || !wc._uuid) return;
   if (typeof openNotesForEntity === 'function') openNotesForEntity('workout_template', wc._uuid);
 }
@@ -626,7 +626,7 @@ function renderTrainingLog(){
 let _editingSessionId = null;
 
 function openEditSession(id) {
-  const s = (S.workoutHistory || []).find(s => String(s.id) === String(id));
+  const s = findById(S.workoutHistory, id);
   if (!s) return;
   _editingSessionId = id;
 
@@ -667,7 +667,7 @@ function openEditSession(id) {
 }
 
 function saveEditSession() {
-  const s = (S.workoutHistory || []).find(s => String(s.id) === String(_editingSessionId));
+  const s = findById(S.workoutHistory, _editingSessionId);
   if (!s) { closeModal('mEditSession'); return; }
 
   const oldDate = s.date;
@@ -732,7 +732,7 @@ function saveEditSession() {
 }
 
 function openSessionDetail(id){
-  const s = (S.workoutHistory||[]).find(s => String(s.id) === String(id));
+  const s = findById(S.workoutHistory, id);
   if(!s) return;
   eid('sdTitle').textContent = s.title || 'Workout';
   eid('sdDate').textContent = s.date || '';
@@ -787,7 +787,7 @@ function openSessionDetail(id){
 }
 
 function deleteWorkoutSession(id){
-  const session = (S.workoutHistory||[]).find(s=>String(s.id)===String(id));
+  const session = findById(S.workoutHistory, id);
   const backup  = session ? JSON.parse(JSON.stringify(session)) : null;
   S.workoutHistory = (S.workoutHistory||[]).filter(s=>String(s.id)!==String(id));
   // If no more sessions on that date, un-tick gymLog for that day
@@ -814,7 +814,7 @@ function deleteWorkoutSession(id){
 /* Pre-fill all exercise inputs with last-logged values for this card */
 function repeatLastWorkout(wcId) {
   ensureFitnessState();
-  const wc = S.workoutCards.find(w => String(w.id) === String(wcId));
+  const wc = findById(S.workoutCards, wcId);
   if (!wc) return;
   let filled = 0;
   (wc.exercises || []).forEach(ex => {
@@ -1110,7 +1110,7 @@ function _pickerExRow(e) {
 function pickExercise(name) {
   if (!_pickerWcId) return;
   ensureFitnessState();
-  const wc = S.workoutCards.find(w => String(w.id) === String(_pickerWcId));
+  const wc = findById(S.workoutCards, _pickerWcId);
   if (!wc) return;
   if (!Array.isArray(wc.exercises)) wc.exercises = [];
   // Don't add duplicates
@@ -1226,7 +1226,7 @@ function delWorkoutCard(id){
 /* ══ WORKOUT TEMPLATE EDITING ══ */
 function updateWCF(id, f, v) {
   ensureFitnessState();
-  const wc = S.workoutCards.find(w => String(w.id) === String(id));
+  const wc = findById(S.workoutCards, id);
   if (!wc) return;
   wc[f] = v;
   scheduleSave();
@@ -1234,10 +1234,10 @@ function updateWCF(id, f, v) {
 
 function updateEx(wcId, exId, f, v) {
   ensureFitnessState();
-  const wc = S.workoutCards.find(w => String(w.id) === String(wcId));
+  const wc = findById(S.workoutCards, wcId);
   if (!wc) return;
 
-  const ex = (wc.exercises || []).find(e => String(e.id) === String(exId));
+  const ex = findById(wc.exercises, exId);
   if (!ex) return;
 
   ex[f] = v;
@@ -1247,10 +1247,10 @@ function updateEx(wcId, exId, f, v) {
 
 function delEx(wcId, exId) {
   ensureFitnessState();
-  const wc = S.workoutCards.find(w => String(w.id) === String(wcId));
+  const wc = findById(S.workoutCards, wcId);
   if (!wc) return;
 
-  const ex = (wc.exercises || []).find(e => String(e.id) === String(exId));
+  const ex = findById(wc.exercises, exId);
   wc.exercises = (wc.exercises || []).filter(e => String(e.id) !== String(exId));
 
   // Clean up exercise history so deleted exercises don't ghost in PBs
@@ -1273,7 +1273,7 @@ function addEx(wcId) {
   const name = eid(`exN-${wcId}`).value.trim();
   if (!name) return;
 
-  const wc = S.workoutCards.find(w => String(w.id) === String(wcId));
+  const wc = findById(S.workoutCards, wcId);
   if (!wc) return;
 
   if (!Array.isArray(wc.exercises)) wc.exercises = [];
@@ -1289,10 +1289,10 @@ function addEx(wcId) {
 function logExercise(wcId, exId) {
   ensureFitnessState();
 
-  const wc = S.workoutCards.find(w => String(w.id) === String(wcId));
+  const wc = findById(S.workoutCards, wcId);
   if (!wc) return;
 
-  const ex = (wc.exercises || []).find(e => String(e.id) === String(exId));
+  const ex = findById(wc.exercises, exId);
   if (!ex) return;
 
   const wEl = eid(`logW-${exId}`);
@@ -1368,7 +1368,7 @@ function logExercise(wcId, exId) {
 function logWorkoutSession(wcId) {
   ensureFitnessState();
 
-  const wc = S.workoutCards.find(w => String(w.id) === String(wcId));
+  const wc = findById(S.workoutCards, wcId);
   if (!wc) return;
 
   // Use date picker if present, fall back to today
@@ -1607,7 +1607,7 @@ function logCardioSession() {
 }
 
 function deleteCardioSession(id) {
-  const session = (S.cardioHistory || []).find(s => String(s.id) === String(id));
+  const session = findById(S.cardioHistory, id);
   S.cardioHistory = (S.cardioHistory || []).filter(s => String(s.id) !== String(id));
   scheduleSave();
   renderCardioHistory();
@@ -1714,7 +1714,7 @@ function deleteCalorieSession(id) {
 function assignPreset(dayIndex, cardId) {
   ensureFitnessState();
   if (!cardId) return;
-  const wc = (S.workoutCards || []).find(w => String(w.id) === String(cardId));
+  const wc = findById(S.workoutCards, cardId);
   if (!wc) return;
   if (!S.workout[dayIndex]) S.workout[dayIndex] = { type: '', rest: false, cardId: null };
   S.workout[dayIndex].cardId = wc.id;

@@ -13,8 +13,10 @@ const PALS=['#1c1330','#18112a','#201540','#151028','#0e0b1c'];
 function today(){return new Date().toISOString().slice(0,10);}
 function dStr(d){return d.toISOString().slice(0,10);}
 function eid(id){return document.getElementById(id);}
-function weekDays(){
-  const d=new Date(),day=d.getDay();
+function weekDays(offset){
+  const d=new Date();
+  if(offset) d.setDate(d.getDate()+offset*7);
+  const day=d.getDay();
   const mon=new Date(d); mon.setDate(d.getDate()-(day===0?6:day-1));
   return Array.from({length:7},(_,i)=>{const nd=new Date(mon);nd.setDate(mon.getDate()+i);return dStr(nd);});
 }
@@ -24,6 +26,42 @@ function escapeHtml(str){
   return String(str??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
 function escapeAttr(str){return escapeHtml(str);}
+
+/* ── Shared data helpers ────────────────────────────────────────────────── */
+/** Find first item in arr whose id coerces to match */
+function findById(arr, id)       { return (arr||[]).find(x => String(x.id) === String(id)); }
+/** Return arr without the item whose id coerces to match */
+function filterOutById(arr, id)  { return (arr||[]).filter(x => String(x.id) !== String(id)); }
+/** Capped percentage; returns 0 when total is falsy */
+function calcPercent(val, total) { return total ? Math.min(100, Math.round(val / total * 100)) : 0; }
+/** Safe read-only accessor for S.notesDB */
+function getNotes()              { return Array.isArray(S.notesDB) ? S.notesDB : []; }
+/** Active (non-hidden) habits */
+function getVisibleHabits()      { return (S.habits||[]).filter(h => !h.hidden); }
+
+/* ── HTML builder helpers ───────────────────────────────────────────────── */
+/**
+ * Progress bar track + scaleX fill.
+ * @param {number} pct      0-100
+ * @param {string} [color]  CSS color for fill (default var(--blush))
+ * @param {string} [height] CSS height (default '4px')
+ * @param {string} [trans]  transition duration (default '0.3s')
+ */
+function progressBarHtml(pct, color, height, trans) {
+  const c = color  || 'var(--blush)';
+  const h = height || '4px';
+  const t = trans  || '0.3s';
+  return `<div style="height:${h};background:var(--mid);border-radius:2px;overflow:hidden"><div style="height:100%;width:100%;background:${c};border-radius:2px;transform-origin:left;transform:scaleX(${pct/100});transition:transform ${t}"></div></div>`;
+}
+/**
+ * Centered empty-state: ◆ diamond + uppercase label.
+ * @param {string} label     Translated text to display
+ * @param {number} [spanCols] grid-column span (e.g. 2 for 2-col grids)
+ */
+function emptyStateHtml(label, spanCols) {
+  const grid = spanCols ? `grid-column:span ${spanCols};` : '';
+  return `<div style="${grid}text-align:center;padding:48px 24px"><div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:10px">◆</div><div style="font-size:0.66rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">${label}</div></div>`;
+}
 
 /* Lightweight markdown → HTML (safe — operates on already-escaped text) */
 function renderMd(raw){

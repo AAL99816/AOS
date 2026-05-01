@@ -56,9 +56,7 @@ function _isSectionEnabled(modId) {
 
 // ── Data helpers ─────────────────────────────────────────────────────────────
 
-function _allNotes() {
-  return Array.isArray(S.notesDB) ? S.notesDB : [];
-}
+function _allNotes() { return getNotes(); }
 
 function _getNote(id) {
   return _allNotes().find(n => n.id === id) || null;

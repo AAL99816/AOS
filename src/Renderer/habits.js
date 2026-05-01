@@ -10,23 +10,10 @@ const PRAYER_LABEL = new Proxy({}, {
 
 let habitWeekOffset = 0; // 0 = current week, -1 = last week, etc.
 
-function weekDaysOffset(offset) {
-  const d = new Date();
-  d.setDate(d.getDate() + offset * 7);
-  const day = d.getDay();
-  const mon = new Date(d);
-  mon.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
-  return Array.from({length: 7}, (_, i) => {
-    const nd = new Date(mon);
-    nd.setDate(mon.getDate() + i);
-    return dStr(nd);
-  });
-}
-
 function weekLabelForOffset(offset) {
   if (offset === 0) return 'This Week';
   if (offset === -1) return 'Last Week';
-  const days = weekDaysOffset(offset);
+  const days = weekDays(offset);
   const start = new Date(days[0]);
   const end   = new Date(days[6]);
   return `${start.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${end.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
@@ -92,7 +79,7 @@ function renderPrayer() {
 
 /* ══ HABITS ══ */
 function renderHabits() {
-  const week     = weekDaysOffset(habitWeekOffset);
+  const week     = weekDays(habitWeekOffset);
   const todayStr = today();
   const c        = eid('habitList');
   if (!c) return;
@@ -120,7 +107,7 @@ function renderHabits() {
   ).join('')}<div></div><div></div>`;
   c.appendChild(dayRow);
 
-  (S.habits || []).filter(h => !h.hidden).forEach(h => {
+  getVisibleHabits().forEach(h => {
     const row = document.createElement('div');
     row.style.cssText = 'display:grid;grid-template-columns:1fr repeat(7,26px) 28px 24px;gap:4px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)';
     row.innerHTML = `
@@ -146,7 +133,7 @@ function renderHabits() {
 
 /* ══ HABIT HISTORY MODAL ══ */
 function openHabitHistory(id) {
-  const h = (S.habits || []).find(h => String(h.id) === String(id));
+  const h = findById(S.habits, id);
   if (!h) return;
   eid('habitHistTitle').textContent = h.name;
   _renderHabitHistGrid(h);
@@ -259,7 +246,7 @@ function _renderHabitHistGrid(h) {
 }
 
 function _habitHistToggle(id, date) {
-  const h = (S.habits || []).find(h => String(h.id) === String(id));
+  const h = findById(S.habits, id);
   if (!h) return;
   if (!h.days) h.days = {};
   h.days[date] = !h.days[date];
@@ -271,13 +258,13 @@ function _habitHistToggle(id, date) {
 
 /* ══ HABIT CRUD ══ */
 function updateHabitName(id, val) {
-  const h = (S.habits || []).find(h => String(h.id) === String(id));
+  const h = findById(S.habits, id);
   if (h) { h.name = val.trim().slice(0, 80) || h.name; scheduleSave(); }
 }
 
 function toggleH(id, date) {
   haptic(10);
-  const h = (S.habits || []).find(h => String(h.id) === String(id));
+  const h = findById(S.habits, id);
   if (!h) return;
   if (!h.days) h.days = {};
   h.days[date] = !h.days[date];
@@ -296,10 +283,10 @@ function toggleH(id, date) {
 }
 
 function delHabit(id) {
-  const h = (S.habits || []).find(h => String(h.id) === String(id));
+  const h = findById(S.habits, id);
   if (!h) return;
   const backup = JSON.parse(JSON.stringify(h));
-  S.habits = (S.habits || []).filter(h => String(h.id) !== String(id));
+  S.habits = filterOutById(S.habits, id);
   scheduleSave();
   renderHabits();
   if (typeof renderTodaySummary === 'function') renderTodaySummary();
@@ -385,7 +372,7 @@ function renderHabitManagerList() {
 }
 
 function habitManagerToggleHidden(id) {
-  const h = (S.habits || []).find(h => String(h.id) === String(id));
+  const h = findById(S.habits, id);
   if (!h) return;
   h.hidden = !h.hidden;
   scheduleSave();
@@ -395,7 +382,7 @@ function habitManagerToggleHidden(id) {
 }
 
 function habitManagerRename(id, val) {
-  const h = (S.habits || []).find(h => String(h.id) === String(id));
+  const h = findById(S.habits, id);
   if (!h || _isInterconnected(h)) return;
   const trimmed = val.trim().slice(0, 80);
   if (!trimmed) return;
@@ -404,10 +391,10 @@ function habitManagerRename(id, val) {
 }
 
 function habitManagerDelete(id) {
-  const h = (S.habits || []).find(h => String(h.id) === String(id));
+  const h = findById(S.habits, id);
   if (!h) return;
   const backup = JSON.parse(JSON.stringify(h));
-  S.habits = (S.habits || []).filter(h => String(h.id) !== String(id));
+  S.habits = filterOutById(S.habits, id);
   scheduleSave();
   renderHabitManagerList();
   renderHabits();

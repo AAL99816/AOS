@@ -113,8 +113,8 @@ function renderAnnualGoals() {
 
   const booksEl = eid('agBooksProgress');
   const workoutsEl = eid('agWorkoutsProgress');
-  const bPct = Math.min(100, ag.booksTarget ? Math.round((booksRead / ag.booksTarget) * 100) : 0);
-  const wPct = Math.min(100, ag.workoutsTarget ? Math.round((workoutsDone / ag.workoutsTarget) * 100) : 0);
+  const bPct = calcPercent(booksRead, ag.booksTarget);
+  const wPct = calcPercent(workoutsDone, ag.workoutsTarget);
   if (booksEl) booksEl.innerHTML = _goalBar('Books', booksRead, ag.booksTarget, bPct, "setAnnualTarget('booksTarget',+this.value)", 'var(--blush)');
   if (workoutsEl) workoutsEl.innerHTML = _goalBar('Workouts', workoutsDone, ag.workoutsTarget, wPct, "setAnnualTarget('workoutsTarget',+this.value)", 'var(--gold)');
 }
@@ -398,7 +398,7 @@ function renderSearchResults(q) {
   (S.media || []).forEach(m => {
     if (_matches(q, m.title, m.author, m.notes))
       results.push({ icon: _mediaIcon(m.mediaType), title: m.title || '(untitled)', sub: `${m.mediaType} · ${m.author || ''}`, click:`closeGlobalSearch();go('media',document.querySelector('[data-tab=media]'))` });
-    (Array.isArray(S.notesDB) ? S.notesDB : []).filter(n => n.entityId === m._uuid).forEach(n => {
+    getNotes().filter(n => n.entityId === m._uuid).forEach(n => {
       if (_matches(q, n.body, n.title))
         results.push({ icon: '&rarr;', title: n.title || 'Note', sub: `Note in ${m.title}`, click:`closeGlobalSearch();go('notes',document.querySelector('[data-tab=notes]'))` });
     });
@@ -587,7 +587,7 @@ function renderFocusItems() {
     const done     = item.pomodorosDone || 0;
     const target   = item.pomodorosTarget || 0;
     const isActive = _focusItemId === item.id;
-    const pct      = target ? Math.min(100, Math.round(done / target * 100)) : 0;
+    const pct      = calcPercent(done, target);
     return `
       <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--panel);border:1px solid ${isActive ? 'var(--blush)' : 'var(--border)'};border-radius:12px;margin-bottom:10px;transition:border-color 0.2s;${item.completed?'opacity:0.5':''}">
         <input type="checkbox" ${item.completed?'checked':''} onchange="toggleFocusItemDone('${item.id}')" title="Mark complete" style="flex-shrink:0">
@@ -626,7 +626,7 @@ function renderFocusItems() {
 }
 
 function toggleFocusItemDone(id) {
-  const item = (S.focusItems || []).find(i => String(i.id) === String(id));
+  const item = findById(S.focusItems, id);
   if (!item) return;
   item.completed = !item.completed;
   if (item.completed && _focusItemId === id) _focusItemId = null;
@@ -679,7 +679,7 @@ function deleteFocusItem(id) {
 
 function startFocusOn(id) {
   _focusItemId = id;
-  const item = (S.focusItems||[]).find(f => String(f.id) === String(id));
+  const item = findById(S.focusItems, id);
   const lbl  = eid('focusActiveLabel');
   if (lbl && item) lbl.textContent = item.label;
   renderFocusItems();

@@ -385,7 +385,7 @@ function renderFoodMacroBar() {
   const remaining = T.kcal - Math.round(totals.kcal);
   const over      = remaining < 0;
   const consumed  = Math.round(totals.kcal);
-  const pct       = T.kcal ? Math.min(100, Math.round((consumed / T.kcal) * 100)) : 0;
+  const pct       = calcPercent(consumed, T.kcal);
   const near      = pct >= 80 && !over;
   const remColor  = over ? 'var(--petal)' : near ? 'var(--gold)' : 'var(--gold-lt)';
   const barColor  = over ? 'var(--petal)' : near ? 'var(--gold)' : 'var(--blush)';
@@ -417,7 +417,7 @@ function renderFoodMacroBar() {
     <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px">
       <span style="font-size:0.62rem;color:var(--muted);min-width:28px">Fiber</span>
       <div style="flex:1;height:3px;background:var(--mid);border-radius:2px;overflow:hidden">
-        <div style="height:100%;width:${T.fiber ? Math.min(100,Math.round((totals.fiber/T.fiber)*100)) : 0}%;background:var(--muted-lt);border-radius:2px"></div>
+        <div style="height:100%;width:${calcPercent(totals.fiber, T.fiber)}%;background:var(--muted-lt);border-radius:2px"></div>
       </div>
       <span style="font-size:0.62rem;color:var(--muted-lt);font-family:'DM Mono',monospace">${Math.round(totals.fiber)}g <span style="color:var(--muted)">/ ${T.fiber||25}g</span></span>
     </div>` : ''}
@@ -425,7 +425,7 @@ function renderFoodMacroBar() {
 }
 
 function _macroCell(label, val, target, unit, color) {
-  const pct = target ? Math.min(100, Math.round((val / target) * 100)) : 0;
+  const pct = calcPercent(val, target);
   const over = val > target && target > 0;
   return `<div style="text-align:center">
     <div style="font-size:0.62rem;color:var(--muted);margin-bottom:3px">${label}</div>
@@ -457,7 +457,7 @@ function renderFoodMeals() {
   el.innerHTML = MEAL_TYPES.map(meal => {
     const items  = entries.filter(e => e.meal === meal);
     const totals = _sumMacros(items);
-    const mealPct = T.kcal ? Math.min(100, Math.round((totals.kcal / T.kcal) * 100)) : 0;
+    const mealPct = calcPercent(totals.kcal, T.kcal);
     return `
       <div style="margin-bottom:16px">
         <div style="margin-bottom:6px">
@@ -597,7 +597,7 @@ function openFoodSearchForPlan(planId, meal) {
   modal.classList.add('open');
   _applyFoodMode('search');
   const lbl = eid('foodMealLabel');
-  const plan = (S.mealPlans || []).find(p => String(p.id) === String(planId));
+  const plan = findById(S.mealPlans, planId);
   if (lbl) lbl.textContent = `${MEAL_LABELS[meal] || meal} \u00b7 ${escapeHtml(plan?.name || 'Plan')}`;
   const qaMeal = eid('qaMeal');
   if (qaMeal) qaMeal.value = meal;
@@ -1032,7 +1032,7 @@ function _saveToMyFoodsFromResult(name, per100g) {
 }
 
 function selectSearchCustomFood(id) {
-  const cf = (S.customFoods || []).find(c => String(c.id) === String(id));
+  const cf = findById(S.customFoods, id);
   if (!cf) return;
   if (_foodSearchTarget?.type === 'myfoods') { _saveToMyFoodsFromResult(cf.name, cf); return; }
   const per = { kcal: cf.kcal, protein: cf.protein, carbs: cf.carbs, fat: cf.fat, fiber: cf.fiber || 0 };
@@ -1277,7 +1277,7 @@ function saveFoodEntry() {
 
 function editFoodEntry(id) {
   const _date = _foodEffectiveDate();
-  const entry = (S.foodLog?.[_date] || []).find(e => String(e.id) === String(id));
+  const entry = findById(S.foodLog?.[_date], id);
   if (!entry) return;
   _currentMeal = entry.meal || 'breakfast';
   _foodEditId  = id;
@@ -1302,7 +1302,7 @@ function editFoodEntry(id) {
 function deleteFoodEntry(id) {
   const _date = _foodEffectiveDate();
   if (!S.foodLog?.[_date]) return;
-  const entry = (S.foodLog[_date] || []).find(e => String(e.id) === String(id));
+  const entry = findById(S.foodLog[_date], id);
   if (!entry) return;
   toastUndo(`"${entry.name}" removed`, () => {
     if (!S.foodLog[_date]) S.foodLog[_date] = [];
@@ -1319,7 +1319,7 @@ function setFoodEntryNote(id, value) {
   const _date = _foodEffectiveDate();
   const entries = S.foodLog?.[_date];
   if (!entries) return;
-  const e = entries.find(e => String(e.id) === String(id));
+  const e = findById(entries, id);
   if (!e) return;
   e.notes = value.trim();
   scheduleSave();
@@ -1448,7 +1448,7 @@ function renderFoodHistory() {
     const entries = log[d];
     const totals  = _sumMacros(entries);
     const T       = S.foodTargets || {};
-    const pct     = T.kcal ? Math.min(100, Math.round((totals.kcal / T.kcal) * 100)) : 0;
+    const pct     = calcPercent(totals.kcal, T.kcal);
     const over    = T.kcal && totals.kcal >= T.kcal;
     const near    = T.kcal && !over && pct >= 80;
     const calColor = over ? 'var(--petal)' : near ? 'var(--gold)' : 'var(--gold-lt)';
@@ -1519,7 +1519,7 @@ function toggleMealPlan(id) {
 }
 
 function renameMealPlan(id, val) {
-  const plan = (S.mealPlans || []).find(p => String(p.id) === String(id));
+  const plan = findById(S.mealPlans, id);
   if (plan) { plan.name = val.trim() || plan.name; scheduleSave(); renderMealPlansList(); }
 }
 
@@ -1636,7 +1636,7 @@ function saveMealPlan() {
 }
 
 function applyMealPlan(id) {
-  const plan = (S.mealPlans || []).find(p => String(p.id) === String(id));
+  const plan = findById(S.mealPlans, id);
   if (!plan || !Array.isArray(plan.foods) || !plan.foods.length) return;
   if (!S.foodLog) S.foodLog = {};
   const _date = _foodEffectiveDate();
@@ -1667,9 +1667,9 @@ function deleteMealPlan(id) {
 }
 
 function removeMealPlanFood(planId, foodId) {
-  const plan = (S.mealPlans || []).find(p => String(p.id) === String(planId));
+  const plan = findById(S.mealPlans, planId);
   if (!plan) return;
-  const removed = (plan.foods || []).find(f => String(f.id) === String(foodId));
+  const removed = findById(plan.foods, foodId);
   plan.foods = (plan.foods || []).filter(f => String(f.id) !== String(foodId));
   scheduleSave();
   renderMealPlansList();
@@ -1725,7 +1725,7 @@ function renderMyFoodsTab() {
 
 async function unshareCommunityFood(id) {
   if (typeof sb === 'undefined' || !currentUser) { toast('Sign in to manage shared foods'); return; }
-  const cf = (S.customFoods || []).find(c => String(c.id) === String(id));
+  const cf = findById(S.customFoods, id);
   if (!cf || !cf._shared) return;
   if (!confirm(`Remove "${cf.name}" from the community database?`)) return;
   // Delete by matching name + user_id (community_foods has no app_id)
@@ -1742,7 +1742,7 @@ async function unshareCommunityFood(id) {
 
 async function shareToCommunity(id) {
   if (typeof sb === 'undefined' || !currentUser) { toast('Sign in to share foods'); return; }
-  const cf = (S.customFoods || []).find(c => String(c.id) === String(id));
+  const cf = findById(S.customFoods, id);
   if (!cf) return;
   if (cf._shared) { toast('Already shared'); return; }
 
@@ -1781,7 +1781,7 @@ function openAddToMyFoods() {
 }
 
 function editCustomFood(id) {
-  const cf = (S.customFoods || []).find(c => String(c.id) === String(id));
+  const cf = findById(S.customFoods, id);
   if (!cf) return;
   _myFoodEditId = id;
   const title = eid('myFoodEditTitle');
@@ -1846,7 +1846,7 @@ function deleteCustomFood(id) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function openGroceryList(planId) {
-  const plan = (S.mealPlans || []).find(p => String(p.id) === String(planId));
+  const plan = findById(S.mealPlans, planId);
   if (!plan) return;
 
   // Merge plan foods into saved grocery list (S.groceryList)

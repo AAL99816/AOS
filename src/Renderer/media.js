@@ -391,7 +391,7 @@ function renderGenreFilters() {
 
 /* ══ SHOW / ANIME EPISODE TRACKING ══ */
 function incrementEpisode(id) {
-  const b = (S.media||[]).find(b => String(b.id) === String(id));
+  const b = findById(S.media, id);
   if (!b) return;
   b.currentEpisode = (b.currentEpisode || 0) + 1;
   // Auto-advance season if totalEpisodes per season known
@@ -415,7 +415,7 @@ function incrementEpisode(id) {
 
 /* ══ CYCLE STATUS ══ */
 function cycleBook(id) {
-  const b = (S.media||[]).find(b => String(b.id) === String(id));
+  const b = findById(S.media, id);
   if (!b) return;
 
   if (b.mediaType === 'film') {
@@ -448,7 +448,7 @@ function cycleBook(id) {
 }
 
 function updateBF(id, f, v) {
-  const b = (S.media||[]).find(b => String(b.id) === String(id));
+  const b = findById(S.media, id);
   if (!b) return;
   b[f] = v;
   scheduleSave();
@@ -459,7 +459,7 @@ function updateBF(id, f, v) {
 async function uploadCover(id, input) {
   const f = input.files[0];
   if (!f) return;
-  const b = (S.media||[]).find(b => String(b.id) === String(id));
+  const b = findById(S.media, id);
   if (!b) return;
   try {
     b.coverUrl = await uploadAsset(`covers/${id}`, f);
@@ -529,7 +529,7 @@ function saveBook() {
 /* ══ BOOK / SHOW / FILM DETAIL MODAL ══ */
 function openBookDetails(id) {
   activeBookId = id;
-  const b = (S.media||[]).find(x => String(x.id) === String(id));
+  const b = findById(S.media, id);
   if (!b) return;
   if (b.mediaType === 'album') { openAlbumDetail(id); return; }
   renderBookDetails();
@@ -619,14 +619,14 @@ function renderBookDetails() {
 }
 
 function _mediaOpenNotes(mediaAppId) {
-  const m = (S.media || []).find(x => String(x.id) === String(mediaAppId));
+  const m = findById(S.media, mediaAppId);
   if (!m || !m._uuid) return;
   if (typeof openNotesForEntity === 'function') openNotesForEntity('media_item', m._uuid);
 }
 
 function _mediaEntityNotes(b) {
   if (!b || !b._uuid) return [];
-  return (Array.isArray(S.notesDB) ? S.notesDB : [])
+  return getNotes()
     .filter(n => n.entityId === b._uuid)
     .sort((a, b) => (a.orderIndex - b.orderIndex) || a.createdAt.localeCompare(b.createdAt));
 }
@@ -945,7 +945,7 @@ function addAlbumNote() {
 }
 
 function addTrack(albumId) {
-  const b = (S.media||[]).find(x => String(x.id) === String(albumId));
+  const b = findById(S.media, albumId);
   if (!b) return;
   if (!Array.isArray(b.tracks)) b.tracks = [];
   b.tracks.push({ id: uid(), title: '', duration: '', rating: 0, review: '' });
@@ -953,9 +953,9 @@ function addTrack(albumId) {
 }
 
 function updateTrack(albumId, trackId, field, value) {
-  const b = (S.media||[]).find(x => String(x.id) === String(albumId));
+  const b = findById(S.media, albumId);
   if (!b) return;
-  const tr = (b.tracks||[]).find(t => String(t.id) === String(trackId));
+  const tr = findById(b.tracks, trackId);
   if (!tr) return;
   tr[field] = value;
   scheduleSave();
@@ -963,16 +963,16 @@ function updateTrack(albumId, trackId, field, value) {
 }
 
 function rateTrack(albumId, trackId, rating) {
-  const b = (S.media||[]).find(x => String(x.id) === String(albumId));
+  const b = findById(S.media, albumId);
   if (!b) return;
-  const tr = (b.tracks||[]).find(t => String(t.id) === String(trackId));
+  const tr = findById(b.tracks, trackId);
   if (!tr) return;
   tr.rating = tr.rating === rating ? 0 : rating; // toggle off if same
   scheduleSave(); renderAlbumDetail();
 }
 
 function deleteTrack(albumId, trackId) {
-  const b = (S.media||[]).find(x => String(x.id) === String(albumId));
+  const b = findById(S.media, albumId);
   if (!b) return;
   b.tracks = (b.tracks||[]).filter(t => String(t.id) !== String(trackId));
   scheduleSave(); renderAlbumDetail();
