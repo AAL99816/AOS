@@ -219,7 +219,9 @@ main{flex:1; padding:26px 44px 60px;}
 .editable-area:focus{border-color:var(--blush); background:var(--blush-dim);}
 
 /* ══ TODAY ══ */
-.today-top{display:grid; grid-template-columns:1fr 270px; gap:16px; margin-bottom:22px;}
+.today-top{display:grid; grid-template-columns:1fr 290px; gap:20px; margin-bottom:22px; align-items:start;}
+.today-top > div:first-child { min-width:0; max-width:680px; }
+.today-top > div:last-child { min-width:0; }
 .quote-card{background:color-mix(in srgb,var(--rose) 12%,transparent); padding:24px 28px; display:flex; flex-direction:column; justify-content:center; gap:9px;}
 .q-label{font-size:0.68rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--blush); font-family:'DM Mono',monospace;}
 #quoteText{font-family:'Cormorant Garamond',serif; font-style:italic; font-size:1.1rem; line-height:1.65; color:var(--mist); min-height:44px;}
@@ -692,6 +694,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 @media(max-width:900px){
   .hero-content,nav,main,.sbar{padding-left:18px;padding-right:18px;}
   .today-top,.g2,.g3{grid-template-columns:1fr;}
+  .today-top > div:first-child { max-width:none; }
   .gym-week{grid-template-columns:repeat(4,1fr);}
   .books-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));}
   /* Workout cards: 2-col on tablet */

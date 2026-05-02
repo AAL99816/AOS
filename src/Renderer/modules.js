@@ -141,7 +141,8 @@ function applyModules() {
 
     if (mod.type === 'tab') {
       // Hide/show the nav tab button
-      const btn = document.querySelector(`.tab[onclick*="go('${mod.tabName}')"]`);
+      // Note: buttons use onclick="go('tabName',this)" so we match on just the name in quotes
+      const btn = document.querySelector(`.tab[onclick*="'${mod.tabName}'"]`);
       if (btn) btn.style.display = on ? '' : 'none';
       // If we just hid the active tab, navigate to the next visible tab
       if (!on && (typeof _activeTab !== 'undefined') && _activeTab === mod.tabName) {

@@ -202,7 +202,7 @@ function renderToday() {
 
         <!-- Progress rings row -->
         <div id="todayRingsRow" class="card" style="margin-bottom:16px;padding:14px 18px">
-          <div style="display:grid;grid-template-columns:repeat(${showPrayer && prayersTotal > 0 ? 4 : 3},1fr);gap:8px;text-align:center">
+          <div style="display:grid;grid-template-columns:repeat(${showPrayer && prayersTotal > 0 ? 4 : 3},minmax(64px,1fr));gap:8px;text-align:center;max-width:420px">
 
             <!-- Habits ring -->
             <div style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer" onclick="scrollToSection('todayHabitsSection')">
@@ -336,7 +336,7 @@ function renderToday() {
           <div class="card">
             <textarea id="todayNoteArea" class="editable-area" rows="4" placeholder="Write anything…"
               oninput="S.notes[today()]=this.value;clearTimeout(window._noteSaveT);window._noteSaveT=setTimeout(scheduleSave,800)"
-              style="font-size:16px">${escapeHtml(todayNote)}</textarea>
+              >${escapeHtml(todayNote)}</textarea>
           </div>
         </div>
 

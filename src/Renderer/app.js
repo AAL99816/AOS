@@ -286,7 +286,7 @@ function applyTabOrder() {
   const nav = document.querySelector('nav');
   if (!nav) return;
   order.forEach(tabId => {
-    const btn = nav.querySelector(`.tab[onclick*="go('${tabId}')"]`);
+    const btn = nav.querySelector(`.tab[onclick*="'${tabId}'"]`);
     if (btn) nav.appendChild(btn);
   });
 }
