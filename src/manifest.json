@@ -1,7 +1,7 @@
 {
   "name": "AOS — Personal Life OS",
   "short_name": "AOS",
-  "description": "Prayer, habits, fitness, goals, projects, and media — all in one place.",
+  "description": "Prayer, habits, fitness, projects, notes, and media - all in one place.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1a0a0f",
