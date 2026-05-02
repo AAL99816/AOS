@@ -437,10 +437,10 @@ async function savePrayer() {
   );
 
   // Delete dates no longer in state
-  const dateList = dates.map(d => `"${d}"`).join(',');
+  const dateList = _pgInList(dates);
   if (dateList) {
     await sb.from('prayer_logs').delete()
-      .eq('user_id', currentUser.id).not('prayer_date', 'in', `(${dateList})`);
+      .eq('user_id', currentUser.id).not('prayer_date', 'in', dateList);
   }
 }
 
@@ -655,7 +655,7 @@ async function seedExerciseCatalog() {
   const FLAG = 'aos_catalog_seeded_v2';
   if (localStorage.getItem(FLAG)) return;
 
-  const rows = EXERCISE_DB.map(e => ({
+  const rows = [...new Map(EXERCISE_DB.map(e => [e.id, {
     db_id:     e.id,
     name:      e.name,
     muscles:   e.muscles   || [],
@@ -663,7 +663,7 @@ async function seedExerciseCatalog() {
     equipment: e.equipment || '',
     pattern:   e.pattern   || '',
     category:  e.category  || ''
-  }));
+  }])).values()];
 
   // Batch in chunks of 100 to stay within Supabase request limits
   for (let i = 0; i < rows.length; i += 100) {
@@ -1191,7 +1191,8 @@ async function fetchDiscoverProfiles(excludeIds) {
     .eq('is_public', true)
     .neq('id', currentUser.id);
   if (excludeIds && excludeIds.length) {
-    query = query.not('id', 'in', `(${excludeIds.join(',')})`);
+    const excludeList = _pgInList(excludeIds);
+    if (excludeList) query = query.not('id', 'in', excludeList);
   }
   const { data, error } = await query.limit(80);
   if (error) { console.warn('[discover] fetchDiscoverProfiles:', error.message); return []; }

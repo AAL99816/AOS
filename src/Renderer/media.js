@@ -313,8 +313,8 @@ function buildGameCard(b, idx) {
       ${b.platform ? `<div style="position:absolute;top:7px;left:7px;background:var(--ink-glass);border-radius:5px;padding:2px 7px;font-size:0.56rem;font-family:'DM Mono',monospace;color:var(--petal)">${escapeHtml(b.platform)}</div>` : ''}
     </div>
     <div class="book-info">
-      <input class="editable book-title-inp" value="${escapeAttr(b.title)}" onchange="event.stopPropagation();updateBF('${escapeAttr(b.id)}','title',this.value)">
-      <input class="editable book-author-inp" value="${escapeAttr(b.author)}" onchange="event.stopPropagation();updateBF('${escapeAttr(b.id)}','author',this.value)" placeholder="${t('developer')}">
+      <input class="editable book-title-inp" value="${escapeAttr(b.title)}" onchange="event.stopPropagation();updateBF(${escapeAttr(JSON.stringify(String(b.id)))},'title',this.value)">
+      <input class="editable book-author-inp" value="${escapeAttr(b.author)}" onchange="event.stopPropagation();updateBF(${escapeAttr(JSON.stringify(String(b.id)))},'author',this.value)" placeholder="${t('developer')}">
       ${b.hoursPlayed > 0 ? `<div style="font-size:0.58rem;color:var(--gold-lt);margin-top:4px;font-family:'DM Mono',monospace">${b.hoursPlayed}h ${t('hours_played').toLowerCase()}</div>` : ''}
       ${(() => { const pct = b.status==='done' ? 100 : b.hoursPlayed > 0 ? Math.min(100, Math.round(b.hoursPlayed/50*100)) : 0; return `<div style="height:2px;background:var(--border);border-radius:1px;margin-top:5px;overflow:hidden"><div style="height:2px;width:100%;background:var(--blush);border-radius:1px;transform-origin:left;transform:scaleX(${pct/100});transition:transform 0.3s"></div></div>`; })()}
       <div class="book-row" style="margin-top:6px">

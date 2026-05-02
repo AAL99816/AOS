@@ -907,7 +907,7 @@ async function _doFoodSearch(q) {
 }
 
 async function _fetchCommunityFoods(q) {
-  if (typeof sb === 'undefined') return [];
+  if (typeof sb === 'undefined' || !sb) return [];
   const { data, error } = await sb
     .from('community_foods')
     .select('id,name,kcal,protein,carbs,fat,fiber,region')
@@ -960,7 +960,7 @@ function _cleanUsdaName(raw) {
 }
 
 async function _fetchUSDA(q) {
-  if (typeof sb === 'undefined') return [];
+  if (typeof sb === 'undefined' || !sb) return [];
   const { data, error } = await sb
     .from('usda_foods')
     .select('fdc_id,name,category,kcal,protein,carbs,fat,fiber')
@@ -1724,7 +1724,7 @@ function renderMyFoodsTab() {
 }
 
 async function unshareCommunityFood(id) {
-  if (typeof sb === 'undefined' || !currentUser) { toast('Sign in to manage shared foods'); return; }
+  if (typeof sb === 'undefined' || !sb || !currentUser) { toast('Sign in to manage shared foods'); return; }
   const cf = findById(S.customFoods, id);
   if (!cf || !cf._shared) return;
   if (!confirm(`Remove "${cf.name}" from the community database?`)) return;
@@ -1741,7 +1741,7 @@ async function unshareCommunityFood(id) {
 }
 
 async function shareToCommunity(id) {
-  if (typeof sb === 'undefined' || !currentUser) { toast('Sign in to share foods'); return; }
+  if (typeof sb === 'undefined' || !sb || !currentUser) { toast('Sign in to share foods'); return; }
   const cf = findById(S.customFoods, id);
   if (!cf) return;
   if (cf._shared) { toast('Already shared'); return; }

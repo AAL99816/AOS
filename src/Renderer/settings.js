@@ -145,8 +145,14 @@ function applyFont(fontKey) {
 }
 
 // ── Custom color overrides ─────────────────────────────────────────────────
+const CUSTOM_COLOR_VARS = new Set(['--blush', '--ink', '--cream', '--panel']);
+
+function isHexColor(value) {
+  return /^#[0-9a-f]{6}$/i.test(String(value || ''));
+}
+
 function applyCustomColor(cssVar, hex) {
-  if (!hex || !hex.startsWith('#')) return;
+  if (!CUSTOM_COLOR_VARS.has(cssVar) || !isHexColor(hex)) return;
   document.documentElement.style.setProperty(cssVar, hex);
   // Persist override
   if (!S.appPrefs) S.appPrefs = {};
@@ -164,14 +170,14 @@ function restoreCustomColors() {
   const cc = S?.appPrefs?.customColors;
   if (!cc || typeof cc !== 'object') return;
   Object.entries(cc).forEach(([key, hex]) => {
-    if (!hex) return;
     const cssVar = '--' + key.replace(/_/g, '-');
+    if (!CUSTOM_COLOR_VARS.has(cssVar) || !isHexColor(hex)) return;
     document.documentElement.style.setProperty(cssVar, hex);
   });
   // Sync open color inputs
   document.querySelectorAll('input[data-custom-var]').forEach(inp => {
     const val = cc[inp.dataset.customVar?.replace(/^--/, '').replace(/-/g, '_')];
-    if (val) inp.value = val;
+    if (isHexColor(val)) inp.value = val;
   });
 }
 

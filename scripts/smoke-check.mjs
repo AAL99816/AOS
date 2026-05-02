@@ -20,6 +20,8 @@ const i18n = read('src/Renderer/i18n.js');
 const auth = read('src/Renderer/auth.js');
 const webApi = read('src/Renderer/web-api.js');
 const mediaSearch = read('src/Renderer/mediaSearch.js');
+const media = read('src/Renderer/media.js');
+const settings = read('src/Renderer/settings.js');
 const sw = read('src/sw.js');
 const gitignore = read('.gitignore');
 
@@ -79,8 +81,12 @@ expect(!/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/.test(clientSource), 
 expect(!/const\s+(TMDB|RAWG)_KEY\s*=\s*['"][0-9a-f]{24,}['"]/i.test(clientSource), 'client source has no committed media API keys');
 expect(!/supabaseAnonKey\s*:\s*['"]eyJ/i.test(clientSource), 'client source has no committed Supabase anon key');
 expect(auth.includes('let sb = null'), 'auth starts without a Supabase client until config is validated');
-expect(auth.includes('function requireSupabaseClient()'), 'auth has a graceful missing-config guard');
+expect(auth.includes('function requireSupabaseClient()'), 'auth blocks login when config is missing');
+expect((auth.match(/subscribeToSync\(\);/g) || []).length >= 3, 'all auth entry points start sync after login');
 expect(webApi.includes("has('token_hash')"), 'web auth callback handles token_hash redirects');
+expect(webApi.includes("history.replaceState(null, '', window.location.pathname)"), 'web auth callback removes tokens from the URL');
+expect(settings.includes('function isHexColor(value)'), 'custom theme colors are validated before restore');
+expect(!media.includes("updateBF('${escapeAttr(b.id)}'"), 'game media edit handlers do not single-quote escaped ids');
 expect(!index.includes('marked.min.js'), 'unused marked CDN script is not loaded');
 expect(!/marked\.parse/.test(read('src/Renderer/community.js')), 'community markdown does not render unsanitized marked HTML');
 

@@ -166,8 +166,11 @@ async function handleAuthDeepLink(url) {
     const { data: { user } } = await sb.auth.getUser();
     if (user) {
       currentUser = user;
+      await loadProfile();
       eid('authScreen').classList.add('hidden');
       eid('userEmail').textContent = currentUser.email;
+      localStorage.setItem('aos_user_exists', 'true');
+      subscribeToSync();
       await bootApp();
       toast(t('signin_success'));
     }
@@ -190,8 +193,11 @@ async function handleAuthDeepLink(url) {
     const { data: { session } } = await sb.auth.getSession();
     if (session?.user) {
       currentUser = session.user;
+      await loadProfile();
       eid('authScreen').classList.add('hidden');
       eid('userEmail').textContent = currentUser.email;
+      localStorage.setItem('aos_user_exists', 'true');
+      subscribeToSync();
       await bootApp();
       toast(t('email_confirmed'));
     }

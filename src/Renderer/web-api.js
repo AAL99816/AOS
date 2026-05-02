@@ -87,8 +87,8 @@ if (typeof window !== 'undefined' &&
   window.addEventListener('DOMContentLoaded', async () => {
     if (typeof handleAuthDeepLink === 'function') {
       await handleAuthDeepLink(window.location.href);
-      /* Clean hash from URL bar without reloading */
-      history.replaceState(null, '', window.location.pathname + window.location.search);
+      /* Remove auth tokens from the URL bar without reloading. */
+      history.replaceState(null, '', window.location.pathname);
     }
   }, { once: true });
 }

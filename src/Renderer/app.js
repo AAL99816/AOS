@@ -76,7 +76,15 @@ async function doImport(){
   // D4: Auto-backup current data before overwriting
   try { await window.api.exportData(JSON.stringify(S, null, 2)); } catch(_) {}
   const res=await window.api.importData();if(!res.ok)return;
-  try{S=normalizeAppState(JSON.parse(res.data));scheduleSave();renderAll();toast(t('data_imported'));}
+  try{
+    S=normalizeAppState(JSON.parse(res.data));
+    scheduleSave();
+    renderAll();
+    if (typeof applyModules === 'function') applyModules();
+    applyTabOrder();
+    go(getPreferredStartTab());
+    toast(t('data_imported'));
+  }
   catch(e){alert(t('file_read_error'));}
 }
 
