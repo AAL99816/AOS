@@ -577,6 +577,22 @@ function setLang(lang) {
   if (typeof renderAll === 'function') renderAll();
 }
 
+function toggleLang() {
+  setLang(currentLang === 'en' ? 'ar' : 'en');
+}
+
+function updateLanguageToggles() {
+  const nextLang = currentLang === 'en' ? 'AR' : 'EN';
+  const label = currentLang === 'en' ? 'Switch to Arabic' : 'Switch to English';
+  ['stLangToggle', 'sbarLangToggle'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.textContent = nextLang;
+    btn.setAttribute('aria-label', label);
+    btn.title = label;
+  });
+}
+
 function applyStaticI18n() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
@@ -586,9 +602,7 @@ function applyStaticI18n() {
     const key = el.getAttribute('data-i18n-ph');
     el.placeholder = t(key);
   });
-  /* update lang toggle label */
-  const stLangToggle = document.getElementById('stLangToggle');
-  if (stLangToggle) stLangToggle.textContent = currentLang === 'en' ? 'AR' : 'EN';
+  updateLanguageToggles();
 }
 
 /* Apply language on initial load */

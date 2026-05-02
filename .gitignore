@@ -3,8 +3,11 @@ dist/
 .claude/
 .env
 .env.*
+src/config.js
+src/config.local.js
 .agents/
 skills-lock.json
 DESIGN.md
 DESIGN.json
 PRODUCT.md
+HANDOVER.md

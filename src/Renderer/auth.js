@@ -1,10 +1,15 @@
 'use strict';
 
 /* ══ SUPABASE ══ */
-const SUPABASE_URL = 'https://kzsbpqbhogmribkumdui.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt6c2JwcWJob2dtcmlia3VtZHVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0MzgzMDgsImV4cCI6MjA4OTAxNDMwOH0.5DLUeO-Q-HutYmQaOMnzrpPFob6bPLe5os28kq2VZ_k';
+const AOS_CONFIG = window.AOS_CONFIG || {};
+const SUPABASE_URL = AOS_CONFIG.supabaseUrl || '';
+const SUPABASE_KEY = AOS_CONFIG.supabaseAnonKey || '';
 
 const IS_WEB = window.location.protocol === 'https:' || window.location.protocol === 'http:';
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error('[auth] Missing Supabase config. Copy src/config.example.js to src/config.js and fill in the client settings.');
+}
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
@@ -198,4 +203,3 @@ window.addEventListener('DOMContentLoaded', async () => {
     await bootApp();
   }
 });
-  

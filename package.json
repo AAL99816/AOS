@@ -18,6 +18,7 @@
 
   "scripts": {
     "start": "electron .",
+    "smoke": "node scripts/smoke-check.mjs",
     "build:win": "electron-builder --win --publish never",
     "release:win": "electron-builder --win --publish always"
   },

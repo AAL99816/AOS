@@ -7,6 +7,10 @@ on:
         description: "Version number (example: 1.0.13)"
         required: true
 
+concurrency:
+  group: aos-release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: windows-latest
@@ -18,13 +22,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.GH_TOKEN || github.token }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
+
+      - name: Validate version input
+        shell: powershell
+        run: |
+          if ("${{ github.event.inputs.version }}" -notmatch "^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$") {
+            throw "Version must look like 1.2.3 or 1.2.3-beta.1"
+          }
 
       - name: Set version
         shell: powershell
@@ -50,8 +61,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Run smoke checks
+        run: npm run smoke
+
       - name: Build & Release
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
         run: npm run release:win
-        

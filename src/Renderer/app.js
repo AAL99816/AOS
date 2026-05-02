@@ -83,13 +83,25 @@ async function doImport(){
 /* ══ NAV ══ */
 let _activeTab = 'today';
 
+function _findNavTab(name) {
+  const nav = document.querySelector('nav');
+  return nav ? nav.querySelector(`.tab[onclick*="go('${name}'"]`) : null;
+}
+
 function go(name,btn){
+  const activeBtn = btn || _findNavTab(name);
   _activeTab = name;
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.classList.remove('active');
+    t.removeAttribute('aria-current');
+  });
   const panel = eid('panel-'+name);
   if (panel) panel.classList.add('active');
-  if(btn) btn.classList.add('active');
+  if(activeBtn) {
+    activeBtn.classList.add('active');
+    activeBtn.setAttribute('aria-current', 'page');
+  }
   _renderTab(name);
 }
 
@@ -285,10 +297,20 @@ function applyTabOrder() {
   if (!order || !order.length) return;
   const nav = document.querySelector('nav');
   if (!nav) return;
+  const utilityCluster = nav.querySelector('.nav-right');
   order.forEach(tabId => {
-    const btn = nav.querySelector(`.tab[onclick*="go('${tabId}'"]`);
-    if (btn) nav.appendChild(btn);
+    const btn = _findNavTab(tabId);
+    if (btn) nav.insertBefore(btn, utilityCluster);
   });
+}
+
+function getPreferredStartTab() {
+  const preferred = (S.appPrefs && S.appPrefs.defaultTab) || 'today';
+  if (typeof modOn !== 'function' || modOn('tab.' + preferred)) return preferred;
+  const order = typeof _getEffectiveTabOrder === 'function'
+    ? _getEffectiveTabOrder()
+    : TAB_MANIFEST.map(t => t.id);
+  return order.find(id => typeof modOn !== 'function' || modOn('tab.' + id)) || 'today';
 }
 
 function finishOnboarding() {
@@ -441,8 +463,8 @@ async function initApp(){
   if (typeof migrateExerciseHistory === 'function') migrateExerciseHistory();
   renderAll();
   applyTabOrder();
-  const startTab = (S.appPrefs && S.appPrefs.defaultTab) || 'today';
-  if (startTab !== 'today') go(startTab);
+  const startTab = getPreferredStartTab();
+  go(startTab);
 }
 
 async function bootApp(){

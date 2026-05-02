@@ -13,6 +13,7 @@
 <!-- Supabase JS client — loaded from CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="./config.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500&family=DM+Mono:wght@300;400&family=Cairo:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -169,14 +170,16 @@ body::after{
 .hero-upload-btn{background:var(--blush-dim); border:1px solid var(--border); color:var(--muted-lt); cursor:pointer; border-radius:7px; padding:5px 11px; font-size:0.7rem; transition:all 0.2s; font-family:'Jost',sans-serif; position:relative; overflow:hidden;}
 .hero-upload-btn:hover{background:var(--border); color:var(--petal);}
 .hero-upload-btn input{position:absolute; inset:0; opacity:0; cursor:pointer;}
+.hero-settings-btn{display:none;background:var(--blush-dim);border:1px solid var(--border);color:var(--muted-lt);cursor:pointer;border-radius:7px;padding:5px 11px;font-size:0.7rem;transition:all 0.2s;font-family:'Jost',sans-serif;}
+.hero-settings-btn:hover{background:var(--border);color:var(--petal);}
 
 /* ══ NAV ══ */
-nav{display:flex; gap:0; padding:0 44px; background:color-mix(in srgb,var(--ink) 55%,transparent); border-bottom:1px solid var(--border); backdrop-filter:blur(14px); -webkit-app-region:drag; position:sticky; top:0; z-index:50;}
+nav{display:flex; align-items:center; justify-content:flex-start; gap:0; padding:0 44px; background:color-mix(in srgb,var(--ink) 55%,transparent); border-bottom:1px solid var(--border); backdrop-filter:blur(14px); -webkit-app-region:drag; position:sticky; top:0; z-index:50;}
 nav button{-webkit-app-region:no-drag;}
-.tab{font-size:0.7rem; font-weight:400; letter-spacing:0.12em; text-transform:uppercase; padding:12px 18px; cursor:pointer; color:var(--muted); background:transparent; border:none; border-bottom:1.5px solid transparent; transition:all 0.2s; white-space:nowrap; font-family:'Jost',sans-serif;}
+.tab{order:1;font-size:0.7rem; font-weight:400; letter-spacing:0.12em; text-transform:uppercase; padding:12px 18px; cursor:pointer; color:var(--muted); background:transparent; border:none; border-bottom:1.5px solid transparent; transition:all 0.2s; white-space:nowrap; font-family:'Jost',sans-serif;}
 .tab:hover{color:var(--petal);}
 .tab.active{color:var(--blush); border-bottom-color:var(--blush);}
-.nav-right{margin-left:auto; display:flex; align-items:center; gap:8px; padding:8px 0;}
+.nav-right{order:2;margin-left:auto; display:flex; align-items:center; gap:8px; padding:8px 0;}
 .nav-btn{background:var(--blush-dim); border:1px solid var(--border); color:var(--muted-lt); cursor:pointer; border-radius:7px; padding:5px 10px; font-size:0.68rem; transition:all 0.2s; font-family:'Jost',sans-serif; -webkit-app-region:no-drag;}
 .nav-btn:hover{background:var(--border); color:var(--petal);}
 .nav-btn.signout{color:#f09090; border-color:rgba(180,60,60,0.22);}
@@ -684,8 +687,16 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 
 /* Status bar */
 .sbar{display:flex; align-items:center; gap:8px; padding:7px 44px; background:color-mix(in srgb,var(--ink) 50%,transparent); border-top:1px solid var(--border); font-size:0.62rem; color:var(--muted);}
-.sbar span:first-child{margin-right:auto;}
+.sbar span:first-child,.sbar-primary{margin-right:auto;}
 #saveInd{color:var(--blush); font-family:'DM Mono',monospace;}
+.sbar-lang-btn{
+  min-width:34px; height:22px; padding:0 9px; border-radius:7px;
+  border:1px solid var(--border); background:var(--blush-dim);
+  color:var(--muted-lt); cursor:pointer; font-family:'DM Mono',monospace;
+  font-size:0.6rem; letter-spacing:0.08em; line-height:1;
+  transition:background 0.18s,color 0.18s,border-color 0.18s;
+}
+.sbar-lang-btn:hover{background:var(--border); color:var(--petal); border-color:var(--border-lt);}
 
 ::-webkit-scrollbar{width:5px; height:5px;}
 ::-webkit-scrollbar-track{background:color-mix(in srgb,var(--panel) 30%,transparent);}
@@ -724,8 +735,10 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 
 /* ── Desktop: constrain content width ── */
 @media(min-width:1280px){
-  main{max-width:1200px;margin-left:auto;margin-right:auto;}
-  .hero-content{max-width:1200px;margin-left:auto;margin-right:auto;padding-left:44px;padding-right:44px;}
+  .hero-content,nav,.sbar{padding-left:clamp(56px,5vw,92px);padding-right:clamp(56px,5vw,92px);}
+  main{max-width:1440px;margin-left:0;margin-right:0;padding:32px clamp(56px,5vw,92px) 70px;}
+  .books-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;}
+  .book-cover{height:190px;}
 }
 
 /* ── Landscape phone: reduce hero height ── */
@@ -773,6 +786,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
   .hero{height:170px;}
   .hero-content{padding:0 18px 18px;}
   .hero-right{gap:6px;}
+  .hero-settings-btn{display:inline-flex;align-items:center;}
   .hero-upload-btn{display:none;}
   .prayer-grid{flex-wrap:wrap;}
   .prayer-slot{min-width:56px;}
@@ -936,11 +950,12 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 
 /* ── RTL / Arabic ── */
 [dir="rtl"] body { font-family: 'Cairo', 'Jost', sans-serif; }
-[dir="rtl"] nav { direction: rtl; }
+[dir="rtl"] nav { direction: ltr; }
+[dir="rtl"] nav .tab { direction: rtl; }
 [dir="rtl"] .hero-content { direction: rtl; }
 [dir="rtl"] .hero-left { flex-direction: row-reverse; }
 [dir="rtl"] .hero-right { flex-direction: row-reverse; }
-[dir="rtl"] .nav-right { margin-left: 0; margin-right: auto; flex-direction: row-reverse; }
+[dir="rtl"] .nav-right { margin-left: auto; margin-right: 0; flex-direction: row-reverse; }
 [dir="rtl"] .sec { direction: rtl; }
 [dir="rtl"] .habit-row { flex-direction: row-reverse; }
 [dir="rtl"] .habit-days { flex-direction: row-reverse; }
@@ -959,7 +974,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 [dir="rtl"] .book-detail-actions { flex-direction: row-reverse; }
 [dir="rtl"] .wk-head { flex-direction: row-reverse; }
 [dir="rtl"] .sbar { flex-direction: row-reverse; }
-[dir="rtl"] .sbar span:first-child { margin-right: 0; margin-left: auto; }
+[dir="rtl"] .sbar span:first-child, [dir="rtl"] .sbar-primary { margin-right: 0; margin-left: auto; }
 [dir="rtl"] .book-row { flex-direction: row-reverse; }
 [dir="rtl"] .cardio-bar { flex-direction: row-reverse; }
 [dir="rtl"] .cardio-right { flex-direction: row-reverse; margin-left: 0; margin-right: auto; }
@@ -1122,6 +1137,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
     </div>
     <div class="hero-right">
       <div class="date-badge" id="dateBadge"></div>
+      <button class="hero-settings-btn" onclick="openSettings()" data-i18n="settings">Settings</button>
       <label class="hero-upload-btn">Change Banner<input type="file" accept="image/*" onchange="uploadHero(this)"></label>
     </div>
   </div>
@@ -1129,15 +1145,15 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 
 <!-- ══ NAV ══ -->
 <nav>
-  <button class="tab active" onclick="go('today',this)" data-i18n="nav_today">Today</button>
-  <button class="tab" id="tabFocus" onclick="go('focus',this)">Focus</button>
-  <button class="tab" onclick="go('fitness',this)" data-i18n="nav_fitness">Fitness</button>
-  <button class="tab" onclick="go('food',this)">Food</button>
-  <button class="tab" onclick="go('projects',this)" data-i18n="nav_projects">Projects</button>
-  <button class="tab" onclick="go('media',this)" data-i18n="nav_media">Media</button>
-  <button class="tab" onclick="go('notes',this)">Notes</button>
-  <button class="tab" onclick="go('community',this)">Community</button>
-  <button class="tab" onclick="go('summary',this)" data-i18n="nav_summary">Summary</button>
+  <button class="tab active" data-tab="today" onclick="go('today',this)" data-i18n="nav_today">Today</button>
+  <button class="tab" id="tabFocus" data-tab="focus" onclick="go('focus',this)">Focus</button>
+  <button class="tab" data-tab="fitness" onclick="go('fitness',this)" data-i18n="nav_fitness">Fitness</button>
+  <button class="tab" data-tab="food" onclick="go('food',this)">Food</button>
+  <button class="tab" data-tab="projects" onclick="go('projects',this)" data-i18n="nav_projects">Projects</button>
+  <button class="tab" data-tab="media" onclick="go('media',this)" data-i18n="nav_media">Media</button>
+  <button class="tab" data-tab="notes" onclick="go('notes',this)">Notes</button>
+  <button class="tab" data-tab="community" onclick="go('community',this)">Community</button>
+  <button class="tab" data-tab="summary" onclick="go('summary',this)" data-i18n="nav_summary">Summary</button>
   <div class="nav-right">
     <div class="sync-dot" id="syncDot" title="Sync status"></div>
     <!-- FEATURE: Global Search button — remove to disable -->
@@ -1439,7 +1455,8 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 </main>
 
 <div class="sbar">
-  <span id="userEmail" style="color:var(--muted-lt)"></span>
+  <span id="userEmail" class="sbar-primary" style="color:var(--muted-lt)"></span>
+  <button id="sbarLangToggle" class="sbar-lang-btn" type="button" onclick="toggleLang()" aria-label="Toggle language">AR</button>
   <span id="saveInd"></span>
 </div>
 </div>
@@ -2035,7 +2052,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
         <div class="settings-kicker" data-i18n="language">Language</div>
         <div style="display:flex;gap:8px;align-items:center">
           <span style="font-size:0.78rem;color:var(--muted-lt)">EN</span>
-          <button id="stLangToggle" class="btn btn-g" style="font-size:0.72rem;padding:5px 14px" onclick="setLang(currentLang==='en'?'ar':'en');eid('stLangToggle').textContent=currentLang==='en'?'AR':'EN'">AR</button>
+          <button id="stLangToggle" class="btn btn-g" style="font-size:0.72rem;padding:5px 14px" onclick="toggleLang()">AR</button>
           <span style="font-size:0.78rem;color:var(--muted-lt)">AR</span>
         </div>
       </div>
@@ -2398,15 +2415,18 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 <script src="./Renderer/community.js"></script>
 <script src="./Renderer/app.js"></script>
 <div id="updateBanner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--blush);color:var(--cream);padding:10px 22px;border-radius:20px;font-size:0.78rem;font-family:'Jost',sans-serif;letter-spacing:0.04em;z-index:9999;cursor:pointer;box-shadow:0 4px 24px rgba(0,0,0,0.5)" onclick="window.location.reload()">
-  Update available — tap to reload
+  Update available - tap to reload
 </div>
 <script>
 if('serviceWorker' in navigator){
+  const SW_VERSION = 'aos-v52';
   // Capture whether a SW was already controlling this page at load time.
   // controllerchange also fires on first-ever install, so without this guard
   // the banner would flash on every fresh visit.
   const hadController = !!navigator.serviceWorker.controller;
-  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  navigator.serviceWorker.register(`/sw.js?v=${SW_VERSION}`).then(reg => {
+    reg.update().catch(()=>{});
+  }).catch(()=>{});
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if(hadController) document.getElementById('updateBanner').style.display = 'block';
   });

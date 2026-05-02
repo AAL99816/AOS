@@ -295,7 +295,7 @@ function openSettings() {
   // Always open on Profile tab
   switchSettingsTab('profile');
 
-  eid('stLangToggle').textContent = currentLang === 'en' ? 'AR' : 'EN';
+  if (typeof updateLanguageToggles === 'function') updateLanguageToggles();
   _populateCommunitySettings();
   openModal('mSettings');
 }

@@ -1,36 +1,77 @@
 'use strict';
 
-const CACHE = 'aos-v51';
+const CACHE = 'aos-v52';
 
 const SHELL = [
+  '/',
+  '/index.html',
   '/manifest.json',
   '/icons/icon.svg',
+  '/icons/icon-maskable.svg',
   '/Renderer/i18n.js',
   '/Renderer/web-api.js',
   '/Renderer/utils.js',
   '/Renderer/state.js',
   '/Renderer/auth.js',
-  '/Renderer/modules.js',
   '/Renderer/sync.js',
   '/Renderer/updater.js',
+  '/Renderer/exercises.js',
   '/Renderer/habits.js',
   '/Renderer/fitness.js',
-  '/Renderer/exercises.js',
-
   '/Renderer/projects.js',
   '/Renderer/mediaSearch.js',
   '/Renderer/media.js',
-  '/Renderer/notes.js',
   '/Renderer/review.js',
+  '/Renderer/modals.js',
   '/Renderer/settings.js',
   '/Renderer/features.js',
   '/Renderer/food.js',
-  '/Renderer/modals.js',
+  '/Renderer/today.js',
+  '/Renderer/modules.js',
+  '/Renderer/notes.js',
+  '/Renderer/community.js',
   '/Renderer/app.js',
 ];
 
+const APP_CODE_DESTINATIONS = new Set(['script', 'style', 'manifest', 'worker']);
+const APP_CODE_EXTENSIONS = ['.js', '.css', '.json', '.webmanifest'];
+
+function shellCacheKey(url) {
+  return url === '/' ? '/index.html' : url;
+}
+
+async function precacheShell() {
+  const cache = await caches.open(CACHE);
+  await Promise.all(SHELL.map(async url => {
+    const res = await fetch(new Request(url, { cache: 'reload' }));
+    if (res && res.ok) await cache.put(shellCacheKey(url), res.clone());
+  }));
+}
+
+async function networkFirst(request, fallbackUrl) {
+  const cache = await caches.open(CACHE);
+  try {
+    const res = await fetch(request);
+    if (res && res.ok) await cache.put(fallbackUrl || request, res.clone());
+    return res;
+  } catch (_) {
+    const cached = (fallbackUrl && await cache.match(fallbackUrl)) || await cache.match(request);
+    return cached || Response.error();
+  }
+}
+
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(request);
+  const fresh = fetch(request).then(res => {
+    if (res && res.ok) cache.put(request, res.clone());
+    return res;
+  }).catch(() => undefined);
+  return cached || await fresh || Response.error();
+}
+
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
+  e.waitUntil(precacheShell());
   self.skipWaiting();
 });
 
@@ -44,33 +85,19 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+
   const url = new URL(e.request.url);
-
-  /* Pass through: Supabase, Google Fonts, CDNs */
   if (url.hostname !== self.location.hostname) return;
+  if (url.pathname === '/config.js') return;
 
-  /* Navigation requests (HTML page loads) — always go to network.
-     Falls back to cached index.html if offline. */
   if (e.request.mode === 'navigate') {
-    e.respondWith(
-      fetch(e.request).catch(() => caches.match('/index.html'))
-    );
+    e.respondWith(networkFirst(e.request, '/index.html'));
     return;
   }
 
-  /* JS / CSS / assets — stale-while-revalidate:
-     Serve cached version immediately for speed, fetch fresh copy in
-     background so the *next* load always gets updated code.
-     Falls back to cache if offline. */
-  e.respondWith(
-    caches.open(CACHE).then(cache =>
-      cache.match(e.request).then(cached => {
-        const networkFetch = fetch(e.request).then(res => {
-          if (res && res.status === 200) cache.put(e.request, res.clone());
-          return res;
-        }).catch(() => cached);
-        return cached || networkFetch;
-      })
-    )
-  );
+  const isAppCode = APP_CODE_DESTINATIONS.has(e.request.destination) ||
+    APP_CODE_EXTENSIONS.some(ext => url.pathname.endsWith(ext));
+
+  e.respondWith(isAppCode ? networkFirst(e.request) : staleWhileRevalidate(e.request));
 });

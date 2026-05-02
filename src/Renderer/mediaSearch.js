@@ -4,8 +4,9 @@
 // Get free keys at:
 //   TMDB  → https://www.themoviedb.org/settings/api  (movies + TV shows)
 //   RAWG  → https://rawg.io/apidocs                  (games)
-const TMDB_KEY = '5402798e10de2bc6e4cc1e855bef54de';
-const RAWG_KEY = '6c844977a1ee47f4bf8fd23373361a55';
+const MEDIA_CONFIG = window.AOS_CONFIG || {};
+const TMDB_KEY = MEDIA_CONFIG.tmdbKey || '';
+const RAWG_KEY = MEDIA_CONFIG.rawgKey || '';
 
 // TMDB genre ID → name (static — these IDs have not changed since 2013)
 const TMDB_GENRES = {
