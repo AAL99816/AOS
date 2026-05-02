@@ -140,13 +140,13 @@ function applyModules() {
     const on = modOn(mod.id);
 
     if (mod.type === 'tab') {
-      // Hide/show the nav tab button
-      // Note: buttons use onclick="go('tabName',this)" so we match on just the name in quotes
-      const btn = document.querySelector(`.tab[onclick*="'${mod.tabName}'"]`);
+      // Hide/show the nav tab button — scope to <nav> to avoid matching buttons inside panels
+      const nav = document.querySelector('nav');
+      const btn = nav ? nav.querySelector(`.tab[onclick*="go('${mod.tabName}'"]`) : null;
       if (btn) btn.style.display = on ? '' : 'none';
       // If we just hid the active tab, navigate to the next visible tab
       if (!on && (typeof _activeTab !== 'undefined') && _activeTab === mod.tabName) {
-        const fallback = document.querySelector('.tab:not([style*="none"])');
+        const fallback = nav ? nav.querySelector('.tab:not([style*="none"])') : null;
         if (fallback) fallback.click();
       }
     }
