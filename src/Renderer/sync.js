@@ -153,7 +153,7 @@ async function saveProjects() {
           task_notes:  tk.taskNotes || '',
           order_index: j
         })),
-        { onConflict: 'app_id' }
+        { onConflict: 'user_id,app_id' }
       );
     }
     const taskIds = _pgInList(tasks.map(tk => tk.id));
@@ -403,7 +403,7 @@ async function saveHabits() {
           habit_id:    habitUuid,
           logged_date: d
         })),
-        { onConflict: 'app_id' }
+        { onConflict: 'user_id,app_id' }
       );
     }
     // Delete removed days
@@ -647,33 +647,6 @@ async function saveBodyWeight() {
   );
 }
 
-/* ── exercise catalog seeding ── */
-async function seedExerciseCatalog() {
-  if (!currentUser) return;
-  if (typeof EXERCISE_DB === 'undefined' || !EXERCISE_DB.length) return;
-  // Run only once per device — localStorage flag prevents repeat seeding on every login
-  const FLAG = 'aos_catalog_seeded_v2';
-  if (localStorage.getItem(FLAG)) return;
-
-  const rows = [...new Map(EXERCISE_DB.map(e => [e.id, {
-    db_id:     e.id,
-    name:      e.name,
-    muscles:   e.muscles   || [],
-    secondary: e.secondary || [],
-    equipment: e.equipment || '',
-    pattern:   e.pattern   || '',
-    category:  e.category  || ''
-  }])).values()];
-
-  // Batch in chunks of 100 to stay within Supabase request limits
-  for (let i = 0; i < rows.length; i += 100) {
-    const { error } = await sb.from('exercise_catalog')
-      .upsert(rows.slice(i, i + 100), { onConflict: 'db_id' });
-    if (error) { console.warn('[seedExerciseCatalog]', error.message); return; }
-  }
-  localStorage.setItem(FLAG, '1');
-}
-
 /* ── fitness: workout templates, sessions, cardio, calories ── */
 async function loadFitness() {
   if (!currentUser) return;
@@ -805,7 +778,7 @@ async function saveFitness() {
           logged_sets: Array.isArray(e.loggedSets) && e.loggedSets.length ? e.loggedSets : null,
           exercise_db_id: e.dbId || (typeof EXERCISE_DB !== 'undefined' ? (EXERCISE_DB.find(ex => ex.name === e.name)?.id || null) : null)
         })),
-        { onConflict: 'app_id' }
+        { onConflict: 'user_id,app_id' }
       );
     }
     const exIds = _pgInList(exs.map((_, j) => `${s.id}_${j}`));
@@ -973,7 +946,7 @@ async function saveFocusItems() {
     pomodoros_target: f.pomodorosTarget || 0,
     order_index: i
   }));
-  await sb.from('focus_items').upsert(rows, { onConflict: 'app_id' });
+  await sb.from('focus_items').upsert(rows, { onConflict: 'user_id,app_id' });
 }
 
 async function loadFocusItems() {
@@ -1014,7 +987,6 @@ async function loadFromSupabase() {
 
   S = normalizeAppState(data.data);
   await Promise.all([loadUserSettings(), loadProjects(), loadMedia(), loadHabits(), loadPrayer(), loadNotes(), loadBodyWeight(), loadWorkoutSchedule(), loadFitness(), loadFocusItems(), loadNotesDB()]);
-  seedExerciseCatalog().catch(e => console.warn('[seedExerciseCatalog]', e));
   _subscribeNotesRealtime();
   setSyncStatus('synced');
   return true;
@@ -1119,6 +1091,25 @@ async function loadFollowersCount(userId) {
   return count || 0;
 }
 
+function _cleanCommunitySearch(query) {
+  return String(query || '')
+    .replace(/[\\%,()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 64);
+}
+
+async function _fetchPublicProfilesByIds(ids) {
+  const cleanIds = [...new Set((ids || []).filter(Boolean))];
+  if (!cleanIds.length) return {};
+  const { data, error } = await sb
+    .from('public_profiles')
+    .select('id, username, display_name, avatar_url, bio')
+    .in('id', cleanIds);
+  if (error) { console.warn('[community] public profile lookup failed:', error.message); return {}; }
+  return Object.fromEntries((data || []).map(p => [p.id, p]));
+}
+
 // Returns profile cards for a user's followers
 async function fetchFollowersList(userId) {
   const { data: follows, error } = await sb
@@ -1130,7 +1121,7 @@ async function fetchFollowersList(userId) {
   const ids = (follows || []).map(r => r.follower_id).filter(Boolean);
   if (!ids.length) return [];
   const { data: profiles, error: pe } = await sb
-    .from('profiles')
+    .from('public_profiles')
     .select('id, username, display_name, avatar_url, bio')
     .in('id', ids);
   if (pe) { console.warn('[community] fetchFollowersList profiles:', pe.message); return []; }
@@ -1148,7 +1139,7 @@ async function fetchFollowingList(userId) {
   const ids = (follows || []).map(r => r.following_id).filter(Boolean);
   if (!ids.length) return [];
   const { data: profiles, error: pe } = await sb
-    .from('profiles')
+    .from('public_profiles')
     .select('id, username, display_name, avatar_url, bio')
     .in('id', ids);
   if (pe) { console.warn('[community] fetchFollowingList profiles:', pe.message); return []; }
@@ -1160,13 +1151,14 @@ async function loadCommunityFeed(followingIds) {
   if (!currentUser || !followingIds.length) return [];
   const { data, error } = await sb
     .from('community_feed_events')
-    .select('*, profiles(username, display_name, avatar_url)')
+    .select('*')
     .in('user_id', followingIds)
     .order('event_date', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(80);
   if (error) { console.warn('[community] loadCommunityFeed failed:', error.message); return []; }
-  return data || [];
+  const profiles = await _fetchPublicProfilesByIds((data || []).map(ev => ev.user_id));
+  return (data || []).map(ev => ({ ...ev, profiles: profiles[ev.user_id] || {} }));
 }
 
 async function loadCommunityFeedByUser(userId) {
@@ -1186,9 +1178,8 @@ async function loadCommunityFeedByUser(userId) {
 async function fetchDiscoverProfiles(excludeIds) {
   if (!currentUser) return [];
   let query = sb
-    .from('profiles')
+    .from('public_profiles')
     .select('id, username, display_name, avatar_url, bio, share_fitness, share_food, share_projects, share_media')
-    .eq('is_public', true)
     .neq('id', currentUser.id);
   if (excludeIds && excludeIds.length) {
     const excludeList = _pgInList(excludeIds);
@@ -1201,11 +1192,11 @@ async function fetchDiscoverProfiles(excludeIds) {
 
 async function searchCommunityProfiles(query) {
   if (!currentUser) return [];
-  const clean = query.replace(/'/g, "''");
+  const clean = _cleanCommunitySearch(query);
+  if (!clean) return [];
   const { data, error } = await sb
-    .from('profiles')
+    .from('public_profiles')
     .select('id, username, display_name, avatar_url, bio, share_fitness, share_food, share_projects, share_media')
-    .eq('is_public', true)
     .neq('id', currentUser.id)
     .or(`username.ilike.%${clean}%,display_name.ilike.%${clean}%`)
     .limit(20);
@@ -1215,10 +1206,9 @@ async function searchCommunityProfiles(query) {
 
 async function fetchPublicProfileById(userId) {
   const { data, error } = await sb
-    .from('profiles')
+    .from('public_profiles')
     .select('id, username, display_name, avatar_url, bio, is_public, share_fitness, share_food, share_projects, share_media')
     .eq('id', userId)
-    .eq('is_public', true)
     .single();
   if (error) return null;
   return data;

@@ -1,5 +1,6 @@
 -- seed_exercise_catalog.sql
--- Run this in the Supabase SQL editor to populate exercise_catalog.
+-- Run this in the Supabase SQL editor or a migration with database-owner
+-- privileges. The frontend should not have write access to exercise_catalog.
 -- ON CONFLICT (db_id) DO NOTHING means safe to re-run.
 
 INSERT INTO public.exercise_catalog (db_id, name, muscles, secondary, equipment, pattern, category)

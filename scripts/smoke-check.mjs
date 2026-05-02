@@ -22,6 +22,7 @@ const webApi = read('src/Renderer/web-api.js');
 const mediaSearch = read('src/Renderer/mediaSearch.js');
 const media = read('src/Renderer/media.js');
 const settings = read('src/Renderer/settings.js');
+const sync = read('src/Renderer/sync.js');
 const sw = read('src/sw.js');
 const gitignore = read('.gitignore');
 
@@ -89,6 +90,12 @@ expect(settings.includes('function isHexColor(value)'), 'custom theme colors are
 expect(!media.includes("updateBF('${escapeAttr(b.id)}'"), 'game media edit handlers do not single-quote escaped ids');
 expect(!index.includes('marked.min.js'), 'unused marked CDN script is not loaded');
 expect(!/marked\.parse/.test(read('src/Renderer/community.js')), 'community markdown does not render unsanitized marked HTML');
+
+expect(sync.includes(".from('public_profiles')"), 'community public profile reads use public_profiles view');
+expect(!sync.includes(".select('*, profiles("), 'community feed no longer embeds raw profiles');
+expect(!/from\('exercise_catalog'\)\s*\.\s*upsert/.test(sync), 'client no longer writes exercise_catalog');
+expect(sync.includes("sb.from('project_tasks').upsert") && sync.includes("{ onConflict: 'user_id,app_id' }"), 'project task upserts use user_id,app_id conflict target');
+expect(sync.includes("sb.from('focus_items').upsert(rows, { onConflict: 'user_id,app_id' })"), 'focus item upserts use user_id,app_id conflict target');
 
 if (failures.length) {
   console.error('Smoke check failed:');
