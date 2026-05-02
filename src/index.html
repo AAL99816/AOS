@@ -288,24 +288,6 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 .ex-item:hover .ex-del{opacity:1;}
 .add-ex-row{display:flex; gap:5px; margin-top:9px;}
 
-/* ══ GOALS ══ */
-.goals-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
-.goal-cat h3{font-family:'Cormorant Garamond',serif; font-size:0.98rem; color:var(--petal); margin-bottom:11px; padding-bottom:6px; border-bottom:1px solid var(--border);}
-.goal-item{background:color-mix(in srgb,var(--panel) 38%,transparent); border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:8px; transition:all 0.18s; position:relative;}
-.goal-item:hover{border-color:var(--border-lt); background:color-mix(in srgb,var(--mid) 22%,transparent);}
-.goal-head{display:flex; align-items:flex-start; gap:8px; margin-bottom:7px;}
-.goal-circle{width:16px; height:16px; border-radius:50%; border:1.5px solid var(--rose); flex-shrink:0; margin-top:2px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.55rem; color:transparent; transition:all 0.18s;}
-.goal-circle.inprog{border-color:var(--gold); background:color-mix(in srgb,var(--gold) 15%,transparent);}
-.goal-circle.done{border-color:var(--blush); background:var(--rose); color:var(--cream);}
-.goal-txt-inp{font-size:0.82rem; color:var(--mist); line-height:1.5; flex:1;}
-.goal-del{opacity:0; position:absolute; top:8px; right:10px; background:none; border:none; color:#e89090; cursor:pointer; font-size:0.68rem; transition:opacity 0.15s; padding:2px 4px;}
-.goal-item:hover .goal-del{opacity:1;}
-.goal-bar{height:2px; background:var(--blush-dim); border-radius:2px; overflow:hidden;}
-.goal-fill{height:100%; width:100%; background:var(--blush); border-radius:2px; transform-origin:left; transform:scaleX(0); transition:transform 0.35s ease;}
-.goal-footer{display:flex; align-items:center; justify-content:space-between; margin-top:5px;}
-.goal-dl-inp{font-family:'DM Mono',monospace; font-size:0.6rem; color:var(--muted);}
-.goal-pct-inp{font-family:'DM Mono',monospace; font-size:0.64rem; color:var(--blush); background:color-mix(in srgb,var(--ink) 60%,transparent); border:1px solid var(--border); border-radius:5px; padding:1px 4px; width:44px; outline:none; text-align:center;}
-
 /* ══ Projects ══ */
 .prog-filters{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;}
 .fpill{font-size:0.70rem; font-family:'DM Mono',monospace; letter-spacing:0.06em; text-transform:uppercase; padding:4px 12px; border-radius:20px; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--muted); transition:all 0.18s;}
@@ -323,6 +305,16 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 .s-complete {background:rgba(61,184,122,0.12);  color:#72e8a0;        border:1px solid rgba(61,184,122,0.28);}
 .s-dropped  {background:rgba(180,60,60,0.10);   color:#f09090;        border:1px solid rgba(180,60,60,0.22);}
 .s-archived {background:rgba(120,100,80,0.10);  color:#b0a090;        border:1px solid rgba(120,100,80,0.22);}
+
+/* ══ NOTES BLOCK EDITOR ══ */
+#noteBlockEditor { outline: none; }
+[data-block] { outline: none; }
+[data-block][contenteditable][data-placeholder]:empty::before {
+  content: attr(data-placeholder); color: var(--muted); pointer-events: none; }
+[data-block="bullet"] { padding-left: 22px; position: relative; }
+[data-block="bullet"]::before {
+  content: '•'; position: absolute; left: 4px; top: 0;
+  color: var(--blush); pointer-events: none; user-select: none; }
 
 /* ══ BOOKS ══ */
 .book-filters{display:flex; gap:6px; margin-bottom:14px;}
@@ -604,7 +596,20 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 .onboard-habit-opt:hover,.onboard-habit-opt.selected{border-color:var(--blush);background:color-mix(in srgb,var(--rose) 16%,transparent);}
 .onboard-habit-opt span{font-size:0.8rem;color:var(--mist);}
 .onboard-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--rose);display:flex;align-items:center;justify-content:center;font-size:0.58rem;color:transparent;flex-shrink:0;transition:all 0.15s;}
-.onboard-habit-opt.selected .onboard-check{background:var(--rose);color:var(--cream);}
+.onboard-habit-opt.selected .onboard-check,.onboard-tab-opt.selected .onboard-check{background:var(--rose);color:var(--cream);}
+.onboard-style-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0;}
+.onboard-style-opt{padding:14px 12px;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;transition:all 0.15s;background:color-mix(in srgb,var(--panel) 35%,transparent);}
+.onboard-style-opt:hover,.onboard-style-opt.selected{border-color:var(--blush);background:color-mix(in srgb,var(--rose) 12%,transparent);}
+.onboard-style-opt .ob-title{font-size:0.84rem;font-weight:600;color:var(--cream);margin-bottom:4px;}
+.onboard-style-opt .ob-desc{font-size:0.62rem;color:var(--muted);line-height:1.45;}
+.onboard-tab-list{display:flex;flex-direction:column;gap:6px;margin:10px 0;max-height:40vh;overflow-y:auto;}
+.onboard-tab-opt{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:9px;border:1px solid var(--border);background:color-mix(in srgb,var(--panel) 35%,transparent);cursor:pointer;transition:all 0.15s;}
+.onboard-tab-opt:hover,.onboard-tab-opt.selected{border-color:var(--blush);background:color-mix(in srgb,var(--rose) 12%,transparent);}
+.onboard-order-list{display:flex;flex-direction:column;gap:5px;margin:10px 0;max-height:38vh;overflow-y:auto;}
+.onboard-order-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;border:1px solid var(--border-lt);background:color-mix(in srgb,var(--panel) 25%,transparent);}
+.onboard-order-btn{background:none;border:1px solid var(--border);color:var(--muted);cursor:pointer;border-radius:4px;font-size:0.68rem;padding:2px 7px;line-height:1.2;font-family:'DM Mono',monospace;transition:border-color 0.12s,color 0.12s;}
+.onboard-order-btn:hover:not(:disabled){border-color:var(--blush);color:var(--blush);}
+.onboard-order-btn:disabled{opacity:0.3;cursor:default;}
 
 /* ══ TOAST ══ */
 #toast{position:fixed; bottom:20px; right:20px; z-index:300; background:var(--panel); border:1px solid var(--border-lt); border-radius:10px; padding:9px 15px; font-size:0.76rem; color:var(--mist); opacity:0; pointer-events:none; transition:opacity 0.25s; box-shadow:0 8px 30px rgba(0,0,0,0.5); display:flex; align-items:center; gap:0;}
@@ -686,7 +691,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 /* ── Tablet (≤900px) ── */
 @media(max-width:900px){
   .hero-content,nav,main,.sbar{padding-left:18px;padding-right:18px;}
-  .today-top,.goals-grid,.g2,.g3{grid-template-columns:1fr;}
+  .today-top,.g2,.g3{grid-template-columns:1fr;}
   .gym-week{grid-template-columns:repeat(4,1fr);}
   .books-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));}
   /* Workout cards: 2-col on tablet */
@@ -786,7 +791,6 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
   .ex-del{opacity:1;min-width:36px;min-height:36px;} /* always visible on touch */
   .habit-del{opacity:1;min-width:36px;min-height:36px;}
   .book-del{opacity:1;min-width:36px;min-height:36px;}
-  .goal-del{opacity:1;min-width:36px;min-height:36px;}
   /* Summary: clamp all content to viewport */
   #panel-summary{overflow-x:hidden;max-width:100vw;}
   #reviewContent{overflow-x:hidden;}
@@ -951,8 +955,6 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 [dir="rtl"] .prog-top { flex-direction: row-reverse; }
 [dir="rtl"] .book-detail-actions { flex-direction: row-reverse; }
 [dir="rtl"] .wk-head { flex-direction: row-reverse; }
-[dir="rtl"] .goal-head { flex-direction: row-reverse; }
-[dir="rtl"] .goal-footer { flex-direction: row-reverse; }
 [dir="rtl"] .sbar { flex-direction: row-reverse; }
 [dir="rtl"] .sbar span:first-child { margin-right: 0; margin-left: auto; }
 [dir="rtl"] .book-row { flex-direction: row-reverse; }
@@ -962,7 +964,6 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 [dir="rtl"] .streak-row { flex-direction: row-reverse; }
 [dir="rtl"] .review-prayer-row { flex-direction: row-reverse; }
 [dir="rtl"] #toast { right: auto; left: 20px; }
-[dir="rtl"] .goal-del { right: auto; left: 10px; }
 [dir="rtl"] .book-del { right: auto; left: 7px; top: 7px; }
 [dir="rtl"] .prog-filters { flex-direction: row-reverse; }
 [dir="rtl"] .book-filters { flex-direction: row-reverse; }
@@ -978,7 +979,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 
 /* ══ CSS FONT VARIABLES ══ */
 h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
-.dm-mono, input[type="date"], .goal-dl-inp, [style*="DM Mono"] { font-family: var(--font-mono); }
+.dm-mono, input[type="date"], [style*="DM Mono"] { font-family: var(--font-mono); }
 
 /* Theme option buttons */
 .theme-opt {
@@ -1048,7 +1049,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   <div class="auth-box">
     <h1>AOS</h1>
     <div class="auth-tagline" data-i18n="personal_life_os">Personal Life OS</div>
-    <div class="auth-modules" data-i18n="auth_modules">Prayer · Habits · Fitness · Goals · Projects · Media · Notes</div>
+    <div class="auth-modules" data-i18n="auth_modules">Prayer · Habits · Fitness · Projects · Media · Notes</div>
     <div class="auth-sub" data-i18n="auth_sub">Sign in to sync across devices</div>
     <div class="auth-tabs">
       <button class="auth-tab active" onclick="setAuthMode('login',this)" data-i18n="sign_in">Sign In</button>
@@ -1656,40 +1657,83 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   <textarea id="neBody" class="editable-area ne-body" placeholder="Write here…" oninput="updateExpandedNote(this.value)"></textarea>
 </div></div>
 
-<div class="modal-bg" id="mOnboard"><div class="modal" style="width:480px">
-  <h2 style="margin-bottom:6px" data-i18n="welcome_aos">Welcome to AOS</h2>
-  <div style="font-size:0.72rem;color:var(--muted);margin-bottom:18px">Let's set up your personal dashboard in 3 steps.</div>
+<div class="modal-bg" id="mOnboard"><div class="modal" style="width:500px;max-width:95vw">
   <div class="onboard-progress">
     <div class="onboard-pip done"></div>
     <div class="onboard-pip"></div>
     <div class="onboard-pip"></div>
+    <div class="onboard-pip"></div>
+    <div class="onboard-pip"></div>
   </div>
-  <!-- Step 1 -->
+
+  <!-- Step 1: Welcome -->
   <div class="onboard-step active">
-    <div class="mf"><label>Your Name</label><input id="onboardName" placeholder="Your name" data-i18n-ph="your_name_ph"></div>
-    <div class="mf"><label>Username</label><input id="onboardUsername" placeholder="@handle — letters, numbers, _" data-i18n-ph="username_ph"></div>
-    <div class="mf">
-      <label data-i18n="country">Country</label>
-      <input class="auth-inp" id="onboardCountry" type="text" list="countryList" placeholder="e.g. Kuwait">
+    <h2 style="margin-bottom:6px;font-size:1.4rem">AOS</h2>
+    <div style="font-size:0.76rem;color:var(--muted);margin-bottom:20px;line-height:1.6">
+      AOS, founded by King Mooks, is a personal OS adapting to what you need.
     </div>
-    <div class="modal-acts"><button class="btn btn-p" onclick="showOnboardStep(2)" data-i18n="next">Next →</button></div>
+    <div class="mf"><label>Your Name</label><input id="onboardName" placeholder="Your name" style="font-size:16px"></div>
+    <div class="mf"><label>Username</label><input id="onboardUsername" placeholder="@handle, letters, numbers, _" style="font-size:16px"></div>
+    <div class="mf">
+      <label>Country</label>
+      <input class="auth-inp" id="onboardCountry" type="text" list="countryList" placeholder="e.g. Kuwait" style="font-size:16px">
+    </div>
+    <div class="modal-acts"><button class="btn btn-p" onclick="showOnboardStep(2)">Next</button></div>
   </div>
-  <!-- Step 2 -->
+
+  <!-- Step 2: Style -->
   <div class="onboard-step">
-    <div style="font-size:0.76rem;color:var(--muted);margin-bottom:8px" data-i18n="choose_habits">Choose your habits</div>
+    <div style="font-size:0.84rem;color:var(--cream);font-weight:600;margin-bottom:6px">How do you want to start?</div>
+    <div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px;line-height:1.5">
+      You can choose the daily tracker preset, or go notes-first like Notion or Obsidian.
+      You can always change this in Settings.
+    </div>
+    <div class="onboard-style-row">
+      <div class="onboard-style-opt selected" data-style="tracker" onclick="onboardSelectStyle('tracker')">
+        <div class="ob-title">Daily Tracker</div>
+        <div class="ob-desc">Habits, fitness, food, projects, and media - all enabled. Today is your home.</div>
+      </div>
+      <div class="onboard-style-opt" data-style="notes" onclick="onboardSelectStyle('notes')">
+        <div class="ob-title">Notes-First</div>
+        <div class="ob-desc">Notes opens by default. Fitness and food are off until you turn them on.</div>
+      </div>
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-g" onclick="showOnboardStep(1)">Back</button>
+      <button class="btn btn-p" onclick="showOnboardStep(3)">Next</button>
+    </div>
+  </div>
+
+  <!-- Step 3: Habits -->
+  <div class="onboard-step">
+    <div style="font-size:0.84rem;color:var(--cream);font-weight:600;margin-bottom:4px">Pick your habits</div>
+    <div style="font-size:0.68rem;color:var(--muted);margin-bottom:2px">Tap to toggle. You can edit these any time.</div>
     <div class="onboard-habits" id="onboardHabits"></div>
     <div class="modal-acts">
-      <button class="btn btn-g" onclick="showOnboardStep(1)">← Back</button>
-      <button class="btn btn-p" onclick="showOnboardStep(3)" data-i18n="next">Next →</button>
+      <button class="btn btn-g" onclick="showOnboardStep(2)">Back</button>
+      <button class="btn btn-p" onclick="showOnboardStep(4)">Next</button>
     </div>
   </div>
-  <!-- Step 3 -->
+
+  <!-- Step 4: Tab picker -->
   <div class="onboard-step">
-    <div class="mf"><label data-i18n="first_goal">Your First Goal</label><input id="onboardGoal" placeholder="What do you want to achieve?"></div>
-    <div class="mf"><label>Category</label><select id="onboardGoalCat"><option>Personal</option><option>Academic</option><option>Career</option><option>Health</option><option>Creative</option></select></div>
+    <div style="font-size:0.84rem;color:var(--cream);font-weight:600;margin-bottom:4px">Choose your tabs</div>
+    <div style="font-size:0.68rem;color:var(--muted);margin-bottom:2px">Disabled tabs hide from the nav - your data is always kept.</div>
+    <div class="onboard-tab-list" id="onboardTabPicker"></div>
     <div class="modal-acts">
-      <button class="btn btn-g" onclick="showOnboardStep(2)">← Back</button>
-      <button class="btn btn-p" onclick="finishOnboarding()" data-i18n="get_started">Get Started</button>
+      <button class="btn btn-g" onclick="showOnboardStep(3)">Back</button>
+      <button class="btn btn-p" onclick="showOnboardStep(5)">Next</button>
+    </div>
+  </div>
+
+  <!-- Step 5: Order + default + done -->
+  <div class="onboard-step">
+    <div style="font-size:0.84rem;color:var(--cream);font-weight:600;margin-bottom:4px">Order your tabs</div>
+    <div style="font-size:0.68rem;color:var(--muted);margin-bottom:2px">Use the arrows to reorder. Select a tab to set it as your default opening page.</div>
+    <div class="onboard-order-list" id="onboardTabOrder"></div>
+    <div class="modal-acts">
+      <button class="btn btn-g" onclick="showOnboardStep(4)">Back</button>
+      <button class="btn btn-p" onclick="finishOnboarding()">Get Started</button>
     </div>
   </div>
 </div></div>
@@ -2337,7 +2381,6 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 <script src="./Renderer/exercises.js"></script>
 <script src="./Renderer/habits.js"></script>
 <script src="./Renderer/fitness.js"></script>
-<script src="./Renderer/goals.js"></script>
 <script src="./Renderer/projects.js"></script>
 <script src="./Renderer/mediaSearch.js"></script>
 <script src="./Renderer/media.js"></script>

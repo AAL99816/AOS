@@ -102,7 +102,7 @@ function renderGoals() {
 }
 
 function updateGoalField(id, field, value) {
-  const g = findById(S.goals, id);
+  const g = S.goals.find(x => String(x.id) === String(id));
   if (!g) return;
 
   g[field] = value;
@@ -118,7 +118,7 @@ function updateGoalField(id, field, value) {
 }
 
 function nudgeGoal(id) {
-  const g = findById(S.goals, id);
+  const g = S.goals.find(x => String(x.id) === String(id));
   if (!g) return;
 
   const steps = [0, 25, 50, 75, 100];
@@ -134,7 +134,7 @@ function nudgeGoal(id) {
 }
 
 function setGoalPct(id, value) {
-  const g = findById(S.goals, id);
+  const g = S.goals.find(x => String(x.id) === String(id));
   if (!g) return;
 
   g.progress = clampPct(value);
@@ -145,7 +145,7 @@ function setGoalPct(id, value) {
 function delGoal(id) {
   if (!confirm(t('remove_goal_confirm'))) return;
 
-  S.goals = filterOutById(S.goals, id);
+  S.goals = S.goals.filter(x => String(x.id) !== String(id));
   scheduleSave();
   renderGoals();
 }

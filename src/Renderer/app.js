@@ -127,72 +127,209 @@ function _renderTab(name) {
 }
 
 /* ══ ONBOARDING ══ */
-const HABIT_PRESETS=[
-  'Prayer (All 5)','Gym / Lift','Cardio / Walk','Reading',
-  'Study / Deep Work','Sleep On Time','Hydration','Stretch / Mobility',
-  'Journal / Reflect','Cold Shower'
+const HABIT_PRESETS = [
+  'Prayer (All 5)', 'Gym / Lift', 'Cardio / Walk', 'Reading',
+  'Study / Deep Work', 'Sleep On Time', 'Hydration', 'Stretch / Mobility',
+  'Journal / Reflect', 'Cold Shower'
 ];
-let _selectedHabits=new Set(['Prayer (All 5)','Gym / Lift','Cardio / Walk','Reading','Study / Deep Work','Sleep On Time']);
 
-function showOnboarding(){
-  _selectedHabits=new Set(['Prayer (All 5)','Gym / Lift','Cardio / Walk','Reading','Study / Deep Work','Sleep On Time']);
+// All tabs in canonical order (id must match go() call names and modId in MODULE_REGISTRY)
+const TAB_MANIFEST = [
+  { id: 'today',     label: 'Today',     desc: 'Daily dashboard with habits, water, and notes',    modId: 'tab.today'     },
+  { id: 'fitness',   label: 'Fitness',   desc: 'Workouts, cardio, weight tracking',                modId: 'tab.fitness'   },
+  { id: 'food',      label: 'Food',      desc: 'Calorie diary, meal plans, grocery list',          modId: 'tab.food'      },
+  { id: 'projects',  label: 'Projects',  desc: 'Tasks, deadlines, project notes',                  modId: 'tab.projects'  },
+  { id: 'media',     label: 'Media',     desc: 'Books, shows, films, games, albums',               modId: 'tab.media'     },
+  { id: 'notes',     label: 'Notes',     desc: 'Free-form notes with wiki-links',                  modId: 'tab.notes'     },
+  { id: 'focus',     label: 'Focus',     desc: 'Pomodoro timer and focus session log',             modId: 'tab.focus'     },
+  { id: 'community', label: 'Community', desc: 'Public profiles and activity feed',                modId: 'tab.community' },
+  { id: 'summary',   label: 'Summary',   desc: 'Weekly review, streaks, mood log',                 modId: 'tab.summary'   },
+];
+
+// Onboarding transient state
+let _selectedHabits  = new Set(['Prayer (All 5)', 'Gym / Lift', 'Cardio / Walk', 'Reading', 'Study / Deep Work', 'Sleep On Time']);
+let _onboardStyle    = 'tracker';
+let _onboardEnabled  = new Set(TAB_MANIFEST.map(t => t.id));
+let _onboardOrder    = TAB_MANIFEST.map(t => t.id);
+let _onboardDefault  = 'today';
+
+function showOnboarding() {
+  _selectedHabits = new Set(['Prayer (All 5)', 'Gym / Lift', 'Cardio / Walk', 'Reading', 'Study / Deep Work', 'Sleep On Time']);
+  _onboardStyle   = 'tracker';
+  _onboardEnabled = new Set(TAB_MANIFEST.map(t => t.id));
+  _onboardOrder   = TAB_MANIFEST.map(t => t.id);
+  _onboardDefault = 'today';
   renderOnboardHabits();
+  _renderOnboardTabs();
+  _renderOnboardOrder();
   showOnboardStep(1);
   openModal('mOnboard');
 }
 
-function showOnboardStep(n){
-  document.querySelectorAll('.onboard-step').forEach((s,i)=>s.classList.toggle('active',i+1===n));
-  document.querySelectorAll('.onboard-pip').forEach((p,i)=>p.classList.toggle('done',i<n));
+function showOnboardStep(n) {
+  document.querySelectorAll('.onboard-step').forEach((s, i) => s.classList.toggle('active', i + 1 === n));
+  document.querySelectorAll('.onboard-pip').forEach((p, i) => p.classList.toggle('done', i < n));
+  if (n === 4) _renderOnboardTabs();
+  if (n === 5) _renderOnboardOrder();
 }
 
-function toggleOnboardHabit(name){
-  if(_selectedHabits.has(name)) _selectedHabits.delete(name);
+function onboardSelectStyle(style) {
+  _onboardStyle = style;
+  document.querySelectorAll('.onboard-style-opt').forEach(el =>
+    el.classList.toggle('selected', el.dataset.style === style)
+  );
+  if (style === 'tracker') {
+    _onboardEnabled = new Set(TAB_MANIFEST.map(t => t.id));
+    _onboardDefault = 'today';
+  } else {
+    // Notes-first: start with a focused set
+    _onboardEnabled = new Set(['today', 'notes', 'projects', 'media', 'focus', 'summary']);
+    _onboardDefault = 'notes';
+  }
+  _onboardOrder = TAB_MANIFEST.map(t => t.id).filter(id => _onboardEnabled.has(id));
+}
+
+function toggleOnboardHabit(name) {
+  if (_selectedHabits.has(name)) _selectedHabits.delete(name);
   else _selectedHabits.add(name);
   renderOnboardHabits();
 }
 
-function renderOnboardHabits(){
-  const c=eid('onboardHabits');if(!c)return;
-  c.innerHTML=HABIT_PRESETS.map(h=>`
-    <div class="onboard-habit-opt${_selectedHabits.has(h)?' selected':''}" onclick="toggleOnboardHabit('${escapeAttr(h)}')">
-      <div class="onboard-check">${_selectedHabits.has(h)?'✓':''}</div>
+function renderOnboardHabits() {
+  const c = eid('onboardHabits'); if (!c) return;
+  c.innerHTML = HABIT_PRESETS.map(h => `
+    <div class="onboard-habit-opt${_selectedHabits.has(h) ? ' selected' : ''}" onclick="toggleOnboardHabit('${escapeAttr(h)}')">
+      <div class="onboard-check">${_selectedHabits.has(h) ? '✓' : ''}</div>
       <span>${escapeHtml(h)}</span>
     </div>`).join('');
 }
 
-function finishOnboarding(){
-  const displayName=(eid('onboardName').value||'').trim();
-  const username=(eid('onboardUsername').value||'').trim().replace(/[^a-zA-Z0-9_]/g,'').slice(0,30);
-  const goalText=(eid('onboardGoal').value||'').trim();
-  const goalCat=eid('onboardGoalCat').value||'Personal';
+function _renderOnboardTabs() {
+  const c = eid('onboardTabPicker'); if (!c) return;
+  c.innerHTML = TAB_MANIFEST.map(t => `
+    <div class="onboard-tab-opt${_onboardEnabled.has(t.id) ? ' selected' : ''}"
+         data-tabid="${t.id}" onclick="_onboardToggleTab('${t.id}')">
+      <div class="onboard-check">${_onboardEnabled.has(t.id) ? '✓' : ''}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:0.8rem;color:var(--cream);font-weight:500">${escapeHtml(t.label)}</div>
+        <div style="font-size:0.62rem;color:var(--muted);line-height:1.3;margin-top:1px">${escapeHtml(t.desc)}</div>
+      </div>
+    </div>`).join('');
+}
 
-  S.appTitle = displayName ? displayName+"'s OS" : 'My OS';
-  S.appSub   = '';
-  S.habits   = [..._selectedHabits].map((name)=>makeHabit({name}));
-  S.goals    = goalText ? [makeGoal({text:goalText,category:goalCat,progress:0})] : [];
-  S.projects = [];
-  S.onboarded= true;
+function _onboardToggleTab(id) {
+  if (_onboardEnabled.has(id)) {
+    _onboardEnabled.delete(id);
+    _onboardOrder = _onboardOrder.filter(x => x !== id);
+  } else {
+    _onboardEnabled.add(id);
+    if (!_onboardOrder.includes(id)) {
+      // Re-insert at canonical position
+      const canonical = TAB_MANIFEST.map(t => t.id);
+      const pos = canonical.indexOf(id);
+      let inserted = false;
+      for (let i = pos + 1; i < canonical.length; i++) {
+        const idx = _onboardOrder.indexOf(canonical[i]);
+        if (idx >= 0) { _onboardOrder.splice(idx, 0, id); inserted = true; break; }
+      }
+      if (!inserted) _onboardOrder.push(id);
+    }
+  }
+  if (!_onboardEnabled.has(_onboardDefault)) {
+    _onboardDefault = _onboardOrder[0] || 'today';
+  }
+  _renderOnboardTabs();
+  _renderOnboardOrder();
+}
+
+function _renderOnboardOrder() {
+  const c = eid('onboardTabOrder'); if (!c) return;
+  const visible = _onboardOrder.filter(id => _onboardEnabled.has(id));
+  c.innerHTML = visible.map((id, i) => {
+    const t = TAB_MANIFEST.find(x => x.id === id);
+    const label = t ? t.label : id;
+    const isDefault = _onboardDefault === id;
+    return `<div class="onboard-order-item" data-tabid="${id}">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;min-width:0">
+        <input type="radio" name="obDefaultTab" value="${id}" ${isDefault ? 'checked' : ''}
+          onchange="_onboardDefault='${id}';_renderOnboardOrder()"
+          style="accent-color:var(--blush);cursor:pointer;flex-shrink:0">
+        <span style="font-size:0.8rem;color:var(--cream)">${escapeHtml(label)}</span>
+        ${isDefault ? '<span style="font-size:0.58rem;color:var(--blush);font-family:\'DM Mono\',monospace;margin-left:4px">default</span>' : ''}
+      </label>
+      <div style="display:flex;gap:3px">
+        <button onclick="_onboardMoveTab('${id}',-1)" ${i === 0 ? 'disabled' : ''}
+          class="onboard-order-btn">^</button>
+        <button onclick="_onboardMoveTab('${id}',1)" ${i === visible.length - 1 ? 'disabled' : ''}
+          class="onboard-order-btn">v</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function _onboardMoveTab(id, dir) {
+  const visible = _onboardOrder.filter(x => _onboardEnabled.has(x));
+  const idx = visible.indexOf(id);
+  if (idx < 0) return;
+  const swapIdx = idx + dir;
+  if (swapIdx < 0 || swapIdx >= visible.length) return;
+  const oi = _onboardOrder.indexOf(id);
+  const oj = _onboardOrder.indexOf(visible[swapIdx]);
+  [_onboardOrder[oi], _onboardOrder[oj]] = [_onboardOrder[oj], _onboardOrder[oi]];
+  _renderOnboardOrder();
+}
+
+// Apply saved tabOrder to nav DOM (called on boot and after onboarding)
+function applyTabOrder() {
+  const order = S.appPrefs && S.appPrefs.tabOrder;
+  if (!order || !order.length) return;
+  const nav = document.querySelector('nav');
+  if (!nav) return;
+  order.forEach(tabId => {
+    const btn = nav.querySelector(`.tab[onclick*="go('${tabId}')"]`);
+    if (btn) nav.appendChild(btn);
+  });
+}
+
+function finishOnboarding() {
+  const displayName = (eid('onboardName').value || '').trim();
+  const username    = (eid('onboardUsername').value || '').trim().replace(/[^a-zA-Z0-9_]/g, '').slice(0, 30);
+  S.appTitle    = displayName ? displayName + "'s OS" : 'My OS';
+  S.appSub      = '';
+  S.habits      = [..._selectedHabits].map(name => makeHabit({ name }));
+  S.projects    = [];
+  S.onboarded   = true;
+
+  // Write tab visibility
+  if (!S.modules) S.modules = {};
+  TAB_MANIFEST.forEach(t => { if (t.modId) S.modules[t.modId] = _onboardEnabled.has(t.id); });
+
+  // Write tab order + default
+  S.appPrefs.tabOrder   = [..._onboardOrder];
+  S.appPrefs.defaultTab = _onboardDefault;
 
   closeModal('mOnboard');
 
-  if(username && currentUser){
-    sb.from('profiles').upsert({ id: currentUser.id, username }, { onConflict: 'id' }).then(()=>{
-      if(!currentProfile) currentProfile = {};
+  if (username && currentUser) {
+    sb.from('profiles').upsert({ id: currentUser.id, username }, { onConflict: 'id' }).then(() => {
+      if (!currentProfile) currentProfile = {};
       currentProfile.username = username;
       renderHeroProfile();
     });
   }
   const country = (eid('onboardCountry')?.value || '').trim();
-  if(country && currentUser){
-    sb.from('profiles').upsert({ id: currentUser.id, country }, { onConflict: 'id' }).then(()=>{
-      if(!currentProfile) currentProfile = {};
+  if (country && currentUser) {
+    sb.from('profiles').upsert({ id: currentUser.id, country }, { onConflict: 'id' }).then(() => {
+      if (!currentProfile) currentProfile = {};
       currentProfile.country = country;
-      // appSub will auto-update via getSeasonLabel() on next renderAll
     });
   }
+
   scheduleSave();
   renderAll();
+  applyModules();
+  applyTabOrder();
+  go(_onboardDefault || 'today');
   toast(t('welcome_toast'));
 }
 
@@ -303,6 +440,9 @@ async function initApp(){
   if (typeof initFoodTab === 'function') initFoodTab();
   if (typeof migrateExerciseHistory === 'function') migrateExerciseHistory();
   renderAll();
+  applyTabOrder();
+  const startTab = (S.appPrefs && S.appPrefs.defaultTab) || 'today';
+  if (startTab !== 'today') go(startTab);
 }
 
 async function bootApp(){

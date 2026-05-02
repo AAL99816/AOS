@@ -19,7 +19,6 @@ const DS = {
     {type:'',rest:true},{type:'',rest:true},{type:'',rest:true}
   ],
   workoutCards:[],
-  goals:[],
   projects:[],
   media:[],
 gymLog:{},
@@ -38,7 +37,7 @@ weeklyReflections:{},
 weightLog:[],
 moodLog:{},
 annualGoals:null,
-appPrefs:{ showReflection: true, calorieMode: 'meal' },
+appPrefs:{ showReflection: true, calorieMode: 'meal', defaultTab: 'today', tabOrder: [] },
 modules:{},
 notesTopics:[],
 customStreaks:[],
@@ -191,20 +190,6 @@ function makeHabit(h={}){
   };
 }
 
-function makeGoal(g={}){
-  return {
-    id: g.id ?? uid(),
-    text: g.text ?? '',
-    category: g.category ?? 'Personal',
-    type: g.type ?? '',
-    context: g.context ?? '',
-    deadline: g.deadline ?? '',
-    progress: Number.isFinite(+g.progress) ? Math.max(0, Math.min(100, +g.progress)) : 0,
-    notes: g.notes ?? '',
-    projectId: g.projectId ?? null
-  };
-}
-  
 function normalizeAppState(raw={}){
   const src = raw && typeof raw === 'object' ? raw : {};
   const out = deepMerge(DS, src);
@@ -270,7 +255,6 @@ function normalizeAppState(raw={}){
   }
 
   out.habits = (Array.isArray(out.habits) ? out.habits : clone(DS.habits)).map(makeHabit);
-  out.goals = (Array.isArray(out.goals) ? out.goals : clone(DS.goals)).map(makeGoal);
   out.workout = (Array.isArray(out.workout) ? out.workout : clone(DS.workout)).map(makeWorkoutDay);
   out.workoutCards = Array.isArray(out.workoutCards) ? out.workoutCards : clone(DS.workoutCards);
 

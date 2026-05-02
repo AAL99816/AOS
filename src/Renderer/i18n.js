@@ -7,7 +7,6 @@ const LANG = {
     /* Navigation */
     nav_today:    'Today',
     nav_fitness:  'Fitness',
-    nav_goals:    'Goals',
     nav_projects: 'Projects',
     nav_media:    'Media',
     nav_review:   'Summary',
@@ -50,19 +49,6 @@ const LANG = {
     training_week:     'Training Week',
     daily_cardio:      'Daily Cardio',
     min:               'min',
-
-    /* Goals */
-    goals:             'Goals',
-    no_goals:          'No goals yet — tap + to add your first',
-    notes:             'Notes',
-    deadline:          'Deadline',
-    add_goal:          'Add Goal',
-    goal_title_ph:     'Goal title',
-    no_project:        '— No project —',
-    goals_linked:      'goals linked',
-    goal_linked:       'goal linked',
-    new_goal:          'New Goal',
-    goal_added:        'Goal added',
 
     /* Projects */
     projects:          'Projects',
@@ -168,7 +154,6 @@ const LANG = {
     welcome_aos:       'Welcome to AOS',
     what_call_you:     'What should we call you?',
     choose_habits:     'Choose your habits',
-    first_goal:        'Your first goal',
     get_started:       'Get Started',
     next:              'Next',
 
@@ -217,7 +202,6 @@ const LANG = {
     remove_workout_card:  'Remove this workout card?',
     no_exercise_data:     'No exercise data',
     new_block:            'New Block',
-    remove_goal_confirm:  'Delete this goal?',
     remove_item_confirm:  'Remove this item?',
     click_rename:         'Click to rename',
     mark_training:        'Mark as training day',
@@ -237,8 +221,7 @@ const LANG = {
     sets_ph:              '3×10',
     weight_ph:            'kg',
     reps_ph:              'reps',
-    unsorted:             'Unsorted',
-    auth_modules:         'Prayer · Habits · Fitness · Goals · Projects · Media · Notes',
+    auth_modules:         'Prayer · Habits · Fitness · Projects · Media · Notes',
     auth_sub:             'Sign in to sync across devices',
     daily_notes_lbl:      'Daily Notes',
     daily_notes_ph:       'Write anything…',
@@ -290,9 +273,7 @@ const LANG = {
     /* Project detail */
     open_detail:        'Open →',
     tasks_label:        'Tasks',
-    linked_goals:       'Linked Goals',
     no_tasks:           'No tasks yet',
-    no_linked_goals:    'No linked goals',
 
     /* Training log full view */
     view_all:           'View all →',
@@ -305,7 +286,6 @@ const LANG = {
     /* Navigation */
     nav_today:    'اليوم',
     nav_fitness:  'التدريب',
-    nav_goals:    'الأهداف',
     nav_projects: 'المشاريع',
     nav_media:    'المكتبة',
     nav_review:   'الملخص',
@@ -348,19 +328,6 @@ const LANG = {
     training_week:     'أسبوع التدريب',
     daily_cardio:      'كارديو يومي',
     min:               'دقيقة',
-
-    /* Goals */
-    goals:             'الأهداف',
-    no_goals:          'لا توجد أهداف بعد — اضغط + للإضافة',
-    notes:             'ملاحظات',
-    deadline:          'الموعد النهائي',
-    add_goal:          'إضافة هدف',
-    goal_title_ph:     'عنوان الهدف',
-    no_project:        '— بدون مشروع —',
-    goals_linked:      'أهداف مرتبطة',
-    goal_linked:       'هدف مرتبط',
-    new_goal:          'هدف جديد',
-    goal_added:        'تمت إضافة الهدف',
 
     /* Projects */
     projects:          'المشاريع',
@@ -466,7 +433,6 @@ const LANG = {
     welcome_aos:       'مرحباً بك في AOS',
     what_call_you:     'ماذا نُسمِّيك؟',
     choose_habits:     'اختر عاداتك',
-    first_goal:        'هدفك الأول',
     get_started:       'ابدأ الآن',
     next:              'التالي',
 
@@ -515,7 +481,6 @@ const LANG = {
     remove_workout_card:  'إزالة كتلة التمرين؟',
     no_exercise_data:     'لا توجد بيانات تمرين',
     new_block:            'كتلة جديدة',
-    remove_goal_confirm:  'حذف هذا الهدف؟',
     remove_item_confirm:  'حذف هذا العنصر؟',
     click_rename:         'انقر للتسمية',
     mark_training:        'حدد كيوم تدريب',
@@ -535,8 +500,7 @@ const LANG = {
     sets_ph:              '3×10',
     weight_ph:            'كغ',
     reps_ph:              'تكرار',
-    unsorted:             'غير مصنف',
-    auth_modules:         'الصلاة · العادات · التدريب · الأهداف · المشاريع · المكتبة · الملاحظات',
+    auth_modules:         'الصلاة · العادات · التدريب · المشاريع · المكتبة · الملاحظات',
     auth_sub:             'سجل الدخول للمزامنة عبر الأجهزة',
     daily_notes_lbl:      'ملاحظات اليوم',
     daily_notes_ph:       'اكتب أي شيء...',
@@ -588,9 +552,7 @@ const LANG = {
     /* Project detail */
     open_detail:        'فتح ←',
     tasks_label:        'المهام',
-    linked_goals:       'أهداف مرتبطة',
     no_tasks:           'لا توجد مهام بعد',
-    no_linked_goals:    'لا توجد أهداف مرتبطة',
 
     /* Training log full view */
     view_all:           'عرض الكل ←',
