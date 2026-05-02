@@ -6,23 +6,35 @@ const SUPABASE_URL = AOS_CONFIG.supabaseUrl || '';
 const SUPABASE_KEY = AOS_CONFIG.supabaseAnonKey || '';
 
 const IS_WEB = window.location.protocol === 'https:' || window.location.protocol === 'http:';
+const AUTH_CONFIG_ERROR = 'App configuration is missing. Check Cloudflare AOS_SUPABASE_URL and AOS_SUPABASE_ANON_KEY.';
+let sb = null;
 
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error('[auth] Missing Supabase config. Copy src/config.example.js to src/config.js and fill in the client settings.');
-}
-
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: {
-    detectSessionInUrl: IS_WEB
+if (!SUPABASE_URL || !SUPABASE_KEY || typeof supabase === 'undefined') {
+  console.error('[auth] ' + AUTH_CONFIG_ERROR);
+} else {
+  try {
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: {
+        detectSessionInUrl: IS_WEB
+      }
+    });
+  } catch (err) {
+    console.error('[auth] Failed to create Supabase client:', err);
   }
-});
+}
 
 let currentUser  = null;
 let currentProfile = null;
 let authMode = 'login';
 
+function requireSupabaseClient() {
+  if (sb) return true;
+  showAuthMsg(AUTH_CONFIG_ERROR, true);
+  return false;
+}
+
 async function loadProfile() {
-  if (!currentUser) return;
+  if (!currentUser || !sb) return;
   const { data, error } = await sb
     .from('profiles')
     .select('username, avatar_url, country, display_name, font, theme, bio, is_public, share_fitness, share_food, share_projects, share_media')
@@ -45,6 +57,8 @@ function setAuthMode(mode, btn) {
 }
 
 async function doAuth() {
+  if (!requireSupabaseClient()) return;
+
   const email = eid('authEmail').value.trim();
   const pass = eid('authPass').value;
 
@@ -57,20 +71,25 @@ async function doAuth() {
   eid('authBtn').disabled = true;
 
   let res;
-  if (authMode === 'login') {
-    res = await sb.auth.signInWithPassword({ email, password: pass });
-  } else {
-    res = await sb.auth.signUp({
-      email,
-      password: pass,
-      options: {
-        emailRedirectTo: IS_WEB ? window.location.origin : 'com.aal99816.aos://auth/callback'
-      }
-    });
+  try {
+    if (authMode === 'login') {
+      res = await sb.auth.signInWithPassword({ email, password: pass });
+    } else {
+      res = await sb.auth.signUp({
+        email,
+        password: pass,
+        options: {
+          emailRedirectTo: IS_WEB ? window.location.origin : 'com.aal99816.aos://auth/callback'
+        }
+      });
+    }
+  } catch (err) {
+    showAuthMsg(err?.message || 'Authentication failed. Please try again.', true);
+    return;
+  } finally {
+    eid('authBtn').disabled = false;
+    eid('authBtn').textContent = authMode === 'login' ? t('sign_in') : t('create_account');
   }
-
-  eid('authBtn').disabled = false;
-  eid('authBtn').textContent = authMode === 'login' ? t('sign_in') : t('create_account');
 
   if (res.error) {
     showAuthMsg(res.error.message, true);
@@ -83,6 +102,10 @@ async function doAuth() {
   }
 
   currentUser = res.data.user;
+  if (!currentUser) {
+    showAuthMsg('Authentication did not return a user. Please try again.', true);
+    return;
+  }
   const country = authMode === 'signup' ? (eid('authCountry')?.value?.trim() || '') : '';
   await loadProfile();
   if (country) {
@@ -123,6 +146,8 @@ function parseAuthCallbackUrl(url) {
 }
 
 async function handleAuthDeepLink(url) {
+  if (!requireSupabaseClient()) return;
+
   const parsed = parseAuthCallbackUrl(url);
   if (!parsed) return;
 
@@ -174,7 +199,7 @@ async function handleAuthDeepLink(url) {
 }
 
 async function signOut() {
-  await sb.auth.signOut();
+  if (sb) await sb.auth.signOut();
   currentUser = null;
   appBooted = false;
   eid('authScreen').classList.remove('hidden');
@@ -192,7 +217,21 @@ if (window.authBridge?.onDeepLink) {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
-  const { data: { session } } = await sb.auth.getSession();
+  if (!sb) {
+    showAuthMsg(AUTH_CONFIG_ERROR, true);
+    const btn = eid('authBtn');
+    if (btn) btn.disabled = true;
+    return;
+  }
+
+  let session = null;
+  try {
+    ({ data: { session } } = await sb.auth.getSession());
+  } catch (err) {
+    console.error('[auth] Failed to restore session:', err);
+    showAuthMsg('Could not restore your session. Please sign in again.', true);
+    return;
+  }
   if (session && session.user) {
     currentUser = session.user;
     await loadProfile();

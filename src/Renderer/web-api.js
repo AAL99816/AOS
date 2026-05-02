@@ -75,9 +75,14 @@ if (!window.authBridge) {
    We parse it and call handleAuthDeepLink (defined in auth.js) after
    all scripts have loaded. The DOMContentLoaded guard in auth.js then
    finds an active session and boots the app normally. ── */
+const _hasWebAuthCallback = typeof window !== 'undefined' && (
+  window.location.hash.includes('access_token') ||
+  new URLSearchParams(window.location.search).has('token_hash')
+);
+
 if (typeof window !== 'undefined' &&
     (window.location.protocol === 'https:' || window.location.protocol === 'http:') &&
-    window.location.hash.includes('access_token')) {
+    _hasWebAuthCallback) {
 
   window.addEventListener('DOMContentLoaded', async () => {
     if (typeof handleAuthDeepLink === 'function') {

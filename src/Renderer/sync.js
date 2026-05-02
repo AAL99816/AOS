@@ -2,6 +2,14 @@
 
 let _lastFoodHash = null;
 
+function _pgInList(values) {
+  const quoted = (values || [])
+    .map(v => String(v ?? ''))
+    .filter(Boolean)
+    .map(v => `"${v.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`);
+  return quoted.length ? `(${quoted.join(',')})` : '';
+}
+
 async function uploadAsset(path, file) {
   if (!currentUser) throw new Error('Not signed in');
   const ext = (file.type || '').split('/')[1] || 'jpg';
@@ -148,10 +156,10 @@ async function saveProjects() {
         { onConflict: 'app_id' }
       );
     }
-    const taskIds = tasks.map(tk => `"${tk.id}"`).join(',');
+    const taskIds = _pgInList(tasks.map(tk => tk.id));
     if (taskIds) {
       await sb.from('project_tasks').delete()
-        .eq('project_id', projectUuid).not('app_id', 'in', `(${taskIds})`);
+        .eq('project_id', projectUuid).not('app_id', 'in', taskIds);
     } else {
       await sb.from('project_tasks').delete().eq('project_id', projectUuid);
     }
@@ -268,10 +276,10 @@ async function saveMedia() {
         { onConflict: 'app_id' }
       );
     }
-    const trackIds = tracks.map(tr => `"${tr.id}"`).join(',');
+    const trackIds = _pgInList(tracks.map(tr => tr.id));
     if (trackIds) {
       await sb.from('media_tracks').delete()
-        .eq('media_item_id', itemUuid).not('app_id', 'in', `(${trackIds})`);
+        .eq('media_item_id', itemUuid).not('app_id', 'in', trackIds);
     } else {
       await sb.from('media_tracks').delete().eq('media_item_id', itemUuid);
     }
@@ -399,10 +407,10 @@ async function saveHabits() {
       );
     }
     // Delete removed days
-    const dayIds = days.map(d => `"${appId}_${d}"`).join(',');
+    const dayIds = _pgInList(days.map(d => `${appId}_${d}`));
     if (dayIds) {
       await sb.from('habit_logs').delete()
-        .eq('habit_id', habitUuid).not('app_id', 'in', `(${dayIds})`);
+        .eq('habit_id', habitUuid).not('app_id', 'in', dayIds);
     } else {
       await sb.from('habit_logs').delete().eq('habit_id', habitUuid);
     }
@@ -766,8 +774,8 @@ async function saveFitness() {
         { onConflict: 'app_id' }
       );
     }
-    const exIds = exs.map(e => `"${e.id}"`).join(',');
-    if (exIds) await sb.from('workout_template_exercises').delete().eq('template_id', tmplUuid).not('app_id', 'in', `(${exIds})`);
+    const exIds = _pgInList(exs.map(e => e.id));
+    if (exIds) await sb.from('workout_template_exercises').delete().eq('template_id', tmplUuid).not('app_id', 'in', exIds);
     else        await sb.from('workout_template_exercises').delete().eq('template_id', tmplUuid);
   }
 
@@ -800,8 +808,8 @@ async function saveFitness() {
         { onConflict: 'app_id' }
       );
     }
-    const exIds = exs.map((_, j) => `"${s.id}_${j}"`).join(',');
-    if (exIds) await sb.from('workout_exercises').delete().eq('session_id', sessUuid).not('app_id', 'in', `(${exIds})`);
+    const exIds = _pgInList(exs.map((_, j) => `${s.id}_${j}`));
+    if (exIds) await sb.from('workout_exercises').delete().eq('session_id', sessUuid).not('app_id', 'in', exIds);
     else        await sb.from('workout_exercises').delete().eq('session_id', sessUuid);
   }
 
@@ -821,8 +829,8 @@ async function saveFitness() {
       { onConflict: 'user_id,app_id' }
     );
   }
-  const cardioIds = cardio.map(c => `"${c.id}"`).join(',');
-  if (cardioIds) await sb.from('cardio_sessions').delete().eq('user_id', currentUser.id).not('app_id', 'in', `(${cardioIds})`);
+  const cardioIds = _pgInList(cardio.map(c => c.id));
+  if (cardioIds) await sb.from('cardio_sessions').delete().eq('user_id', currentUser.id).not('app_id', 'in', cardioIds);
 
   // ── Calorie entries ──
   const calories = S.calorieHistory || [];
@@ -836,8 +844,8 @@ async function saveFitness() {
       { onConflict: 'user_id,app_id' }
     );
   }
-  const calIds = calories.map(e => `"${e.id}"`).join(',');
-  if (calIds) await sb.from('calorie_entries').delete().eq('user_id', currentUser.id).not('app_id', 'in', `(${calIds})`);
+  const calIds = _pgInList(calories.map(e => e.id));
+  if (calIds) await sb.from('calorie_entries').delete().eq('user_id', currentUser.id).not('app_id', 'in', calIds);
 
   // ── Exercise PBs + workout schedule (depend on templates being saved above) ──
   await Promise.all([

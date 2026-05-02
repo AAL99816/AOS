@@ -1,7 +1,7 @@
 'use strict';
 
 // ── API Keys ──────────────────────────────────────────────────────────────────
-// Get free keys at:
+// Optional media keys come from runtime config.js. Do not commit real keys here.
 //   TMDB  → https://www.themoviedb.org/settings/api  (movies + TV shows)
 //   RAWG  → https://rawg.io/apidocs                  (games)
 const MEDIA_CONFIG = window.AOS_CONFIG || {};
@@ -170,15 +170,15 @@ async function searchAnime(q) {
 // ── Dropdown UI ───────────────────────────────────────────────────────────────
 function getAttributionHtml(type) {
   if (type === 'book')
-    return `<div style="padding:6px 12px;font-size:0.58rem;color:var(--muted);border-top:1px solid var(--border);text-align:right">Data from <a href="https://openlibrary.org" target="_blank" style="color:var(--muted);text-decoration:underline">Open Library</a></div>`;
-  if (type === 'film' || type === 'show' || type === 'anime')
-    return `<div style="padding:6px 12px;font-size:0.58rem;color:var(--muted);border-top:1px solid var(--border)">Data from <a href="https://www.themoviedb.org" target="_blank" style="color:var(--muted);text-decoration:underline">TMDB</a> — not endorsed or certified by TMDB</div>`;
+    return `<div style="padding:6px 12px;font-size:0.58rem;color:var(--muted);border-top:1px solid var(--border);text-align:right">Data from <a href="https://openlibrary.org" target="_blank" rel="noopener noreferrer" style="color:var(--muted);text-decoration:underline">Open Library</a></div>`;
+  if (type === 'film' || type === 'show')
+    return `<div style="padding:6px 12px;font-size:0.58rem;color:var(--muted);border-top:1px solid var(--border)">Data from <a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer" style="color:var(--muted);text-decoration:underline">TMDB</a> - not endorsed or certified by TMDB</div>`;
   if (type === 'game')
-    return `<div style="padding:6px 12px;font-size:0.58rem;color:var(--muted);border-top:1px solid var(--border);text-align:right">Powered by <a href="https://rawg.io" target="_blank" style="color:var(--muted);text-decoration:underline">RAWG</a></div>`;
+    return `<div style="padding:6px 12px;font-size:0.58rem;color:var(--muted);border-top:1px solid var(--border);text-align:right">Powered by <a href="https://rawg.io" target="_blank" rel="noopener noreferrer" style="color:var(--muted);text-decoration:underline">RAWG</a></div>`;
   if (type === 'album')
-    return `<div style="padding:6px 12px;font-size:0.58rem;color:var(--muted);border-top:1px solid var(--border);text-align:right">Data from <a href="https://music.apple.com" target="_blank" style="color:var(--muted);text-decoration:underline">iTunes</a></div>`;
+    return `<div style="padding:6px 12px;font-size:0.58rem;color:var(--muted);border-top:1px solid var(--border);text-align:right">Data from <a href="https://music.apple.com" target="_blank" rel="noopener noreferrer" style="color:var(--muted);text-decoration:underline">iTunes</a></div>`;
   if (type === 'anime')
-    return `<div style="padding:6px 12px;font-size:0.58rem;color:var(--muted);border-top:1px solid var(--border);text-align:right">Data from <a href="https://myanimelist.net" target="_blank" style="color:var(--muted);text-decoration:underline">MyAnimeList</a> via Jikan</div>`;
+    return `<div style="padding:6px 12px;font-size:0.58rem;color:var(--muted);border-top:1px solid var(--border);text-align:right">Data from <a href="https://myanimelist.net" target="_blank" rel="noopener noreferrer" style="color:var(--muted);text-decoration:underline">MyAnimeList</a> via Jikan</div>`;
   return '';
 }
 

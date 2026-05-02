@@ -85,17 +85,15 @@ function _discoverResultsHtml() {
 // ── Markdown renderer ─────────────────────────────────────────────────────────
 function _renderMarkdown(text) {
   if (!text) return '';
-  if (typeof marked !== 'undefined') {
-    try { return marked.parse(text, { breaks: true, gfm: true }); } catch(e) {}
-  }
-  // Fallback: basic inline markdown
+  // Community notes are user-generated. Keep this renderer intentionally small
+  // and escaped; marked would allow raw HTML without a sanitizer.
   return escapeHtml(text)
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/`(.*?)`/g, '<code style="font-family:\'DM Mono\',monospace;background:var(--mid);padding:1px 4px;border-radius:3px">$1</code>')
-    .replace(/^#{3}\s(.+)/gm, '<h3 style="font-size:0.84rem;color:var(--cream);margin:10px 0 4px">$1</h3>')
-    .replace(/^#{2}\s(.+)/gm, '<h2 style="font-size:0.94rem;color:var(--cream);margin:12px 0 6px">$1</h2>')
-    .replace(/^#{1}\s(.+)/gm, '<h1 style="font-size:1.05rem;color:var(--cream);margin:14px 0 6px">$1</h1>')
+    .replace(/^###\s(.+)$/gm, '<h3 style="font-size:0.84rem;color:var(--cream);margin:10px 0 4px">$1</h3>')
+    .replace(/^##\s(.+)$/gm, '<h2 style="font-size:0.94rem;color:var(--cream);margin:12px 0 6px">$1</h2>')
+    .replace(/^#\s(.+)$/gm, '<h1 style="font-size:1.05rem;color:var(--cream);margin:14px 0 6px">$1</h1>')
+    .replace(/`([^`]+?)`/g, '<code style="font-family:\'DM Mono\',monospace;background:var(--mid);padding:1px 4px;border-radius:3px">$1</code>')
+    .replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+?)\*/g, '<em>$1</em>')
     .replace(/\n/g, '<br>');
 }
 
