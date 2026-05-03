@@ -413,14 +413,14 @@ function renderFoodDiaryHeader() {
   const hasYest   = (S.foodLog?.[yesterday] || []).length > 0;
 
   const streakHtml = streak >= 2
-    ? `<span style="font-size:0.66rem;color:var(--gold);font-family:'DM Mono',monospace">${streak} day streak</span>`
+    ? `<span class="food-streak-chip">${streak} day streak</span>`
     : '';
   const copyBtn = isToday && hasYest
     ? `<button class="btn btn-g" style="font-size:0.64rem;padding:3px 8px" onclick="copyYesterday()">Copy Yesterday</button>`
     : '';
 
   if (!streakHtml && !copyBtn) { el.innerHTML = ''; return; }
-  el.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">${streakHtml}<div>${copyBtn}</div></div>`;
+  el.innerHTML = `<div class="food-diary-notice">${streakHtml}<div>${copyBtn}</div></div>`;
 }
 
 function copyYesterday() {
@@ -457,34 +457,31 @@ function renderFoodMacroBar() {
   const itemCount = entries.length;
 
   el.innerHTML = `
-    <!-- Calorie budget banner -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div class="food-summary-top">
       <div>
-        <div style="font-size:1.6rem;font-family:'DM Mono',monospace;color:${remColor};font-weight:500;line-height:1">${Math.abs(remaining)}</div>
-        <div style="font-size:0.62rem;color:var(--muted);margin-top:2px">${over ? 'kcal over goal' : 'kcal remaining'}</div>
+        <div class="food-kcal-primary" style="color:${remColor}">${Math.abs(remaining)}</div>
+        <div class="food-kcal-label">${over ? 'kcal over goal' : 'kcal remaining'}</div>
       </div>
-      <div style="text-align:right">
-        <div style="font-size:0.68rem;color:var(--muted);font-family:'DM Mono',monospace">${consumed} <span style="color:var(--muted)">/ ${T.kcal} eaten</span></div>
-        <div style="font-size:0.58rem;color:var(--muted);margin-top:2px">${itemCount} item${itemCount!==1?'s':''} · <span style="cursor:pointer;text-decoration:underline" onclick="openFoodTargets()">Edit targets</span></div>
+      <div class="food-summary-side">
+        <div class="food-eaten-line">${consumed} <span style="color:var(--muted)">/ ${T.kcal} eaten</span></div>
+        <div class="food-summary-meta">${itemCount} item${itemCount !== 1 ? 's' : ''} <button onclick="openFoodTargets()">Edit targets</button></div>
       </div>
     </div>
-    <!-- Calorie progress bar -->
-    <div style="height:5px;background:var(--mid);border-radius:3px;overflow:hidden;margin-bottom:14px">
-      <div style="height:100%;width:100%;background:${barColor};border-radius:3px;transform-origin:left;transform:scaleX(${pct/100});transition:transform 0.3s"></div>
+    <div class="food-progress-shell">
+      <div class="food-progress-fill" style="--pct:${pct / 100};--bar-color:${barColor}"></div>
     </div>
-    <!-- Macro grid -->
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+    <div class="food-macro-grid">
       ${_macroCell('Protein', totals.protein, T.protein, 'g', 'var(--gold)')}
       ${_macroCell('Carbs',   totals.carbs,   T.carbs,   'g', 'var(--petal)')}
       ${_macroCell('Fat',     totals.fat,     T.fat,     'g', 'var(--muted-lt)')}
     </div>
     ${totals.fiber > 0 ? `
-    <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px">
-      <span style="font-size:0.62rem;color:var(--muted);min-width:28px">Fiber</span>
-      <div style="flex:1;height:3px;background:var(--mid);border-radius:2px;overflow:hidden">
-        <div style="height:100%;width:${calcPercent(totals.fiber, T.fiber)}%;background:var(--muted-lt);border-radius:2px"></div>
+    <div class="food-fiber-row">
+      <span>Fiber</span>
+      <div class="food-fiber-track">
+        <div class="food-fiber-fill" style="--pct:${calcPercent(totals.fiber, T.fiber)}%"></div>
       </div>
-      <span style="font-size:0.62rem;color:var(--muted-lt);font-family:'DM Mono',monospace">${Math.round(totals.fiber)}g <span style="color:var(--muted)">/ ${T.fiber||25}g</span></span>
+      <span style="color:var(--muted-lt)">${Math.round(totals.fiber)}g <span style="color:var(--muted)">/ ${T.fiber || 25}g</span></span>
     </div>` : ''}
   `;
 }
@@ -492,12 +489,14 @@ function renderFoodMacroBar() {
 function _macroCell(label, val, target, unit, color) {
   const pct = calcPercent(val, target);
   const over = val > target && target > 0;
-  return `<div style="text-align:center">
-    <div style="font-size:0.62rem;color:var(--muted);margin-bottom:3px">${label}</div>
-    <div style="font-size:1rem;color:${over ? 'var(--petal)' : 'var(--cream)'};font-family:'DM Mono',monospace;font-weight:500">${Math.round(val)}</div>
-    <div style="font-size:0.58rem;color:var(--muted)">${unit}${target ? ' / ' + target : ''}</div>
-    <div style="height:4px;background:var(--mid);border-radius:3px;margin-top:4px;overflow:hidden">
-      <div style="height:100%;width:100%;background:${over ? 'var(--petal)' : color};border-radius:3px;transform-origin:left;transform:scaleX(${pct/100});transition:transform 0.3s"></div>
+  return `<div class="food-macro-cell">
+    <div class="food-macro-head">
+      <span class="food-macro-label">${label}</span>
+      <span class="food-macro-target">${target ? `${target}${unit}` : unit}</span>
+    </div>
+    <div class="food-macro-value" style="color:${over ? 'var(--petal)' : 'var(--cream)'}">${Math.round(val)}${unit}</div>
+    <div class="food-macro-track">
+      <div class="food-macro-fill" style="--pct:${pct / 100};--macro-color:${over ? 'var(--petal)' : color}"></div>
     </div>
   </div>`;
 }
@@ -524,23 +523,21 @@ function renderFoodMeals() {
     const totals = _sumMacros(items);
     const mealPct = calcPercent(totals.kcal, T.kcal);
     return `
-      <div style="margin-bottom:16px">
-        <div style="margin-bottom:6px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${items.length ? '4px' : '0'}">
-            <span style="font-size:0.72rem;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase">${MEAL_LABELS[meal]}</span>
-            <div style="display:flex;align-items:center;gap:6px">
-              ${items.length ? `<span style="font-size:0.66rem;color:var(--muted-lt);font-family:'DM Mono',monospace">${Math.round(totals.kcal)} kcal</span>` : ''}
-              ${items.length ? `<button onclick="event.stopPropagation();copyMealTo('${meal}')" title="Copy meal to another slot" style="background:none;border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;font-size:0.56rem;padding:1px 5px;line-height:1.4">copy ⤴</button>` : ''}
+      <div class="food-meal-section">
+        <div class="food-meal-head">
+          <div class="food-meal-title-row">
+            <span class="food-meal-label">${MEAL_LABELS[meal]}</span>
+            <div class="food-meal-actions">
+              ${items.length ? `<span class="food-meal-kcal">${Math.round(totals.kcal)} kcal</span>` : ''}
+              ${items.length ? `<button class="food-meal-copy" onclick="event.stopPropagation();copyMealTo('${meal}')" title="Copy meal to another slot">Copy</button>` : ''}
             </div>
           </div>
-          ${items.length ? `<div style="height:2px;background:var(--mid);border-radius:2px;overflow:hidden"><div style="height:100%;width:100%;background:var(--blush);opacity:0.55;border-radius:2px;transform-origin:left;transform:scaleX(${mealPct/100});transition:transform 0.3s"></div></div>` : ''}
+          ${items.length ? `<div class="food-meal-mini"><div class="food-meal-mini-fill" style="--pct:${mealPct / 100}"></div></div>` : ''}
         </div>
-        <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <div class="food-meal-panel">
           ${items.length ? items.map(e => _foodEntryRow(e)).join('') : ''}
-          <div onclick="openFoodSearch('${meal}')"
-            style="display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;color:var(--muted);font-size:0.76rem;transition:background 0.12s;border-top:${items.length ? '1px solid var(--border)' : 'none'}"
-            onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
-            <span style="font-size:1rem;line-height:1">+</span> Add food
+          <div class="food-add-row" onclick="openFoodSearch('${meal}')" style="border-top:${items.length ? '1px solid var(--border)' : 'none'}">
+            <span class="food-add-plus">+</span> Add food
           </div>
         </div>
       </div>`;
@@ -585,40 +582,37 @@ function _foodEntryRow(e) {
   const macroLine = e.grams
     ? `P ${Math.round(e.protein)}g \u00b7 C ${Math.round(e.carbs)}g \u00b7 F ${Math.round(e.fat)}g`
     : `P ${Math.round(e.protein)}g \u00b7 C ${Math.round(e.carbs)}g \u00b7 F ${Math.round(e.fat)}g`;
-  const btnStyle = 'background:none;border:none;cursor:pointer;flex-shrink:0;padding:0;line-height:1';
   const qtyVal = isServings ? (e.servings || 1) : (e.grams || 100);
   const adjHtml = canAdjust ? `
-    <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-      <button onclick="adjustFoodEntry('${e.id}',${-step})" style="${btnStyle};color:var(--muted);font-size:1.1rem;width:36px;height:36px;border-radius:50%;background:var(--mid);-webkit-tap-highlight-color:transparent" title="Less">\u2212</button>
+    <div class="food-qty-controls">
+      <button class="food-qty-btn" onclick="adjustFoodEntry('${e.id}',${-step})" title="Less">\u2212</button>
       <input type="number" min="0" step="any" value="${qtyVal}"
         onchange="setFoodEntryQty('${e.id}',this.value)"
         onclick="this.select()"
-        style="width:44px;background:var(--mid);border:1px solid var(--border);border-radius:5px;color:var(--cream);font-family:'DM Mono',monospace;font-size:16px;text-align:center;padding:4px 3px;-moz-appearance:textfield">
-      <span style="font-size:0.58rem;color:var(--muted);margin-left:-1px">${isServings ? 'srv' : 'g'}</span>
-      <button onclick="adjustFoodEntry('${e.id}',${step})" style="${btnStyle};color:var(--muted);font-size:1.1rem;width:36px;height:36px;border-radius:50%;background:var(--mid);-webkit-tap-highlight-color:transparent" title="More">+</button>
+        class="food-qty-input">
+      <span class="food-qty-unit">${isServings ? 'srv' : 'g'}</span>
+      <button class="food-qty-btn" onclick="adjustFoodEntry('${e.id}',${step})" title="More">+</button>
     </div>` : '';
   return `
-    <div style="border-bottom:1px solid var(--border)">
-      <div style="display:flex;align-items:center;gap:8px;padding:9px 14px 6px">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:0.8rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(e.name)}</div>
-          ${e.brand ? `<div style="font-size:0.64rem;color:var(--muted)">${escapeHtml(e.brand)}</div>` : ''}
-          <div style="font-size:0.64rem;color:var(--muted-lt);font-family:'DM Mono',monospace;margin-top:1px">${macroLine}</div>
+    <div class="food-entry">
+      <div class="food-entry-main">
+        <div class="food-entry-copy">
+          <div class="food-entry-title">${escapeHtml(e.name)}</div>
+          ${e.brand ? `<div class="food-entry-brand">${escapeHtml(e.brand)}</div>` : ''}
+          <div class="food-entry-macros">${macroLine}</div>
         </div>
         ${adjHtml}
-        <div style="text-align:right;flex-shrink:0;min-width:36px">
-          <div style="font-size:0.86rem;color:var(--gold-lt);font-family:'DM Mono',monospace">${Math.round(e.kcal)}</div>
-          <div style="font-size:0.6rem;color:var(--muted)">kcal</div>
+        <div class="food-entry-kcal">
+          <strong>${Math.round(e.kcal)}</strong>
+          <span>kcal</span>
         </div>
-        <button onclick="deleteFoodEntry('${e.id}')" style="${btnStyle};color:var(--muted);font-size:0.9rem;width:36px;height:36px;border-radius:50%;-webkit-tap-highlight-color:transparent">&#x2715;</button>
+        <button class="food-entry-remove" onclick="deleteFoodEntry('${e.id}')">&#x2715;</button>
       </div>
       <textarea
         onchange="setFoodEntryNote('${e.id}',this.value)"
         placeholder="Recipe / notes…"
-        style="display:block;width:100%;box-sizing:border-box;background:transparent;border:none;border-top:${e.notes ? '1px solid var(--border)' : 'none'};color:var(--muted);font-size:0.66rem;font-family:'DM Mono',monospace;resize:none;outline:none;padding:${e.notes ? '5px 14px 7px' : '0 14px'};line-height:1.4;transition:all 0.15s"
+        class="food-entry-note${e.notes ? ' has-note' : ''}"
         rows="${e.notes ? Math.max(1, (e.notes.match(/\n/g)||[]).length + 1) : 1}"
-        onfocus="if(!this.value){this.style.borderTop='1px solid var(--border)';this.style.padding='5px 14px 7px'}"
-        onblur="if(!this.value){this.style.borderTop='none';this.style.padding='0 14px'}"
       >${escapeHtml(e.notes || '')}</textarea>
     </div>`;
 }

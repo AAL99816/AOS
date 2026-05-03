@@ -208,6 +208,7 @@ async function signOut() {
   if (sb) await sb.auth.signOut();
   currentUser = null;
   appBooted = false;
+  document.body.classList.remove('app-ready');
   eid('authScreen').classList.remove('hidden');
   eid('authEmail').value = '';
   eid('authPass').value = '';

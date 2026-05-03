@@ -70,6 +70,21 @@ body::after{
 }
 
 .app{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh;}
+body:not(.app-ready) .hero,
+body:not(.app-ready) nav,
+body:not(.app-ready) main,
+body:not(.app-ready) .sbar,
+body:not(.app-ready) #fabBtn,
+body:not(.app-ready) #fabSheet{
+  visibility:hidden;
+}
+body.app-ready .hero,
+body.app-ready nav,
+body.app-ready main,
+body.app-ready .sbar{
+  animation:shellReady 0.16s ease-out both;
+}
+@keyframes shellReady{from{opacity:0;}to{opacity:1;}}
 
 /* ══ AUTH SCREEN ══ */
 #authScreen{
@@ -321,6 +336,73 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 .prog-filters{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;}
 .fpill{font-size:0.70rem; font-family:'DM Mono',monospace; letter-spacing:0.06em; text-transform:uppercase; padding:4px 12px; border-radius:20px; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--muted); transition:all 0.18s;}
 .fpill:hover,.fpill.active{background:color-mix(in srgb,var(--blush) 15%,transparent); color:var(--petal); border-color:var(--border-lt);}
+.food-tabbar{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:16px;
+  padding:6px;border:1px solid var(--border);border-radius:14px;
+  background:color-mix(in srgb,var(--deep) 76%,transparent);
+  position:sticky;top:47px;z-index:24;
+  backdrop-filter:blur(14px);
+}
+.food-tabbar .fpill{min-height:31px;padding:5px 13px;border-radius:10px;}
+.food-tabbar .fpill.active{background:color-mix(in srgb,var(--blush) 18%,transparent);color:var(--cream);border-color:var(--border-hi);}
+.food-date-input{flex:0 0 auto;width:auto;min-width:145px;margin-left:auto;font-size:0.74rem;}
+.food-diary-notice{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+.food-streak-chip{font-size:0.66rem;color:var(--gold);font-family:'DM Mono',monospace;}
+.food-summary-card{margin-bottom:16px;padding:18px;}
+.food-summary-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start;margin-bottom:14px;}
+.food-kcal-primary{font-size:2rem;font-family:'DM Mono',monospace;font-weight:500;line-height:1;letter-spacing:0;color:var(--gold-lt);}
+.food-kcal-label{font-size:0.62rem;color:var(--muted);margin-top:4px;letter-spacing:0.02em;}
+.food-summary-side{text-align:right;min-width:128px;}
+.food-eaten-line{font-size:0.72rem;color:var(--muted-lt);font-family:'DM Mono',monospace;}
+.food-summary-meta{font-size:0.6rem;color:var(--muted);margin-top:4px;}
+.food-summary-meta button{background:none;border:none;color:var(--muted-lt);cursor:pointer;text-decoration:underline;font:inherit;padding:0;}
+.food-progress-shell{height:6px;background:var(--mid);border-radius:999px;overflow:hidden;margin-bottom:14px;}
+.food-progress-fill{height:100%;width:100%;border-radius:999px;transform-origin:left;transform:scaleX(var(--pct,0));transition:transform 0.24s ease-out;background:var(--bar-color,var(--blush));}
+.food-macro-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+.food-macro-cell{padding:10px;border:1px solid var(--border);border-radius:10px;background:color-mix(in srgb,var(--mid) 28%,transparent);}
+.food-macro-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
+.food-macro-label{font-size:0.62rem;color:var(--muted);}
+.food-macro-target{font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;}
+.food-macro-value{font-size:1rem;color:var(--cream);font-family:'DM Mono',monospace;font-weight:500;}
+.food-macro-track{height:4px;background:var(--deep);border-radius:999px;margin-top:7px;overflow:hidden;}
+.food-macro-fill{height:100%;width:100%;border-radius:999px;transform-origin:left;transform:scaleX(var(--pct,0));transition:transform 0.24s ease-out;background:var(--macro-color,var(--blush));}
+.food-fiber-row{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.food-fiber-row span{font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;}
+.food-fiber-track{flex:1;height:3px;background:var(--mid);border-radius:999px;overflow:hidden;}
+.food-fiber-fill{height:100%;width:var(--pct,0%);background:var(--muted-lt);border-radius:999px;}
+.food-meal-section{margin-bottom:16px;}
+.food-meal-head{margin-bottom:7px;}
+.food-meal-title-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px;}
+.food-meal-label{font-size:0.70rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace;}
+.food-meal-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+.food-meal-kcal{font-size:0.66rem;color:var(--muted-lt);font-family:'DM Mono',monospace;}
+.food-meal-copy{background:var(--blush-dim);border:1px solid var(--border);border-radius:7px;color:var(--muted-lt);cursor:pointer;font-size:0.58rem;padding:2px 6px;line-height:1.35;font-family:'DM Mono',monospace;}
+.food-meal-copy:hover{border-color:var(--border-lt);color:var(--petal);}
+.food-meal-mini{height:2px;background:var(--mid);border-radius:999px;overflow:hidden;}
+.food-meal-mini-fill{height:100%;width:100%;background:var(--blush);opacity:0.6;border-radius:999px;transform-origin:left;transform:scaleX(var(--pct,0));transition:transform 0.24s ease-out;}
+.food-meal-panel{background:color-mix(in srgb,var(--panel) 84%,transparent);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.food-add-row{display:flex;align-items:center;gap:8px;padding:11px 14px;cursor:pointer;color:var(--muted-lt);font-size:0.76rem;transition:background 0.14s,color 0.14s;}
+.food-add-row:hover{background:var(--blush-dim);color:var(--petal);}
+.food-add-plus{font-size:1rem;line-height:1;color:var(--blush);}
+.food-entry{border-bottom:1px solid var(--border);}
+.food-entry:last-child{border-bottom:none;}
+.food-entry-main{display:flex;align-items:center;gap:10px;padding:10px 14px 7px;}
+.food-entry-copy{flex:1;min-width:0;}
+.food-entry-title{font-size:0.82rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.food-entry-brand{font-size:0.64rem;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.food-entry-macros{font-size:0.64rem;color:var(--muted-lt);font-family:'DM Mono',monospace;margin-top:2px;}
+.food-entry-kcal{text-align:right;flex-shrink:0;min-width:42px;}
+.food-entry-kcal strong{display:block;font-size:0.9rem;color:var(--gold-lt);font-family:'DM Mono',monospace;font-weight:500;}
+.food-entry-kcal span{font-size:0.58rem;color:var(--muted);}
+.food-qty-controls{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.food-qty-btn{background:var(--mid);border:1px solid transparent;color:var(--muted-lt);cursor:pointer;font-size:1.05rem;width:34px;height:34px;border-radius:50%;line-height:1;-webkit-tap-highlight-color:transparent;}
+.food-qty-btn:hover{border-color:var(--border-lt);color:var(--petal);}
+.food-qty-input{width:46px;background:var(--mid);border:1px solid var(--border);border-radius:7px;color:var(--cream);font-family:'DM Mono',monospace;font-size:16px;text-align:center;padding:4px 3px;}
+.food-qty-unit{font-size:0.58rem;color:var(--muted);margin-left:-1px;}
+.food-entry-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.9rem;width:34px;height:34px;border-radius:50%;-webkit-tap-highlight-color:transparent;}
+.food-entry-remove:hover{background:rgba(180,60,60,0.12);color:#e89090;}
+.food-entry-note{display:block;width:100%;box-sizing:border-box;background:transparent;border:none;border-top:none;color:var(--muted);font-size:0.66rem;font-family:'DM Mono',monospace;resize:none;outline:none;padding:0 14px;line-height:1.4;transition:border-color 0.15s,padding 0.15s;}
+.food-entry-note.has-note,.food-entry-note:focus{border-top:1px solid var(--border);padding:5px 14px 7px;}
 .progs-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(275px,1fr)); gap:13px;}
 .prog-card{padding:16px;}
 .prog-top{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;}
@@ -739,6 +821,9 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 @media(max-width:700px){
   .review-grid{grid-template-columns:1fr;}
   .review-habit-name{width:100px;}
+  .food-summary-top{grid-template-columns:1fr;gap:10px;}
+  .food-summary-side{text-align:left;min-width:0;}
+  .food-macro-grid{gap:8px;}
   /* Workout cards: 1-col */
   #workoutCards.g3{grid-template-columns:1fr;}
   /* Nav: horizontal scroll, no fixed bottom yet */
@@ -804,6 +889,17 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
     padding-top:18px;
     padding-bottom:calc(70px + env(safe-area-inset-bottom, 0px) + 18px);
   }
+  .food-tabbar{
+    top:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;
+    margin-left:-4px;margin-right:-4px;
+  }
+  .food-tabbar::-webkit-scrollbar{display:none;}
+  .food-date-input{min-width:126px;margin-left:0;flex:0 0 126px;}
+  .food-kcal-primary{font-size:1.7rem;}
+  .food-macro-cell{padding:8px;}
+  .food-entry-main{align-items:flex-start;flex-wrap:wrap;}
+  .food-qty-controls{order:3;width:100%;justify-content:flex-start;padding-left:0;}
+  .food-entry-kcal{margin-left:auto;}
   /* Hero clears top safe area */
   .hero{padding-top:env(safe-area-inset-top,0px);}
   .hero-title h1{font-size:2rem;}
@@ -1323,18 +1419,18 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
   <!-- FOOD TAB -->
   <div id="panel-food" class="panel">
     <!-- Tab row: Diary | History | Meal Plans | My Foods -->
-    <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap">
+    <div class="food-tabbar">
       <button class="fpill active" id="ftabDiary"    onclick="setFoodTab('diary')">Diary</button>
       <button class="fpill"        id="ftabHistory"  onclick="setFoodTab('history')">History</button>
       <button class="fpill"        id="ftabMeals"    onclick="setFoodTab('meals')">Meal Plans</button>
       <button class="fpill"        id="ftabMyfoods"  onclick="setFoodTab('myfoods')">My Foods</button>
-      <input id="foodDate" type="date" class="add-inp" style="width:auto;font-size:0.74rem;margin-left:auto">
+      <input id="foodDate" type="date" class="add-inp food-date-input">
     </div>
 
     <!-- DIARY VIEW -->
     <div id="foodPaneDiary">
       <div id="foodDiaryHeader"></div>
-      <div class="card" style="margin-bottom:16px" id="foodMacroBar"></div>
+      <div class="card food-summary-card" id="foodMacroBar"></div>
       <div id="foodMeals"></div>
     </div>
 
@@ -2463,7 +2559,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 </div>
 <script>
 if('serviceWorker' in navigator){
-  const SW_VERSION = 'aos-v54';
+  const SW_VERSION = 'aos-v55';
   // Capture whether a SW was already controlling this page at load time.
   // controllerchange also fires on first-ever install, so without this guard
   // the banner would flash on every fresh visit.

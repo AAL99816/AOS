@@ -67,6 +67,11 @@ expect(app.includes("nav.querySelector('.nav-right')"), 'tab ordering keeps the 
 expect(app.includes('nav.insertBefore(btn, utilityCluster)'), 'tab ordering inserts tabs before nav utilities');
 expect(app.includes('function getPreferredStartTab()'), 'boot chooses a visible preferred start tab');
 expect(app.includes('go(startTab)'), 'boot navigates through go(startTab)');
+expect(index.includes('body:not(.app-ready) .hero'), 'app chrome stays hidden until boot state is ready');
+expect(app.includes('function setAppReady(ready)'), 'app.js exposes a boot-ready chrome gate');
+expect(app.includes('setAppReady(false);'), 'boot clears ready state before loading user modules');
+expect(app.includes('setAppReady(true);'), 'boot reveals chrome after modules and preferred tab are applied');
+expect(auth.includes("document.body.classList.remove('app-ready')"), 'sign out clears app-ready chrome state');
 
 expect(index.includes('[dir="rtl"] nav { direction: ltr; }'), 'RTL keeps nav rail physically left-to-right');
 expect(index.includes('[dir="rtl"] nav .tab { direction: rtl; }'), 'RTL still applies to tab label text');
@@ -140,6 +145,10 @@ expect(index.includes('id="foodAdminSubmissions"'), 'Food tab contains admin pen
 expect(index.includes('id="mfeeCountry"'), 'My Foods editor captures country code');
 expect(index.includes('id="mfeeServingGrams"'), 'My Foods editor captures serving grams');
 expect(index.includes('id="mfeeBarcode"'), 'My Foods editor stores barcode for later scanner support');
+expect(index.includes('class="food-tabbar"'), 'Food tab uses app-like segmented navigation');
+expect(index.includes('.food-summary-card'), 'Food tab has structured macro summary styling');
+expect(food.includes('food-meal-panel'), 'Food diary renders meal panels through reusable classes');
+expect(food.includes('food-entry-note'), 'Food diary rows use reusable entry note styling');
 
 if (sqlBundle.trim()) {
   expect(sqlBundle.includes('create table if not exists public.community_posts'), 'community migration creates posts table');

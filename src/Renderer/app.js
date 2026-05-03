@@ -91,6 +91,10 @@ async function doImport(){
 /* ══ NAV ══ */
 let _activeTab = 'today';
 
+function setAppReady(ready) {
+  document.body.classList.toggle('app-ready', !!ready);
+}
+
 function _findNavTab(name) {
   const nav = document.querySelector('nav');
   return nav ? nav.querySelector(`.tab[onclick*="go('${name}'"]`) : null;
@@ -448,6 +452,7 @@ function setupInlineEdits(){
 
 /* ══ INIT ══ */
 async function initApp(){
+  setAppReady(false);
   if(typeof restoreAppearance === 'function') restoreAppearance();
   setupMobileUX();
   const hasData = await loadFromSupabase();
@@ -463,6 +468,9 @@ async function initApp(){
   const knownUser = localStorage.getItem('aos_user_exists')==='true';
   if(!hasData && !knownUser){
     renderAll();
+    applyTabOrder();
+    go(getPreferredStartTab());
+    setAppReady(true);
     showOnboarding();
     return;
   }
@@ -473,6 +481,7 @@ async function initApp(){
   applyTabOrder();
   const startTab = getPreferredStartTab();
   go(startTab);
+  setAppReady(true);
 }
 
 async function bootApp(){
