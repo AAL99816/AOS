@@ -29,6 +29,7 @@ prayerLog:{},
 notes:{},
 workoutHistory:[],
 exerciseHistory:{},
+activeWorkoutDrafts:{},
 customExercises:[],
 waterLog:{},
 winsLog:[],
@@ -208,6 +209,7 @@ function normalizeAppState(raw={}){
   out.mealPlans = Array.isArray(src.mealPlans) ? src.mealPlans : [];
   out.workoutHistory = (Array.isArray(out.workoutHistory) ? out.workoutHistory : []).map(makeWorkoutSession);
   out.exerciseHistory = out.exerciseHistory && typeof out.exerciseHistory === 'object' ? out.exerciseHistory : {};
+  out.activeWorkoutDrafts = normalizeWorkoutDrafts(out.activeWorkoutDrafts);
   out.customExercises = Array.isArray(out.customExercises) ? out.customExercises : [];
   out.waterLog = out.waterLog && typeof out.waterLog === 'object' ? out.waterLog : {};
   out.winsLog = Array.isArray(out.winsLog) ? out.winsLog : [];
@@ -274,7 +276,73 @@ delete out.programs;
 
   return out;
 }
-  
+function normalizeLoggedSets(input){
+  if (!Array.isArray(input)) return [];
+  return input.flatMap(set => {
+    const count = Math.max(1, parseInt(set.sets, 10) || 1);
+    return Array.from({ length: count }, () => ({
+      weight: Number.isFinite(+set.weight) ? +set.weight : null,
+      reps: Number.isFinite(+set.reps) ? +set.reps : null,
+      restBeforeSecs: Number.isFinite(+set.restBeforeSecs) ? +set.restBeforeSecs : null,
+      createdAt: set.createdAt || null
+    }));
+  }).filter(set => set.weight !== null || set.reps !== null);
+}
+
+function normalizeWorkoutExercise(ex={}){
+  const legacyCount = Math.max(1, parseInt(ex.sets, 10) || 1);
+  let loggedSets = normalizeLoggedSets(ex.loggedSets);
+  if (!loggedSets.length && (ex.weight != null || ex.reps != null)) {
+    loggedSets = Array.from({ length: legacyCount }, () => ({
+      weight: Number.isFinite(+ex.weight) ? +ex.weight : null,
+      reps: Number.isFinite(+ex.reps) ? +ex.reps : null,
+      restBeforeSecs: null,
+      createdAt: null
+    }));
+  }
+  const best = loggedSets.reduce((picked, set) => {
+    if (!picked) return set;
+    return (+set.weight || 0) > (+picked.weight || 0) ? set : picked;
+  }, null);
+  return {
+    name: ex.name ?? '',
+    sets: loggedSets.length || ex.sets || '',
+    weight: best && Number.isFinite(+best.weight) ? +best.weight : (Number.isFinite(+ex.weight) ? +ex.weight : null),
+    reps: best && Number.isFinite(+best.reps) ? +best.reps : (Number.isFinite(+ex.reps) ? +ex.reps : null),
+    loggedSets,
+    dbId: ex.dbId ?? ex.exercise_db_id ?? null
+  };
+}
+
+function normalizeWorkoutDrafts(drafts){
+  if (!drafts || typeof drafts !== 'object' || Array.isArray(drafts)) return {};
+  const out = {};
+  Object.entries(drafts).forEach(([cardId, draft]) => {
+    if (!draft || typeof draft !== 'object') return;
+    const exercises = {};
+    const rawExercises = draft.exercises && typeof draft.exercises === 'object' ? draft.exercises : {};
+    Object.entries(rawExercises).forEach(([exerciseId, ex]) => {
+      if (!ex || typeof ex !== 'object') return;
+      exercises[exerciseId] = {
+        exerciseId: ex.exerciseId ?? exerciseId,
+        name: ex.name ?? '',
+        sets: normalizeLoggedSets(ex.sets)
+      };
+    });
+    out[cardId] = {
+      id: draft.id ?? uid(),
+      cardId: draft.cardId ?? cardId,
+      title: draft.title ?? 'Workout',
+      date: draft.date ?? today(),
+      startedAt: draft.startedAt ?? new Date().toISOString(),
+      lastSetAt: Number.isFinite(+draft.lastSetAt) ? +draft.lastSetAt : null,
+      notes: draft.notes ?? '',
+      exercises
+    };
+  });
+  return out;
+}
+
 function makeWorkoutSession(s={}){
   return {
     id: s.id ?? uid(),
@@ -282,14 +350,9 @@ function makeWorkoutSession(s={}){
     title: s.title ?? 'Workout',
     cardId: s.cardId ?? null,
     summary: s.summary ?? '',
+    notes: s.notes ?? '',
     exercises: Array.isArray(s.exercises)
-      ? s.exercises.map(ex => ({
-          name: ex.name ?? '',
-          sets: ex.sets ?? '',
-          weight: Number.isFinite(+ex.weight) ? +ex.weight : null,
-          reps: Number.isFinite(+ex.reps) ? +ex.reps : null
-        }))
+      ? s.exercises.map(normalizeWorkoutExercise)
       : []
   };
 }
-  

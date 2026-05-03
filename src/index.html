@@ -291,6 +291,31 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 .ex-del{opacity:0; background:none; border:none; color:#e89090; cursor:pointer; font-size:0.66rem; transition:opacity 0.15s;}
 .ex-item:hover .ex-del{opacity:1;}
 .add-ex-row{display:flex; gap:5px; margin-top:9px;}
+.workout-card-body{margin-top:12px;border-top:1px solid var(--border);padding-top:12px;}
+.workout-draft-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:color-mix(in srgb,var(--rose) 8%,transparent);}
+.workout-draft-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;}
+.workout-draft-actions,.workout-card-footer,.workout-ex-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.workout-card-footer{justify-content:space-between;margin-top:10px;}
+.workout-ex-item{display:block;margin-bottom:10px;padding:10px 0;border-bottom:1px solid var(--border-lt);}
+.workout-ex-item::before{content:none;}
+.workout-ex-top{display:flex;align-items:flex-start;gap:10px;}
+.workout-ex-main{flex:1;min-width:0;}
+.workout-ex-name{font-size:0.84rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.workout-ex-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;}
+.exercise-muscle-tag{font-size:0.52rem;color:var(--muted);background:var(--deep);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-family:'DM Mono',monospace;}
+.workout-ex-actions .btn{font-size:0.58rem;padding:3px 7px;}
+.workout-ex-actions .btn:disabled{opacity:0.35;cursor:default;}
+.workout-set-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:6px;margin-top:9px;align-items:center;}
+.draft-set-list{display:flex;flex-direction:column;gap:4px;margin-top:8px;}
+.draft-set-row{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:8px;align-items:center;padding:5px 7px;border-radius:7px;background:color-mix(in srgb,var(--mid) 45%,transparent);border:1px solid var(--border);}
+.draft-set-row span{font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;}
+.draft-set-row strong{font-size:0.68rem;color:var(--mist);font-family:'DM Mono',monospace;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.workout-last-line{margin-top:7px;font-size:0.64rem;color:var(--muted-lt);font-family:'DM Mono',monospace;}
+.workout-empty-row{padding:16px 8px;text-align:center;color:var(--muted);font-size:0.72rem;border:1px dashed var(--border);border-radius:8px;}
+.workout-session-note{display:block;width:100%;box-sizing:border-box;margin-top:10px;background:var(--mid);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:16px;font-family:'DM Mono',monospace;resize:none;padding:7px 10px;min-height:52px;outline:none;line-height:1.5;}
+.workout-session-date{margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.workout-session-date span{font-size:0.58rem;color:var(--muted);flex-shrink:0;}
+.workout-session-date input{background:var(--mid);border:1px solid var(--border);border-radius:6px;color:var(--gold-lt);font-size:0.66rem;padding:3px 7px;font-family:'DM Mono',monospace;outline:none;cursor:pointer;flex-shrink:0;}
 
 /* ══ Projects ══ */
 .prog-filters{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;}
@@ -880,6 +905,18 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
   #workoutCards .wk-head>button{min-height:36px;min-width:36px;}
   /* Exercise log inputs: fill width equally */
   #workoutCards .add-inp{font-size:16px;} /* prevent iOS zoom */
+  .workout-draft-bar{align-items:stretch;flex-direction:column;}
+  .workout-draft-actions{width:100%;}
+  .workout-draft-actions .btn{flex:1;min-height:38px;}
+  .workout-ex-top{flex-direction:column;}
+  .workout-ex-actions{width:100%;display:grid;grid-template-columns:1fr 1fr 1fr auto;}
+  .workout-ex-actions .btn{min-height:34px;}
+  .workout-set-grid{grid-template-columns:1fr 1fr;align-items:stretch;}
+  .workout-set-grid .btn{grid-column:1 / -1;min-height:38px;}
+  .draft-set-row{grid-template-columns:46px minmax(0,1fr);gap:5px 8px;}
+  .draft-set-row span:last-child{grid-column:2;color:var(--muted-lt);}
+  .workout-card-footer{align-items:stretch;}
+  .workout-card-footer .btn{flex:1;min-height:36px;}
   /* Session note textarea */
   #workoutCards textarea{font-size:16px;}
   /* Training log card: remove inner padding crush */

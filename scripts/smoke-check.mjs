@@ -23,6 +23,8 @@ const mediaSearch = read('src/Renderer/mediaSearch.js');
 const media = read('src/Renderer/media.js');
 const settings = read('src/Renderer/settings.js');
 const sync = read('src/Renderer/sync.js');
+const state = read('src/Renderer/state.js');
+const fitness = read('src/Renderer/fitness.js');
 const sw = read('src/sw.js');
 const gitignore = read('.gitignore');
 
@@ -96,6 +98,19 @@ expect(!sync.includes(".select('*, profiles("), 'community feed no longer embeds
 expect(!/from\('exercise_catalog'\)\s*\.\s*upsert/.test(sync), 'client no longer writes exercise_catalog');
 expect(sync.includes("sb.from('project_tasks').upsert") && sync.includes("{ onConflict: 'user_id,app_id' }"), 'project task upserts use user_id,app_id conflict target');
 expect(sync.includes("sb.from('focus_items').upsert(rows, { onConflict: 'user_id,app_id' })"), 'focus item upserts use user_id,app_id conflict target');
+
+expect(state.includes('activeWorkoutDrafts:{}'), 'default state includes active workout drafts');
+expect(state.includes('function normalizeWorkoutDrafts'), 'active workout drafts normalize on load');
+expect(state.includes('function normalizeLoggedSets'), 'workout history normalizes loggedSets');
+expect(state.includes('restBeforeSecs'), 'workout set state preserves restBeforeSecs');
+expect(fitness.includes('function scheduleDraftSave()'), 'fitness drafts use a separate draft save debounce');
+expect(fitness.includes('function startWorkoutDraft'), 'workout cards can start an active draft');
+expect(fitness.includes('function finishWorkoutDraft'), 'active workout drafts can be finished');
+expect(fitness.includes('function discardWorkoutDraft'), 'active workout drafts can be discarded');
+expect(fitness.includes('function logWorkoutSet'), 'fitness logs individual sets into the draft');
+expect(fitness.includes("_exercisePickerCtx = { mode: mode === 'replace'"), 'exercise picker tracks add vs replace context');
+expect(fitness.includes('function moveEx'), 'workout card exercises can be reordered');
+expect(index.includes('.workout-set-grid'), 'fitness set logger has responsive CSS');
 
 if (failures.length) {
   console.error('Smoke check failed:');

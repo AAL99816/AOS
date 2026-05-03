@@ -10,6 +10,7 @@ function ensureFitnessState() {
   if (!Array.isArray(S.calorieHistory)) S.calorieHistory = [];
   if (!Array.isArray(S.workoutHistory)) S.workoutHistory = [];
   if (!S.exerciseHistory || typeof S.exerciseHistory !== 'object') S.exerciseHistory = {};
+  if (!S.activeWorkoutDrafts || typeof S.activeWorkoutDrafts !== 'object' || Array.isArray(S.activeWorkoutDrafts)) S.activeWorkoutDrafts = {};
   if (!Array.isArray(S.weightLog)) S.weightLog = [];
 }
 
@@ -425,6 +426,370 @@ function toggleWorkoutCard(id) {
   renderWorkoutCards();
 }
 
+let _draftSaveTimer = null;
+
+function _getActiveDraft(cardId) {
+  ensureFitnessState();
+  return S.activeWorkoutDrafts[String(cardId)] || null;
+}
+
+function _countDraftSets(draft) {
+  return Object.values(draft?.exercises || {})
+    .reduce((sum, ex) => sum + (Array.isArray(ex.sets) ? ex.sets.length : 0), 0);
+}
+
+function _formatRest(secs) {
+  if (!Number.isFinite(+secs) || +secs < 0) return '';
+  const total = Math.round(+secs);
+  const mins = Math.floor(total / 60);
+  const rem = total % 60;
+  return mins ? `${mins}:${String(rem).padStart(2, '0')}` : `${rem}s`;
+}
+
+function _bestLoggedSet(sets) {
+  return (Array.isArray(sets) ? sets : []).reduce((best, set) => {
+    if (!best) return set;
+    const setScore = (parseFloat(set.weight) || 0) * (parseInt(set.reps, 10) || 0);
+    const bestScore = (parseFloat(best.weight) || 0) * (parseInt(best.reps, 10) || 0);
+    return setScore > bestScore ? set : best;
+  }, null);
+}
+
+function _sessionSummaryFromExercises(exercises) {
+  return (exercises || [])
+    .map(ex => {
+      const best = _bestLoggedSet(ex.loggedSets);
+      return best ? `${ex.name} ${best.weight}kgx${best.reps}` : null;
+    })
+    .filter(Boolean)
+    .slice(0, 5)
+    .join(' | ');
+}
+
+async function _saveDraftCacheNow() {
+  try {
+    if (window.api && typeof window.api.cacheSave === 'function') {
+      await window.api.cacheSave(JSON.stringify(S));
+    }
+  } catch (_) {}
+}
+
+function scheduleDraftSave() {
+  _saveDraftCacheNow();
+  if (typeof setSyncStatus === 'function') setSyncStatus('syncing');
+  clearTimeout(_draftSaveTimer);
+  _draftSaveTimer = setTimeout(() => {
+    _draftSaveTimer = null;
+    if (typeof saveToSupabase === 'function') saveToSupabase();
+    else if (typeof scheduleSave === 'function') scheduleSave();
+  }, 5000);
+}
+
+function _flushDraftSave() {
+  clearTimeout(_draftSaveTimer);
+  _draftSaveTimer = null;
+  if (typeof saveToSupabase === 'function') saveToSupabase();
+  else if (typeof scheduleSave === 'function') scheduleSave();
+}
+
+function startWorkoutDraft(cardId) {
+  ensureFitnessState();
+  const wc = findById(S.workoutCards, cardId);
+  if (!wc) return;
+  const key = String(cardId);
+  if (!S.activeWorkoutDrafts[key]) {
+    S.activeWorkoutDrafts[key] = {
+      id: uid(),
+      cardId: wc.id,
+      title: wc.title || 'Workout',
+      date: today(),
+      startedAt: new Date().toISOString(),
+      lastSetAt: null,
+      notes: '',
+      exercises: {}
+    };
+  }
+  _expandedCards.add(key);
+  scheduleDraftSave();
+  renderWorkoutCards();
+  toast('Workout started');
+}
+
+function discardWorkoutDraft(cardId) {
+  ensureFitnessState();
+  const key = String(cardId);
+  const draft = S.activeWorkoutDrafts[key];
+  if (!draft) return;
+  if (_countDraftSets(draft) && !confirm('Discard this active workout?')) return;
+  delete S.activeWorkoutDrafts[key];
+  _flushDraftSave();
+  renderWorkoutCards();
+  toast('Workout discarded');
+}
+
+function _getDraftExercise(draft, ex) {
+  if (!draft.exercises || typeof draft.exercises !== 'object') draft.exercises = {};
+  const key = String(ex.id);
+  if (!draft.exercises[key]) {
+    draft.exercises[key] = { exerciseId: ex.id, name: ex.name || '', sets: [] };
+  }
+  draft.exercises[key].name = ex.name || draft.exercises[key].name || '';
+  if (!Array.isArray(draft.exercises[key].sets)) draft.exercises[key].sets = [];
+  return draft.exercises[key];
+}
+
+function _renderDraftSetRows(sets) {
+  if (!Array.isArray(sets) || !sets.length) return '';
+  return `<div class="draft-set-list">
+    ${sets.map((set, i) => {
+      const rest = _formatRest(set.restBeforeSecs);
+      return `<div class="draft-set-row">
+        <span>Set ${i + 1}</span>
+        <strong>${escapeHtml(String(set.weight ?? ''))}kg x ${escapeHtml(String(set.reps ?? 0))}</strong>
+        ${rest ? `<span>rest ${escapeHtml(rest)}</span>` : '<span>first set</span>'}
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function logWorkoutSet(wcId, exId) {
+  ensureFitnessState();
+  const wc = findById(S.workoutCards, wcId);
+  if (!wc) return;
+  const ex = findById(wc.exercises || [], exId);
+  if (!ex) return;
+  const draft = _getActiveDraft(wcId);
+  if (!draft) {
+    toast('Start the workout first');
+    return;
+  }
+
+  const wEl = eid(`logW-${exId}`);
+  const rEl = eid(`logR-${exId}`);
+  if (!wEl || !rEl) return;
+  const weight = parseFloat(wEl.value);
+  const reps = parseInt(rEl.value, 10);
+  if (!weight || weight <= 0) {
+    toast(t('enter_weight'));
+    return;
+  }
+
+  const now = Date.now();
+  const restBeforeSecs = Number.isFinite(+draft.lastSetAt)
+    ? Math.max(0, Math.round((now - draft.lastSetAt) / 1000))
+    : null;
+  draft.lastSetAt = now;
+  draft.title = wc.title || draft.title || 'Workout';
+  const dEx = _getDraftExercise(draft, ex);
+  const set = {
+    weight,
+    reps: reps || 0,
+    restBeforeSecs,
+    createdAt: new Date(now).toISOString()
+  };
+
+  const hist = getExerciseHistory(ex.name);
+  const prevBestE1RM = hist.length
+    ? Math.max(...hist.map(e => bestE1RM(Array.isArray(e.loggedSets) ? e.loggedSets : [{ weight: e.weight, reps: e.reps, sets: e.sets || 1 }]) || 0))
+    : 0;
+  const newE1RM = epley1RM(weight, reps) || 0;
+  const isPR = newE1RM > 0 && newE1RM > prevBestE1RM;
+
+  dEx.sets.push(set);
+  if (isPR) toast(`PR: ${ex.name}, estimated 1RM ${Math.round(newE1RM)}kg`);
+  else toast(`${ex.name} set logged`);
+
+  startRestTimer();
+  scheduleDraftSave();
+  renderWorkoutCards();
+}
+
+function finishWorkoutDraft(cardId) {
+  ensureFitnessState();
+  const wc = findById(S.workoutCards, cardId);
+  const draft = _getActiveDraft(cardId);
+  if (!wc || !draft) return;
+
+  const noteEl = eid(`sessionNote-${cardId}`);
+  const dateEl = eid(`sessionDate-${cardId}`);
+  const sessionDate = (dateEl && dateEl.value) || draft.date || today();
+  const sessionNote = noteEl ? noteEl.value.trim() : (draft.notes || '');
+
+  const exercises = (wc.exercises || []).map(ex => {
+    const dEx = draft.exercises?.[String(ex.id)];
+    const loggedSets = Array.isArray(dEx?.sets) ? dEx.sets.filter(set => set.weight != null) : [];
+    if (!loggedSets.length) return null;
+    const best = _bestLoggedSet(loggedSets);
+    return {
+      name: ex.name || dEx.name || '',
+      sets: loggedSets.length,
+      weight: best && Number.isFinite(+best.weight) ? +best.weight : null,
+      reps: best && Number.isFinite(+best.reps) ? +best.reps : null,
+      loggedSets
+    };
+  }).filter(Boolean);
+
+  if (!exercises.length) {
+    toast('Log at least one set first');
+    return;
+  }
+
+  const summary = _sessionSummaryFromExercises(exercises) || 'Session completed';
+  const session = {
+    id: uid(),
+    cardId: wc.id,
+    title: wc.title || draft.title || 'Workout',
+    date: sessionDate,
+    summary,
+    notes: sessionNote,
+    exercises
+  };
+  S.workoutHistory.push(session);
+
+  exercises.forEach(ex => {
+    const hist = getExerciseHistory(ex.name);
+    hist.push({
+      date: sessionDate,
+      weight: ex.weight,
+      reps: ex.reps,
+      sets: ex.loggedSets.length,
+      loggedSets: ex.loggedSets
+    });
+  });
+
+  const gh = hfind('gym','lift','workout','training','weights');
+  if (gh) { if (!gh.days) gh.days = {}; gh.days[sessionDate] = true; }
+  S.gymLog[sessionDate] = true;
+
+  const week = weekDays();
+  const todayIdx = week.indexOf(sessionDate);
+  if (todayIdx >= 0) {
+    if (!S.workout[todayIdx]) S.workout[todayIdx] = {};
+    S.workout[todayIdx].cardId = wc.id;
+    S.workout[todayIdx].type = wc.title || 'Workout';
+    S.workout[todayIdx].rest = false;
+  }
+
+  delete S.activeWorkoutDrafts[String(cardId)];
+  _flushDraftSave();
+  renderWorkoutCards();
+  renderGymWeek();
+  renderTrainingLog();
+  if (typeof renderHabits === 'function') renderHabits();
+  if (typeof renderMuscleHeatmap === 'function') renderMuscleHeatmap();
+  toast(`${wc.title || t('workout')} ${t('workout_saved')}`);
+}
+
+function updateWorkoutDraftNotes(cardId, value) {
+  const draft = _getActiveDraft(cardId);
+  if (!draft) return;
+  draft.notes = String(value || '').slice(0, 2000);
+  scheduleDraftSave();
+}
+
+function updateWorkoutDraftDate(cardId, value) {
+  const draft = _getActiveDraft(cardId);
+  if (!draft) return;
+  draft.date = value || today();
+  scheduleDraftSave();
+}
+
+function _renderWorkoutCardBody(wc) {
+  const draft = _getActiveDraft(wc.id);
+  const isActive = !!draft;
+  const setCount = _countDraftSets(draft);
+  const exercises = Array.isArray(wc.exercises) ? wc.exercises : [];
+  const draftMeta = isActive
+    ? `<div class="workout-draft-meta">
+        <span>${setCount} set${setCount !== 1 ? 's' : ''}</span>
+        <span>started ${(draft.startedAt || '').slice(11, 16) || 'now'}</span>
+      </div>`
+    : `<div class="workout-draft-meta"><span>Browse first, start when ready</span></div>`;
+
+  return `
+    <div class="workout-card-body">
+      <div class="workout-draft-bar">
+        <div>
+          <div class="mono-label">${isActive ? 'Active workout' : 'Workout template'}</div>
+          ${draftMeta}
+        </div>
+        <div class="workout-draft-actions">
+          ${isActive
+            ? `<button class="btn btn-p" onclick="finishWorkoutDraft('${wc.id}')">Finish Workout</button>
+               <button class="btn btn-g" onclick="discardWorkoutDraft('${wc.id}')">Discard</button>`
+            : `<button class="btn btn-p" onclick="startWorkoutDraft('${wc.id}')">Start Workout</button>`}
+        </div>
+      </div>
+
+      <div class="exlist">
+        ${exercises.length
+          ? exercises.map((ex, i) => _renderWorkoutExerciseRow(wc, ex, i, draft)).join('')
+          : `<div class="workout-empty-row">No exercises yet. Add the first one below.</div>`}
+      </div>
+
+      <div style="margin-top:8px">
+        <button class="btn btn-g" style="width:100%;font-size:0.72rem;padding:7px" onclick="openExercisePicker('${wc.id}','add')">+ Add Exercise</button>
+      </div>
+
+      ${isActive ? `
+        <textarea id="sessionNote-${wc.id}" placeholder="Session notes..." oninput="updateWorkoutDraftNotes('${wc.id}',this.value)" class="workout-session-note">${escapeHtml(draft.notes || '')}</textarea>
+        <div class="workout-session-date">
+          <span>Date:</span>
+          <input type="date" id="sessionDate-${wc.id}" value="${escapeHtml(draft.date || today())}" onchange="updateWorkoutDraftDate('${wc.id}',this.value)">
+        </div>
+      ` : ''}
+
+      <div class="workout-card-footer">
+        <button class="btn btn-d" onclick="delWorkoutCard('${wc.id}')">${t('remove')}</button>
+        ${isActive ? `<button class="btn btn-g" onclick="repeatLastWorkout('${wc.id}')" title="Pre-fill active workout inputs with last session values">Repeat Last</button>` : ''}
+      </div>
+    </div>`;
+}
+
+function _renderWorkoutExerciseRow(wc, ex, index, draft) {
+  const isActive = !!draft;
+  const dEx = draft ? _getDraftExercise(draft, ex) : null;
+  const last = getLastExerciseLog(ex.name);
+  const draftLast = dEx?.sets?.length ? dEx.sets[dEx.sets.length - 1] : null;
+  const inputSet = draftLast || last;
+  const prev = getPrevExerciseLog(ex.name);
+  const pct = last && prev ? calcPctIncrease(prev.weight, last.weight) : null;
+  const dbEntry = (typeof EXERCISE_DB !== 'undefined' ? EXERCISE_DB : [])
+    .find(e => e.name.toLowerCase() === (ex.name || '').toLowerCase());
+  const muscleTags = dbEntry ? [...(dbEntry.muscles || []), ...(dbEntry.secondary || [])].slice(0, 2)
+    .map(m => `<span class="exercise-muscle-tag">${escapeHtml(m)}</span>`).join('') : '';
+  const canMoveUp = index > 0;
+  const canMoveDown = index < ((wc.exercises || []).length - 1);
+  const lastLine = last
+    ? `${t('last_colon')} ${last.sets > 1 ? last.sets + ' x ' : ''}${last.weight}kg x ${last.reps}${pct !== null ? ` <span style="color:${pct > 0 ? 'var(--gold-lt)' : 'var(--petal)'}">${fmtPct(pct)}</span>` : ''}`
+    : t('no_log_yet');
+
+  return `
+    <div class="ex-item workout-ex-item">
+      <div class="workout-ex-top">
+        <div class="workout-ex-main">
+          <div class="workout-ex-name">${escapeHtml(ex.name || '')}</div>
+          ${muscleTags ? `<div class="workout-ex-tags">${muscleTags}</div>` : ''}
+        </div>
+        <div class="workout-ex-actions">
+          <button class="btn btn-g" onclick="moveEx('${wc.id}','${ex.id}',-1)" ${canMoveUp ? '' : 'disabled'} title="Move up">Up</button>
+          <button class="btn btn-g" onclick="moveEx('${wc.id}','${ex.id}',1)" ${canMoveDown ? '' : 'disabled'} title="Move down">Down</button>
+          <button class="btn btn-g" onclick="openExercisePicker('${wc.id}','replace','${ex.id}')">Replace</button>
+          <button class="ex-del" onclick="delEx('${wc.id}','${ex.id}')" title="Remove">x</button>
+        </div>
+      </div>
+
+      ${isActive ? `
+        <div class="workout-set-grid">
+          <input class="add-inp" id="logW-${ex.id}" type="number" step="0.5" placeholder="${t('weight_ph')}" value="${inputSet?.weight ?? ''}">
+          <input class="add-inp" id="logR-${ex.id}" type="number" placeholder="${t('reps_ph')}" value="${inputSet?.reps ?? ''}">
+          <button class="btn btn-g" onclick="logWorkoutSet('${wc.id}','${ex.id}')">Log Set</button>
+        </div>
+        ${_renderDraftSetRows(dEx.sets)}
+      ` : `<div class="workout-last-line">${lastLine}</div>`}
+    </div>`;
+}
+
 function renderWorkoutCards() {
   ensureFitnessState();
   migrateWorkoutCardNamesOnce();
@@ -465,63 +830,7 @@ function renderWorkoutCards() {
       </div>`;
 
     // Expanded body
-    const body = expanded ? `
-      <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
-        <div class="exlist">
-          ${(wc.exercises || []).map(ex => {
-            const last = getLastExerciseLog(ex.name);
-            const prev = getPrevExerciseLog(ex.name);
-            const pct  = last && prev ? calcPctIncrease(prev.weight, last.weight) : null;
-            const overloadHint = (last && last.reps >= 8 && last.weight > 0)
-              ? `<span style="color:var(--gold);margin-left:6px" title="Suggested increase">↑ try ${last.weight + 2.5}kg</span>` : '';
-            // Look up muscle tags from DB
-            const dbEntry = (typeof EXERCISE_DB !== 'undefined' ? EXERCISE_DB : []).find(e => e.name.toLowerCase() === (ex.name||'').toLowerCase());
-            const muscleTags = dbEntry ? [...(dbEntry.muscles||[]),...(dbEntry.secondary||[])].slice(0,2)
-              .map(m => `<span style="font-size:0.52rem;color:var(--muted);background:var(--deep);
-                border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-family:'DM Mono',monospace">${m}</span>`).join('') : '';
-            return `
-              <div class="ex-item" style="display:block;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border-lt)">
-                <div style="display:flex;align-items:center;gap:7px;">
-                  <div style="flex:1;min-width:0">
-                    <div style="font-size:0.82rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(ex.name||'')}</div>
-                    ${muscleTags ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">${muscleTags}</div>` : ''}
-                  </div>
-                  <button class="ex-del" onclick="delEx('${wc.id}','${ex.id}')">✕</button>
-                </div>
-                <div style="display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap;">
-                  <input class="add-inp" id="logW-${ex.id}" type="number" step="0.5" placeholder="${t('weight_ph')}" style="min-width:0;flex:1;" value="${last?.weight ?? ''}">
-                  <input class="add-inp" id="logR-${ex.id}" type="number" placeholder="${t('reps_ph')}" style="min-width:0;flex:1;" value="${last?.reps ?? ''}">
-                  <input class="add-inp" id="logSets-${ex.id}" type="number" min="1" placeholder="sets" style="min-width:0;flex:1;" value="${last?.sets ?? 1}" title="Sets">
-                  <button class="btn btn-g" style="font-size:0.66rem;padding:4px 9px;flex-shrink:0" onclick="logExercise('${wc.id}','${ex.id}')">${t('log')}</button>
-                </div>
-                <div id="lastLog-${ex.id}" style="margin-top:5px;font-size:0.64rem;color:var(--muted-lt);font-family:'DM Mono',monospace;">
-                  ${last ? `${t('last_colon')} ${last.sets>1?last.sets+' × ':''}${last.weight}kg × ${last.reps}${pct!==null?` <span style="color:${pct>0?'var(--gold-lt)':'var(--petal)'}">${fmtPct(pct)}</span>`:''}${overloadHint}` : t('no_log_yet')}
-                </div>
-              </div>`;
-          }).join('')}
-        </div>
-
-        <div style="margin-top:4px">
-          <button class="btn btn-g" style="width:100%;font-size:0.72rem;padding:7px" onclick="openExercisePicker('${wc.id}')">+ Add Exercise</button>
-        </div>
-
-        <textarea id="sessionNote-${wc.id}" placeholder="Session notes…" style="display:block;width:100%;box-sizing:border-box;margin-top:10px;background:var(--mid);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:16px;font-family:'DM Mono',monospace;resize:none;padding:7px 10px;min-height:52px;outline:none;line-height:1.5"></textarea>
-
-        <div style="margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-          <span style="font-size:0.58rem;color:var(--muted);flex-shrink:0">Date:</span>
-          <input type="date" id="sessionDate-${wc.id}" value="${today()}"
-            style="background:var(--mid);border:1px solid var(--border);border-radius:6px;color:var(--gold-lt);font-size:0.66rem;padding:3px 7px;font-family:'DM Mono',monospace;outline:none;cursor:pointer;flex-shrink:0">
-        </div>
-
-        <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-d" style="font-size:0.66rem;padding:4px 9px" onclick="delWorkoutCard('${wc.id}')">${t('remove')}</button>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="btn btn-g" style="font-size:0.66rem;padding:4px 9px" onclick="repeatLastWorkout('${wc.id}')" title="Pre-fill with last session's values">Repeat Last</button>
-            <button class="btn btn-p" style="font-size:0.68rem;padding:5px 10px" onclick="logWorkoutSession('${wc.id}')">${t('log_session')}</button>
-          </div>
-        </div>
-      </div>` : '';
-
+    const body = expanded ? _renderWorkoutCardBody(wc) : '';
     div.innerHTML = header + body;
     c.appendChild(div);
   });
@@ -843,6 +1152,7 @@ function _refreshExerciseDatalist() {
 
 // ── Exercise Picker Modal ──────────────────────────────────────────────────────
 let _pickerWcId       = null;  // which workout card we're adding to
+let _exercisePickerCtx = null;
 let _pickerQuery      = '';
 let _pickerRegion     = '';    // body region (Chest, Back, Shoulders, Arms, Legs, Core, Cardio)
 let _pickerMuscle     = '';    // sub-muscle drill-down within region
@@ -878,8 +1188,9 @@ const _EQUIP_LABELS = {
   band:'Band',
 };
 
-function openExercisePicker(wcId) {
+function openExercisePicker(wcId, mode = 'add', exId = null) {
   _pickerWcId   = wcId;
+  _exercisePickerCtx = { mode: mode === 'replace' ? 'replace' : 'add', cardId: wcId, exerciseId: exId };
   _pickerQuery  = '';
   _pickerRegion = '';
   _pickerMuscle = '';
@@ -1108,20 +1419,38 @@ function _pickerExRow(e) {
 }
 
 function pickExercise(name) {
-  if (!_pickerWcId) return;
+  const ctx = _exercisePickerCtx || { mode: 'add', cardId: _pickerWcId, exerciseId: null };
+  if (!ctx.cardId) return;
   ensureFitnessState();
-  const wc = findById(S.workoutCards, _pickerWcId);
+  const wc = findById(S.workoutCards, ctx.cardId);
   if (!wc) return;
   if (!Array.isArray(wc.exercises)) wc.exercises = [];
-  // Don't add duplicates
-  if (wc.exercises.some(e => e.name.toLowerCase() === name.toLowerCase())) {
+
+  const duplicate = wc.exercises.some(e =>
+    e.name.toLowerCase() === name.toLowerCase() &&
+    !(ctx.mode === 'replace' && String(e.id) === String(ctx.exerciseId))
+  );
+  if (duplicate) {
     toast('Already in this workout');
     closeModal('mExercisePicker');
     return;
   }
-  wc.exercises.push({ id: uid(), name });
+
+  if (ctx.mode === 'replace') {
+    const ex = findById(wc.exercises, ctx.exerciseId);
+    if (!ex) return;
+    ex.name = name;
+    const draft = _getActiveDraft(ctx.cardId);
+    if (draft?.exercises?.[String(ex.id)]) {
+      draft.exercises[String(ex.id)].name = name;
+    }
+  } else {
+    wc.exercises.push({ id: uid(), name });
+  }
+
   scheduleSave();
   closeModal('mExercisePicker');
+  _exercisePickerCtx = null;
   renderWorkoutCards();
 }
 
@@ -1245,22 +1574,29 @@ function updateEx(wcId, exId, f, v) {
   renderWorkoutCards();
 }
 
+function moveEx(wcId, exId, dir) {
+  ensureFitnessState();
+  const wc = findById(S.workoutCards, wcId);
+  if (!wc || !Array.isArray(wc.exercises)) return;
+  const idx = wc.exercises.findIndex(e => String(e.id) === String(exId));
+  if (idx < 0) return;
+  const nextIdx = idx + (dir > 0 ? 1 : -1);
+  if (nextIdx < 0 || nextIdx >= wc.exercises.length) return;
+  const [item] = wc.exercises.splice(idx, 1);
+  wc.exercises.splice(nextIdx, 0, item);
+  scheduleSave();
+  renderWorkoutCards();
+}
+
 function delEx(wcId, exId) {
   ensureFitnessState();
   const wc = findById(S.workoutCards, wcId);
   if (!wc) return;
 
-  const ex = findById(wc.exercises, exId);
   wc.exercises = (wc.exercises || []).filter(e => String(e.id) !== String(exId));
-
-  // Clean up exercise history so deleted exercises don't ghost in PBs
-  if (ex && ex.name) {
-    const key = normExerciseKey(ex.name);
-    // Only remove if no other card still has an exercise with the same name
-    const stillUsed = (S.workoutCards || []).some(w =>
-      (w.exercises || []).some(e => normExerciseKey(e.name) === key)
-    );
-    if (!stillUsed) delete S.exerciseHistory[key];
+  const draft = _getActiveDraft(wcId);
+  if (draft?.exercises) {
+    delete draft.exercises[String(exId)];
   }
 
   scheduleSave();
@@ -1287,153 +1623,12 @@ function addEx(wcId) {
 
 /* ══ EXERCISE LOGGING ══ */
 function logExercise(wcId, exId) {
-  ensureFitnessState();
-
-  const wc = findById(S.workoutCards, wcId);
-  if (!wc) return;
-
-  const ex = findById(wc.exercises, exId);
-  if (!ex) return;
-
-  const wEl = eid(`logW-${exId}`);
-  const rEl = eid(`logR-${exId}`);
-  if (!wEl || !rEl) return;
-  const weight = parseFloat(wEl.value);
-  const reps = parseInt(rEl.value, 10);
-  const setsEl = eid(`logSets-${exId}`);
-  const setsCount = setsEl ? (parseInt(setsEl.value, 10) || 1) : 1;
-
-  if (!weight || weight <= 0) {
-    toast(t('enter_weight'));
-    return;
-  }
-
-  const entry = {
-    date: today(),
-    weight,
-    reps: reps || 0,
-    sets: setsCount
-  };
-
-  const hist = getExerciseHistory(ex.name);
-
-  // Check for PR BEFORE pushing new entry
-  const prevBestE1RM = hist.length
-    ? Math.max(...hist.map(e => {
-        const sets = Array.isArray(e.loggedSets) ? e.loggedSets
-          : (e.weight != null ? [{ weight: e.weight, reps: e.reps, sets: e.sets || 1 }] : []);
-        return bestE1RM(sets) || 0;
-      }))
-    : 0;
-  const newE1RM = epley1RM(weight, reps) || 0;
-  const isPR = newE1RM > 0 && newE1RM > prevBestE1RM;
-
-  hist.push(entry);
-
-  // Keep current input values — do NOT reset so other exercise inputs are preserved
-  if (setsEl) setsEl.value = setsCount;
-
-  // PR badge flash on the exercise row
-  if (isPR) {
-    const exRow = document.querySelector(`#logW-${exId}`)?.closest('.ex-item');
-    if (exRow) {
-      const badge = document.createElement('div');
-      badge.textContent = '🏅 PR';
-      badge.style.cssText = 'position:absolute;top:-8px;right:4px;background:var(--gold);color:var(--ink);font-size:0.58rem;font-family:"DM Mono",monospace;font-weight:700;padding:2px 7px;border-radius:10px;letter-spacing:0.06em;pointer-events:none;z-index:10;animation:prPop 0.35s ease';
-      exRow.style.position = 'relative';
-      exRow.appendChild(badge);
-      setTimeout(() => badge.remove(), 3500);
-    }
-  }
-
-  // Update only the last-log display for this exercise (no full re-render)
-  const lastLogDiv = eid(`lastLog-${exId}`);
-  if (lastLogDiv) {
-    const prev = hist.length >= 2 ? hist[hist.length - 2] : null;
-    const pct = prev ? calcPctIncrease(prev.weight, entry.weight) : null;
-    const prBadge = isPR ? ` <span style="background:var(--gold);color:var(--ink);font-size:0.52rem;font-family:'DM Mono',monospace;padding:1px 5px;border-radius:6px;margin-left:4px;letter-spacing:0.05em">PR</span>` : '';
-    lastLogDiv.innerHTML = `${t('last_colon')} ${setsCount > 1 ? setsCount + ' × ' : ''}${weight}kg × ${reps || 0}${pct !== null ? ` <span style="color:var(--gold-lt)">${fmtPct(pct)}</span>` : ''}${prBadge}`;
-    if (isPR) toast(`🏅 PR! ${ex.name} — Est. 1RM ${Math.round(newE1RM)}kg`);
-    else {
-      const pctVal = hist.length >= 2 ? calcPctIncrease(hist[hist.length - 2].weight, weight) : null;
-      if (pctVal !== null && pctVal > 0) toast(`${ex.name}: ${fmtPct(pctVal)} ${t('from_last_log')}`);
-      else toast(`${ex.name} ${t('exercise_logged')}`);
-    }
-  }
-
-  startRestTimer();
-  scheduleSave();
+  logWorkoutSet(wcId, exId);
 }
 
 function logWorkoutSession(wcId) {
-  ensureFitnessState();
-
-  const wc = findById(S.workoutCards, wcId);
-  if (!wc) return;
-
-  // Use date picker if present, fall back to today
-  const datePickerEl = eid(`sessionDate-${wc.id}`);
-  const sessionDate  = (datePickerEl && datePickerEl.value) || today();
-  const todayStr = sessionDate;
-  const exercises = (wc.exercises||[]).map(ex => {
-    const key = normExerciseKey(ex.name);
-    const todaySets = (S.exerciseHistory[key] || []).filter(e => e.date === todayStr);
-    if (!todaySets.length) {
-      const last = getLastExerciseLog(ex.name);
-      return last ? { name: ex.name, loggedSets: [{ weight: last.weight, reps: last.reps, sets: last.sets }] } : null;
-    }
-    return { name: ex.name, loggedSets: todaySets };
-  }).filter(Boolean);
-
-  const summary = exercises
-    .map(ex => {
-      const best = (ex.loggedSets || []).reduce((b, s) => (!b || (parseFloat(s.weight)||0) > (parseFloat(b.weight)||0)) ? s : b, null);
-      return best ? `${ex.name} ${best.weight}kg×${best.reps}` : null;
-    })
-    .filter(Boolean)
-    .slice(0, 5)
-    .join(' · ');
-
-  const noteEl = eid(`sessionNote-${wc.id}`);
-  const sessionNote = noteEl ? noteEl.value.trim() : '';
-
-  S.workoutHistory.push({
-    id: uid(),
-    cardId: wc.id,
-    title: wc.title || 'Workout',
-    date: sessionDate,
-    summary: summary || 'Session completed',
-    notes: sessionNote,
-    exercises
-  });
-  pushFeedEvent('workout', null, { title: wc.title || 'Workout', exercises: exercises.length, date: sessionDate });
-
-  const gh = hfind('gym','lift','workout','training','weights');
-  if (gh) { if (!gh.days) gh.days = {}; gh.days[sessionDate] = true; }
-  S.gymLog[sessionDate] = true;
-
-  // Auto-link this card to the session date in the training week (only if it's this week)
-  const week = weekDays();
-  const todayIdx = week.indexOf(sessionDate);
-  if (todayIdx >= 0) {
-    if (!S.workout[todayIdx]) S.workout[todayIdx] = {};
-    S.workout[todayIdx].cardId = wc.id;
-    S.workout[todayIdx].type   = wc.title || 'Workout';
-    S.workout[todayIdx].rest   = false;
-  }
-
-  scheduleSave();
-  renderWorkoutCards();
-  renderGymWeek();
-  renderTrainingLog();
-  if (typeof renderHabits === 'function') renderHabits();
-  // Reset date picker to today after logging
-  setTimeout(() => { const dp = eid(`sessionDate-${wc.id}`); if (dp) dp.value = today(); }, 50);
-
-  if (typeof renderMuscleHeatmap === 'function') renderMuscleHeatmap();
-  toast(`${wc.title || t('workout')} ${t('workout_saved')}`);
+  finishWorkoutDraft(wcId);
 }
-
 /* ══ MUSCLE VOLUME HEATMAP ══ */
 
 // Canonical muscle groups for the heatmap grid
