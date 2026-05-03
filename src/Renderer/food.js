@@ -1,7 +1,7 @@
 'use strict';
 // ─────────────────────────────────────────────────────────────
 // food.js — Food tab
-// Database: BUILTIN_FOODS (local) + community_foods + usda_foods (Supabase)
+// Database: BUILTIN_FOODS (local) + food_products + usda_foods (Supabase)
 // Data: S.foodLog  = { 'YYYY-MM-DD': [{ id, name, brand, meal, grams, kcal, protein, carbs, fat, fiber, per100g }] }
 //       S.foodTargets = { kcal, protein, carbs, fat }
 // ─────────────────────────────────────────────────────────────
@@ -112,9 +112,74 @@ const BUILTIN_FOODS = [
 let _foodSearchTimer  = null;
 let _foodDate         = null; // null means "use today()" — set on init
 let _foodResults      = [];
+let _foodProductResults = [];
+let _weightedFoodResults = [];
 let _foodEditId       = null; // id of entry being edited
 let _foodCatFilter    = 'all'; // category pill filter
 let _builderItems     = [];   // quick-add builder accumulator
+let _foodAdminChecked = false;
+let _foodIsAdmin = false;
+let _foodPendingSubmissions = [];
+
+const GCC_COUNTRY_CODES = new Set(['KW', 'SA', 'AE', 'QA', 'BH', 'OM']);
+
+function _normalizeFoodCountryCode(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return 'GLOBAL';
+  const lower = raw.toLowerCase();
+  const aliases = {
+    kuwait: 'KW',
+    kw: 'KW',
+    ksa: 'SA',
+    saudi: 'SA',
+    'saudi arabia': 'SA',
+    usa: 'US',
+    us: 'US',
+    'united states': 'US',
+    america: 'US',
+    jamaica: 'JM',
+    jm: 'JM',
+    korea: 'KR',
+    'south korea': 'KR',
+    kr: 'KR',
+    global: 'GLOBAL',
+    gcc: 'GLOBAL'
+  };
+  if (aliases[lower]) return aliases[lower];
+  return raw.length === 2 ? raw.toUpperCase() : 'GLOBAL';
+}
+
+function _foodCountryCode() {
+  return _normalizeFoodCountryCode(S.appPrefs?.foodCountry || currentProfile?.country || 'GLOBAL');
+}
+
+function _foodRegionGroups(countryCode = _foodCountryCode()) {
+  return GCC_COUNTRY_CODES.has(countryCode) ? ['GCC'] : [];
+}
+
+function _isCountryVisible(countryCode, regionGroup) {
+  const userCountry = _foodCountryCode();
+  const productCountry = _normalizeFoodCountryCode(countryCode);
+  if (productCountry === 'GLOBAL' || productCountry === userCountry) return true;
+  const groups = _foodRegionGroups(userCountry);
+  return !!regionGroup && groups.includes(String(regionGroup).toUpperCase());
+}
+
+function _countryTag(countryCode, regionGroup) {
+  const country = _normalizeFoodCountryCode(countryCode);
+  if (country !== 'GLOBAL') return country;
+  return regionGroup ? String(regionGroup).toUpperCase() : 'GLOBAL';
+}
+
+function _customFoodPer100g(cf) {
+  return {
+    kcal: parseFloat(cf?.kcal) || 0,
+    protein: parseFloat(cf?.protein) || 0,
+    carbs: parseFloat(cf?.carbs) || 0,
+    fat: parseFloat(cf?.fat) || 0,
+    fiber: parseFloat(cf?.fiber) || 0
+  };
+}
 
 // ── Fuzzy search ───────────────────────────────────────────────
 function _fuzzyScore(str, q) {
@@ -708,14 +773,16 @@ function _getRecentFoods(limit = 10) {
 }
 
 function _customFoodRow(cf, i) {
+  const per = _customFoodPer100g(cf);
+  const tag = _countryTag(cf.countryCode, cf.regionGroup);
   return `<div onclick="selectCustomFood(${i})"
     style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
     onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
     <div style="flex:1;min-width:0">
       <div style="font-size:0.82rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(cf.name)}</div>
-      <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace">P${Math.round(cf.protein||0)}g \u00b7 C${Math.round(cf.carbs||0)}g \u00b7 F${Math.round(cf.fat||0)}g</div>
+      <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace">${cf.brand ? escapeHtml(cf.brand) + ' &middot; ' : ''}${tag} &middot; P${Math.round(per.protein||0)}g &middot; C${Math.round(per.carbs||0)}g &middot; F${Math.round(per.fat||0)}g</div>
     </div>
-    <div style="font-size:0.68rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(cf.kcal||0)} kcal</div>
+    <div style="font-size:0.68rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(per.kcal||0)} kcal/100g</div>
   </div>`;
 }
 
@@ -785,8 +852,12 @@ function selectCustomFood(i) {
   const cf = customs[i];
   if (!cf) return;
   eid('foodAddName').value  = cf.name;
-  eid('foodAddBrand').value = '';
-  _showFoodAddForm({ kcal: cf.kcal, protein: cf.protein, carbs: cf.carbs, fat: cf.fat, fiber: cf.fiber || 0 }, false, true);
+  eid('foodAddBrand').value = cf.brand || '';
+  _showFoodAddForm(_customFoodPer100g(cf), false, false, {
+    servingGrams: cf.servingGrams || 100,
+    sourceProductId: cf.sourceProductId || '',
+    countryCode: cf.countryCode || 'GLOBAL'
+  });
 }
 
 function selectRecentFood(i) {
@@ -807,98 +878,74 @@ function selectRecentFood(i) {
   }
 }
 
-function _builtinMatchHtml(matches) {
-  if (!matches.length) return '';
-  return `<div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--muted-lt);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">Basics</div>
-    ${matches.map(f => _builtinFoodRow(f)).join('')}`;
-}
-
 function onFoodSearchInput() {
   clearTimeout(_foodSearchTimer);
   const q = eid('foodSearchInput')?.value.trim();
   if (!q) { _showRecentFoods(); return; }
 
-  const myPool      = (_foodCatFilter === 'all' || _foodCatFilter === 'myfoods') ? (S.customFoods || []) : [];
-  const myMatches   = _fuzzyFilter(myPool, q);
-  const builtinPool = _filterBuiltinByCat(BUILTIN_FOODS);
-  const builtinMatches = _fuzzyFilter(builtinPool, q);
-
   const resultsEl = eid('foodSearchResults');
   if (resultsEl) {
-    const hasLocal = myMatches.length || builtinMatches.length;
+    const rows = _rankFoodSearchRows(q, {
+      myFoods: (S.customFoods || []),
+      products: [],
+      builtins: _filterBuiltinByCat(BUILTIN_FOODS),
+      usda: []
+    });
+    _weightedFoodResults = rows;
+    const hasLocal = rows.length;
     const searching = _foodCatFilter !== 'myfoods'
       ? `<div style="padding:${hasLocal ? '10px' : '20px'} 14px;font-size:0.72rem;color:var(--muted);text-align:center;${hasLocal ? 'border-top:1px solid var(--border)' : ''}">Searching database\u2026</div>`
       : '';
-    resultsEl.innerHTML = _myFoodsMatchHtml(myMatches) + _builtinMatchHtml(builtinMatches) + searching;
+    resultsEl.innerHTML = _weightedFoodResultsHtml(rows, q) + searching;
   }
   if (_foodCatFilter !== 'myfoods') {
     _foodSearchTimer = setTimeout(() => _doFoodSearch(q), 400);
   }
 }
 
-function _myFoodsMatchHtml(matches) {
-  if (!matches.length) return '';
-  return `
-    <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--gold-lt);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">My Foods</div>
-    ${matches.map(cf => `
-      <div onclick="selectSearchCustomFood('${cf.id}')"
-        style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
-        onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:0.82rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(cf.name)}</div>
-          <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace">P${Math.round(cf.protein||0)}g \u00b7 C${Math.round(cf.carbs||0)}g \u00b7 F${Math.round(cf.fat||0)}g</div>
-        </div>
-        <div style="font-size:0.68rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(cf.kcal||0)} kcal</div>
-      </div>`).join('')}`;
-}
-
 async function _doFoodSearch(q) {
   const resultsEl = eid('foodSearchResults');
   if (!resultsEl) return;
 
-  const myPool      = (_foodCatFilter === 'all' || _foodCatFilter === 'myfoods') ? (S.customFoods || []) : [];
-  const myMatches   = _fuzzyFilter(myPool, q);
-  const builtinPool = _filterBuiltinByCat(BUILTIN_FOODS);
-  const builtinMatches = _fuzzyFilter(builtinPool, q);
-
   try {
-    const [commRes, usdaRes] = await Promise.allSettled([
-      _fetchCommunityFoods(q),
+    const [productRes, usdaRes] = await Promise.allSettled([
+      _fetchFoodProducts(q),
       _fetchUSDA(q)
     ]);
 
-    const community = commRes.status === 'fulfilled' ? commRes.value : [];
+    const products = productRes.status === 'fulfilled' ? productRes.value : [];
     _foodResults    = usdaRes.status === 'fulfilled' ? usdaRes.value : [];
-    _communityResults = community;
+    _foodProductResults = products;
 
-    if (!_foodResults.length && !community.length && !myMatches.length && !builtinMatches.length) {
+    const rows = _rankFoodSearchRows(q, {
+      myFoods: (S.customFoods || []),
+      products,
+      builtins: _filterBuiltinByCat(BUILTIN_FOODS),
+      usda: _foodResults
+    });
+    _weightedFoodResults = rows;
+
+    if (!rows.length) {
       resultsEl.innerHTML = `
         <div style="padding:20px;text-align:center">
           <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px">No results for "${escapeHtml(q)}"</div>
-          <div style="font-size:0.64rem;color:var(--muted);margin-bottom:12px">Add it manually or save to My Foods and share with the community</div>
+          <div style="font-size:0.64rem;color:var(--muted);margin-bottom:12px">Add it privately first, then submit it for review if it belongs in the country database.</div>
           <button class="btn btn-p" style="font-size:0.72rem" onclick="setFoodMode('quick')">Add manually \u2192</button>
         </div>`;
       return;
     }
 
-    const communityHtml = _communityMatchHtml(community);
-    const dbHtml = _foodResults.length ? `
-      <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">USDA Database</div>
-      ${_foodResults.map((r, i) => `
-        <div onclick="selectFoodResult(${i})"
-          style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
-          onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:0.82rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.name)}</div>
-            <div style="font-size:0.62rem;color:var(--muted)">${r.brand ? escapeHtml(r.brand) : 'USDA'}</div>
-          </div>
-          <div style="font-size:0.7rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(r.per100g.kcal)} kcal/100g</div>
-        </div>`).join('')}` : '';
-
-    resultsEl.innerHTML = _myFoodsMatchHtml(myMatches) + communityHtml + _builtinMatchHtml(builtinMatches) + dbHtml;
+    resultsEl.innerHTML = _weightedFoodResultsHtml(rows, q);
 
   } catch(e) {
-    resultsEl.innerHTML = _myFoodsMatchHtml(myMatches) + _builtinMatchHtml(builtinMatches) + `
+    const rows = _rankFoodSearchRows(q, {
+      myFoods: (S.customFoods || []),
+      products: [],
+      builtins: _filterBuiltinByCat(BUILTIN_FOODS),
+      usda: []
+    });
+    _weightedFoodResults = rows;
+    resultsEl.innerHTML = _weightedFoodResultsHtml(rows, q) + `
       <div style="padding:16px;text-align:center">
         <div style="font-size:0.72rem;color:var(--muted);margin-bottom:10px">Database unavailable</div>
         <button class="btn btn-p" style="font-size:0.72rem" onclick="setFoodMode('quick')">Add manually \u2192</button>
@@ -906,43 +953,168 @@ async function _doFoodSearch(q) {
   }
 }
 
-async function _fetchCommunityFoods(q) {
-  if (typeof sb === 'undefined' || !sb) return [];
-  const { data, error } = await sb
-    .from('community_foods')
-    .select('id,name,kcal,protein,carbs,fat,fiber,region')
-    .ilike('name', `%${q}%`)
-    .order('votes', { ascending: false })
-    .limit(8);
-  if (error || !data) return [];
-  return data.map(r => ({
-    _communityId: r.id,
-    name:    r.name,
-    region:  r.region || 'global',
-    per100g: {
-      kcal:    r.kcal    || 0,
-      protein: r.protein || 0,
-      carbs:   r.carbs   || 0,
-      fat:     r.fat     || 0,
-      fiber:   r.fiber   || 0
-    }
-  }));
+function _foodText(item) {
+  return `${item.name || ''} ${item.brand || ''} ${item.barcode || ''}`.trim();
 }
 
-function _communityMatchHtml(matches) {
-  if (!matches.length) return '';
+function _foodSourceBoost(row, base) {
+  let score = base * 10;
+  const q = row._queryNorm;
+  const name = (row.name || '').trim().toLowerCase();
+  const brand = (row.brand || '').trim().toLowerCase();
+  if (name === q) score += 80;
+  else if (name.startsWith(q)) score += 30;
+  else if (name.includes(q)) score += 14;
+  if (brand && brand === q) score += 24;
+  else if (brand && brand.includes(q)) score += 10;
+  if (row.kind === 'my' && base >= 1) score += 9;
+  if (row.kind === 'product') score += 4 + ((row.confidenceScore || 0.7) * 3);
+  if (row.kind === 'builtin') score += 2;
+  if (row.kind === 'usda') score -= 1;
+  if (row.countryCode === _foodCountryCode()) score += 6;
+  else if (row.regionGroup && _foodRegionGroups().includes(String(row.regionGroup).toUpperCase())) score += 4;
+  else if (_normalizeFoodCountryCode(row.countryCode) === 'GLOBAL') score += 1;
+  return score;
+}
+
+function _rankFoodSearchRows(q, groups) {
+  const query = q.trim();
+  const qNorm = query.toLowerCase();
+  if (!query) return [];
+  const rows = [];
+
+  if (_foodCatFilter === 'all' || _foodCatFilter === 'myfoods') {
+    for (const cf of groups.myFoods || []) {
+      const base = _fuzzyScore(_foodText(cf), query);
+      if (base <= 0) continue;
+      rows.push({
+        kind: 'my',
+        id: cf.id,
+        name: cf.name,
+        brand: cf.brand || '',
+        countryCode: cf.countryCode || 'GLOBAL',
+        regionGroup: cf.regionGroup || '',
+        servingGrams: cf.servingGrams || 100,
+        per100g: _customFoodPer100g(cf),
+        sourceProductId: cf.sourceProductId || '',
+        sourceLabel: 'My Foods',
+        _queryNorm: qNorm,
+        _scoreBase: base
+      });
+    }
+  }
+
+  if (_foodCatFilter !== 'myfoods') {
+    for (const p of groups.products || []) {
+      if (!_isCountryVisible(p.countryCode, p.regionGroup)) continue;
+      const base = _fuzzyScore(_foodText(p), query);
+      if (base <= 0) continue;
+      rows.push({ ...p, kind: 'product', sourceLabel: 'Country DB', _queryNorm: qNorm, _scoreBase: base });
+    }
+
+    for (const f of groups.builtins || []) {
+      const countryCode = f.gcc ? 'KW' : 'GLOBAL';
+      const regionGroup = f.gcc ? 'GCC' : '';
+      if (!_isCountryVisible(countryCode, regionGroup)) continue;
+      const base = _fuzzyScore(f.name, query);
+      if (base <= 0) continue;
+      rows.push({
+        kind: 'builtin',
+        id: f.id,
+        name: f.name,
+        brand: f.gcc ? 'GCC Basic' : 'Basic',
+        countryCode,
+        regionGroup,
+        servingGrams: f.servingG || 100,
+        per100g: f.per100g,
+        sourceLabel: f.gcc ? 'Built-in GCC' : 'Built-in',
+        _queryNorm: qNorm,
+        _scoreBase: base
+      });
+    }
+
+    for (let i = 0; i < (groups.usda || []).length; i++) {
+      const r = groups.usda[i];
+      const base = _fuzzyScore(_foodText(r), query);
+      if (base <= 0) continue;
+      rows.push({
+        kind: 'usda',
+        index: i,
+        name: r.name,
+        brand: r.brand || 'USDA',
+        countryCode: 'GLOBAL',
+        regionGroup: '',
+        servingGrams: 100,
+        per100g: r.per100g,
+        sourceLabel: 'USDA',
+        _queryNorm: qNorm,
+        _scoreBase: base
+      });
+    }
+  }
+
+  return rows
+    .map(row => ({ ...row, score: _foodSourceBoost(row, row._scoreBase) }))
+    .filter(row => row.score >= 2.5)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 24);
+}
+
+function _weightedFoodResultsHtml(rows, q) {
+  if (!rows.length) return '';
+  const country = _foodCountryCode();
   return `
-    <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--blush);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">Community</div>
-    ${matches.map((cf, i) => `
-      <div onclick="selectCommunityFood(${i})"
-        style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
-        onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''" data-cidx="${i}">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:0.82rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(cf.name)}</div>
-          <div style="font-size:0.58rem;color:var(--muted-lt);font-family:'DM Mono',monospace">${cf.region === 'kuwait' || cf.region === 'gcc' ? '<span style="color:var(--gold)">GCC</span> \u00b7 ' : ''}Community</div>
+    <div style="padding:8px 14px 4px;font-size:0.6rem;color:var(--muted-lt);letter-spacing:0.08em;text-transform:uppercase;font-family:'DM Mono',monospace">Best Matches (${country}+GLOBAL)</div>
+    ${rows.map((row, i) => _foodSearchRowHtml(row, i)).join('')}`;
+}
+
+function _foodSearchRowHtml(row, i) {
+  const tag = _countryTag(row.countryCode, row.regionGroup);
+  const serving = row.servingGrams && row.servingGrams !== 100 ? `${Math.round(row.servingGrams)}g serving` : '100g';
+  const sourceColor = row.kind === 'my' ? 'var(--gold-lt)' : row.kind === 'product' ? 'var(--blush)' : 'var(--muted-lt)';
+  return `
+    <div onclick="selectWeightedFood(${i})"
+      style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s"
+      onmouseenter="this.style.background='var(--blush-dim)'" onmouseleave="this.style.background=''">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:0.82rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(row.name)}</div>
+        <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace">
+          ${row.brand ? escapeHtml(row.brand) + ' &middot; ' : ''}<span style="color:${sourceColor}">${escapeHtml(row.sourceLabel)}</span> &middot; ${tag} &middot; ${serving}
         </div>
-        <div style="font-size:0.68rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(cf.per100g.kcal)} kcal/100g</div>
-      </div>`).join('')}`;
+      </div>
+      <div style="font-size:0.68rem;color:var(--gold-lt);font-family:'DM Mono',monospace;flex-shrink:0">${Math.round(row.per100g?.kcal || 0)} kcal/100g</div>
+    </div>`;
+}
+
+async function _fetchFoodProducts(q) {
+  if (typeof sb === 'undefined' || !sb) return [];
+  const safe = q.replace(/[,%()'"]/g, ' ').trim();
+  if (!safe) return [];
+  const { data, error } = await sb
+    .from('food_products')
+    .select('id,name,brand,barcode,country_code,region_group,serving_grams,kcal,protein,carbs,fat,fiber,confidence_score')
+    .or(`name.ilike.%${safe}%,brand.ilike.%${safe}%,barcode.eq.${safe}`)
+    .order('confidence_score', { ascending: false })
+    .limit(30);
+  if (error || !data) return [];
+  return data.map(r => ({
+    id: r.id,
+    name: r.name,
+    brand: r.brand || '',
+    barcode: r.barcode || '',
+    countryCode: _normalizeFoodCountryCode(r.country_code),
+    regionGroup: r.region_group || '',
+    servingGrams: parseFloat(r.serving_grams) || 100,
+    confidenceScore: parseFloat(r.confidence_score) || 0.7,
+    sourceProductId: r.id,
+    per100g: {
+      kcal: parseFloat(r.kcal) || 0,
+      protein: parseFloat(r.protein) || 0,
+      carbs: parseFloat(r.carbs) || 0,
+      fat: parseFloat(r.fat) || 0,
+      fiber: parseFloat(r.fiber) || 0
+    }
+  }));
 }
 
 function _cleanUsdaName(raw) {
@@ -976,42 +1148,58 @@ async function _fetchUSDA(q) {
     }));
 }
 
+function selectWeightedFood(i) {
+  const row = _weightedFoodResults[i];
+  if (!row) return;
+  _selectFoodData(row);
+}
+
 function selectFoodResult(i) {
   const r = _foodResults[i];
   if (!r) return;
-  if (_foodSearchTarget?.type === 'myfoods') { _saveToMyFoodsFromResult(r.name, r.per100g); return; }
-  if (_foodMode === 'builder') { _addToBuilder(r.name, r.per100g, 100); return; }
-  eid('foodAddName').value  = r.name;
-  eid('foodAddBrand').value = r.brand || '';
-  _showFoodAddForm(r.per100g, false);
+  _selectFoodData({
+    name: r.name,
+    brand: r.brand || '',
+    per100g: r.per100g,
+    servingGrams: 100,
+    countryCode: 'GLOBAL',
+    sourceLabel: 'USDA'
+  });
 }
 
-// Community foods results are stored temporarily for selection
-let _communityResults = [];
-
-function _communityMatchHtmlWithStore(matches) {
-  _communityResults = matches;
-  return _communityMatchHtml(matches);
-}
-
-function selectCommunityFood(i) {
-  const cf = _communityResults[i];
-  if (!cf) return;
-  if (_foodSearchTarget?.type === 'myfoods') { _saveToMyFoodsFromResult(cf.name, cf.per100g); return; }
-  if (_foodMode === 'builder') { _addToBuilder(cf.name, cf.per100g, 100); return; }
-  eid('foodAddName').value  = cf.name;
-  eid('foodAddBrand').value = cf.region === 'kuwait' || cf.region === 'gcc' ? 'Community GCC' : 'Community';
-  _showFoodAddForm(cf.per100g, false);
+function _selectFoodData(row) {
+  if (_foodSearchTarget?.type === 'myfoods') {
+    _saveToMyFoodsFromResult(row.name, row.per100g, row);
+    return;
+  }
+  const servingGrams = row.servingGrams || 100;
+  if (_foodMode === 'builder') {
+    _addToBuilder(row.name, row.per100g, servingGrams);
+    return;
+  }
+  eid('foodAddName').value  = row.name;
+  eid('foodAddBrand').value = row.brand || row.sourceLabel || '';
+  _showFoodAddForm(row.per100g, false, false, {
+    servingGrams,
+    sourceProductId: row.sourceProductId || (row.kind === 'product' ? row.id : ''),
+    countryCode: row.countryCode || 'GLOBAL'
+  });
 }
 
 function selectBuiltinFood(id) {
   const f = BUILTIN_FOODS.find(b => b.id === id);
   if (!f) return;
-  if (_foodSearchTarget?.type === 'myfoods') { _saveToMyFoodsFromResult(f.name, f.per100g); return; }
+  const meta = {
+    brand: f.gcc ? 'GCC Basic' : 'Basic',
+    countryCode: f.gcc ? 'KW' : 'GLOBAL',
+    regionGroup: f.gcc ? 'GCC' : '',
+    servingGrams: f.servingG || 100
+  };
+  if (_foodSearchTarget?.type === 'myfoods') { _saveToMyFoodsFromResult(f.name, f.per100g, meta); return; }
   if (_foodMode === 'builder') { _addToBuilder(f.name, f.per100g, f.servingG); return; }
   eid('foodAddName').value  = f.name;
-  eid('foodAddBrand').value = f.mode === 'dish' ? 'GCC Dish' : f.gcc ? 'GCC Basic' : 'Basic';
-  _showFoodAddForm(f.per100g, false);
+  eid('foodAddBrand').value = f.mode === 'dish' ? 'GCC Dish' : meta.brand;
+  _showFoodAddForm(f.per100g, false, false, meta);
   // Default to the food's natural serving size instead of 100g
   if (f.servingG && f.servingG !== 100) {
     const gramsInp = eid('foodAddGrams');
@@ -1019,12 +1207,28 @@ function selectBuiltinFood(id) {
   }
 }
 
-function _saveToMyFoodsFromResult(name, per100g) {
+function _saveToMyFoodsFromResult(name, per100g, meta = {}) {
   if (!Array.isArray(S.customFoods)) S.customFoods = [];
-  if (S.customFoods.some(cf => cf.name.toLowerCase() === name.toLowerCase())) {
+  const brand = meta.brand || '';
+  if (S.customFoods.some(cf => cf.name.toLowerCase() === name.toLowerCase() && (cf.brand || '').toLowerCase() === brand.toLowerCase())) {
     toast(`"${name}" already in My Foods`); return;
   }
-  S.customFoods.push({ id: uid(), name, kcal: per100g.kcal, protein: per100g.protein, carbs: per100g.carbs, fat: per100g.fat, fiber: per100g.fiber || 0 });
+  S.customFoods.push({
+    id: uid(),
+    name,
+    brand,
+    barcode: meta.barcode || '',
+    countryCode: _normalizeFoodCountryCode(meta.countryCode || 'GLOBAL'),
+    regionGroup: meta.regionGroup || '',
+    servingGrams: Math.max(1, parseFloat(meta.servingGrams) || 100),
+    sourceProductId: meta.sourceProductId || '',
+    kcal: per100g.kcal,
+    protein: per100g.protein,
+    carbs: per100g.carbs,
+    fat: per100g.fat,
+    fiber: per100g.fiber || 0,
+    notes: ''
+  });
   scheduleSave();
   closeFoodSearch();
   renderMyFoodsTab();
@@ -1034,12 +1238,16 @@ function _saveToMyFoodsFromResult(name, per100g) {
 function selectSearchCustomFood(id) {
   const cf = findById(S.customFoods, id);
   if (!cf) return;
-  if (_foodSearchTarget?.type === 'myfoods') { _saveToMyFoodsFromResult(cf.name, cf); return; }
-  const per = { kcal: cf.kcal, protein: cf.protein, carbs: cf.carbs, fat: cf.fat, fiber: cf.fiber || 0 };
-  if (_foodMode === 'builder') { _addToBuilder(cf.name, per, 100); return; }
+  const per = _customFoodPer100g(cf);
+  if (_foodSearchTarget?.type === 'myfoods') { _saveToMyFoodsFromResult(cf.name, per, cf); return; }
+  if (_foodMode === 'builder') { _addToBuilder(cf.name, per, cf.servingGrams || 100); return; }
   eid('foodAddName').value  = cf.name;
-  eid('foodAddBrand').value = '';
-  _showFoodAddForm(per, false, true);
+  eid('foodAddBrand').value = cf.brand || '';
+  _showFoodAddForm(per, false, false, {
+    servingGrams: cf.servingGrams || 100,
+    sourceProductId: cf.sourceProductId || '',
+    countryCode: cf.countryCode || 'GLOBAL'
+  });
 }
 
 function selectFoodManual() {
@@ -1092,7 +1300,22 @@ function saveQuickAdd() {
   if (saveCustom && !isEdit) {
     if (!Array.isArray(S.customFoods)) S.customFoods = [];
     const exists = S.customFoods.some(cf => cf.name.toLowerCase() === name.toLowerCase());
-    if (!exists) S.customFoods.push({ id: uid(), name, kcal, protein, carbs, fat, fiber });
+    if (!exists) S.customFoods.push({
+      id: uid(),
+      name,
+      brand: '',
+      barcode: '',
+      countryCode: _foodCountryCode(),
+      regionGroup: _foodRegionGroups()[0] || '',
+      servingGrams: 100,
+      sourceProductId: '',
+      kcal,
+      protein,
+      carbs,
+      fat,
+      fiber,
+      notes: ''
+    });
   }
 
   // Dispatch to meal plan if target set
@@ -1133,7 +1356,7 @@ function saveQuickAdd() {
 
 // servingsMode=true  → input = servings (×1, ×2…), per100g holds per-1-serving values
 // servingsMode=false → input = grams,    per100g holds per-100g values
-function _showFoodAddForm(per100g, manual, servingsMode = false) {
+function _showFoodAddForm(per100g, manual, servingsMode = false, meta = {}) {
   const form = eid('foodAddForm');
   if (!form) return;
   form.style.display = '';
@@ -1146,6 +1369,9 @@ function _showFoodAddForm(per100g, manual, servingsMode = false) {
   form._per100g      = per100g;
   form._manual       = manual;
   form._servingsMode = servingsMode;
+  form._sourceProductId = meta.sourceProductId || '';
+  form._sourceCountryCode = _normalizeFoodCountryCode(meta.countryCode || 'GLOBAL');
+  form._servingGrams = Math.max(1, parseFloat(meta.servingGrams) || 100);
 
   const gramsInp = eid('foodAddGrams');
   const gramsLbl = eid('foodAddGramsLabel');
@@ -1176,7 +1402,7 @@ function _showFoodAddForm(per100g, manual, servingsMode = false) {
     if (brandRow) brandRow.style.display = '';
     if (titleEl)  titleEl.style.display  = 'none';
     if (gramsLbl) gramsLbl.textContent = 'Grams';
-    if (gramsInp) { gramsInp.value = '100'; gramsInp.step = 'any'; gramsInp.min = '0'; }
+    if (gramsInp) { gramsInp.value = String(form._servingGrams || 100); gramsInp.step = 'any'; gramsInp.min = '0'; }
     if (presets)  presets.innerHTML = [50, 100, 150, 200, 300].map(g =>
       `<button type="button" onclick="eid('foodAddGrams').value='${g}';_updateFoodMacroPreview()" style="background:var(--mid);border:1px solid var(--border);border-radius:6px;color:var(--muted-lt);cursor:pointer;font-size:0.62rem;padding:3px 8px">${g}g</button>`
     ).join('');
@@ -1241,11 +1467,24 @@ function saveFoodEntry() {
   }
 
   const storedGrams = form._servingsMode ? 0 : grams;
-  const entry = { id: uid(), name, brand, meal, grams: storedGrams, kcal, protein, carbs, fat, fiber, per100g };
-  // Store per-serving data so inline +/- adjustment is possible later
+  const entry = {
+    id: uid(),
+    name,
+    brand,
+    meal,
+    grams: storedGrams,
+    kcal,
+    protein,
+    carbs,
+    fat,
+    fiber,
+    per100g,
+    sourceProductId: form._sourceProductId || '',
+    countryCode: form._sourceCountryCode || 'GLOBAL',
+    servingGrams: form._servingGrams || 100
+  };
   if (form._servingsMode && !form._manual && form._per100g) {
-    entry.perServing = { kcal: form._per100g.kcal, protein: form._per100g.protein, carbs: form._per100g.carbs, fat: form._per100g.fat, fiber: form._per100g.fiber || 0 };
-    entry.servings   = grams; // grams field held the servings count
+    entry.servings = grams; // grams field held the servings count
   }
 
   // Dispatch to meal plan if target set
@@ -1266,9 +1505,6 @@ function saveFoodEntry() {
   const _date = _foodEffectiveDate();
   if (!S.foodLog[_date]) S.foodLog[_date] = [];
   S.foodLog[_date].push(entry);
-  const _dayEntries = S.foodLog[_date];
-  const _dayKcal = _dayEntries.reduce((s, e) => s + (e.kcal || 0), 0);
-  pushFeedEvent('food_day', null, { date: _date, calories: _dayKcal, items: _dayEntries.length });
   scheduleSave();
   closeFoodSearch();
   renderFoodTab();
@@ -1696,86 +1932,229 @@ function renderMyFoodsTab() {
   const el = eid('myFoodsList');
   if (!el) return;
   const q = (eid('myFoodsSearch')?.value || '').toLowerCase().trim();
-  const foods = (S.customFoods || []).filter(cf => !q || cf.name.toLowerCase().includes(q));
+  const foods = (S.customFoods || []).filter(cf => !q || `${cf.name || ''} ${cf.brand || ''} ${cf.barcode || ''}`.toLowerCase().includes(q));
+  renderFoodAdminSubmissions();
 
   if (!foods.length) {
     el.innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:24px;text-align:center;line-height:1.7">
       ${q ? `No foods matching "${escapeHtml(q)}"` : 'No saved foods yet'}<br>
-      <span style="font-size:0.68rem">Tap <b style="color:var(--cream)">+ Add</b> to save a food, or use <b style="color:var(--cream)">Quick Add</b> in the diary<br>and check "Save to My Foods"</span>
+      <span style="font-size:0.68rem">Tap <b style="color:var(--cream)">+ Manual</b> to save a food, or use <b style="color:var(--cream)">Quick Add</b> in the diary<br>and check "Save to My Foods"</span>
     </div>`;
     return;
   }
 
   const isLoggedIn = typeof currentUser !== 'undefined' && currentUser;
 
-  el.innerHTML = foods.map(cf => `
+  el.innerHTML = foods.map(cf => {
+    const per = _customFoodPer100g(cf);
+    const tag = _countryTag(cf.countryCode, cf.regionGroup);
+    const status = cf.submissionStatus || '';
+    const canSubmit = isLoggedIn && status !== 'pending' && status !== 'approved' && status !== 'merged';
+    const submitLabel = status === 'pending' ? 'Pending' : status === 'approved' || cf.sourceProductId ? 'Approved' : status === 'rejected' ? 'Resubmit' : 'Submit';
+    return `
     <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:11px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
       <div style="flex:1;min-width:0">
         <div style="font-size:0.82rem;color:var(--cream)">${escapeHtml(cf.name)}</div>
+        ${cf.brand ? `<div style="font-size:0.62rem;color:var(--muted-lt);margin-top:1px">${escapeHtml(cf.brand)}</div>` : ''}
         <div style="font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">
-          ${Math.round(cf.kcal||0)} kcal \u00b7 P${Math.round(cf.protein||0)}g \u00b7 C${Math.round(cf.carbs||0)}g \u00b7 F${Math.round(cf.fat||0)}g${cf.fiber ? ` \u00b7 Fiber ${Math.round(cf.fiber)}g` : ''}
+          ${tag} &middot; ${Math.round(per.kcal||0)} kcal/100g &middot; P${Math.round(per.protein||0)}g &middot; C${Math.round(per.carbs||0)}g &middot; F${Math.round(per.fat||0)}g${per.fiber ? ` &middot; Fiber ${Math.round(per.fiber)}g` : ''}
         </div>
-        ${cf._shared ? `<div style="font-size:0.56rem;color:var(--blush);margin-top:2px">\u2713 Shared with community</div>` : ''}
+        ${status ? `<div style="font-size:0.56rem;color:var(--blush);margin-top:2px">${escapeHtml(submitLabel)} in country database</div>` : ''}
       </div>
-      ${isLoggedIn ? `<button onclick="${cf._shared ? `unshareCommunityFood('${cf.id}')` : `shareToCommunity('${cf.id}')`}" style="background:none;border:none;color:${cf._shared ? 'var(--blush)' : 'var(--muted)'};cursor:pointer;font-size:0.7rem;padding:4px 6px;flex-shrink:0" title="${cf._shared ? 'Unshare from community' : 'Share with community'}">${cf._shared ? '\u2193' : '\u2191'}</button>` : ''}
+      ${isLoggedIn ? `<button onclick="submitFoodProduct('${cf.id}')" ${canSubmit ? '' : 'disabled'} style="background:none;border:none;color:${canSubmit ? 'var(--muted-lt)' : 'var(--muted)'};cursor:${canSubmit ? 'pointer' : 'default'};font-size:0.68rem;padding:4px 6px;flex-shrink:0" title="Submit for admin review">${submitLabel}</button>` : ''}
       <button onclick="editCustomFood('${cf.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.72rem;padding:4px 6px;flex-shrink:0" title="Edit">\u270e</button>
       <button onclick="deleteCustomFood('${cf.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.76rem;padding:4px 6px;flex-shrink:0">\u2715</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 async function unshareCommunityFood(id) {
-  if (typeof sb === 'undefined' || !sb || !currentUser) { toast('Sign in to manage shared foods'); return; }
-  const cf = findById(S.customFoods, id);
-  if (!cf || !cf._shared) return;
-  if (!confirm(`Remove "${cf.name}" from the community database?`)) return;
-  // Delete by matching name + user_id (community_foods has no app_id)
-  const { error } = await sb.from('community_foods')
-    .delete()
-    .eq('user_id', currentUser.id)
-    .eq('name', cf.name);
-  if (error) { toast('Unshare failed — ' + (error.message || 'try again')); return; }
-  cf._shared = false;
-  scheduleSave();
-  renderMyFoodsTab();
-  toast(`"${cf.name}" removed from community`);
+  toast('Approved product rows are managed by admins from Pending Submissions.');
 }
 
 async function shareToCommunity(id) {
-  if (typeof sb === 'undefined' || !sb || !currentUser) { toast('Sign in to share foods'); return; }
+  return submitFoodProduct(id);
+}
+
+async function submitFoodProduct(id) {
+  if (typeof sb === 'undefined' || !sb || !currentUser) { toast('Sign in to submit foods'); return; }
   const cf = findById(S.customFoods, id);
   if (!cf) return;
-  if (cf._shared) { toast('Already shared'); return; }
+  if (cf.submissionStatus === 'pending') { toast('Already pending review'); return; }
 
-  const region = (currentProfile?.country || '').toLowerCase().includes('kw') ||
-                 (currentProfile?.country || '').toLowerCase().includes('kuwait') ? 'kuwait' : 'global';
+  const countryCode = _normalizeFoodCountryCode(cf.countryCode || _foodCountryCode());
+  if (countryCode === 'GLOBAL') {
+    const ok = confirm('Submit this as a GLOBAL food? Country-specific products should usually use a country code like KW or US.');
+    if (!ok) return;
+  }
 
-  const { error } = await sb.from('community_foods').insert({
+  const { data, error } = await sb.from('food_product_submissions').insert({
     user_id: currentUser.id,
-    name:    cf.name,
-    kcal:    cf.kcal    || 0,
+    source_food_id: String(cf.id),
+    name: cf.name,
+    brand: cf.brand || '',
+    barcode: cf.barcode || '',
+    country_code: countryCode,
+    region_group: cf.regionGroup || '',
+    serving_grams: cf.servingGrams || 100,
+    kcal: cf.kcal || 0,
     protein: cf.protein || 0,
-    carbs:   cf.carbs   || 0,
-    fat:     cf.fat     || 0,
-    fiber:   cf.fiber   || 0,
-    region
-  });
+    carbs: cf.carbs || 0,
+    fat: cf.fat || 0,
+    fiber: cf.fiber || 0,
+    notes: cf.notes || '',
+    status: 'pending'
+  }).select('id').single();
 
-  if (error) { toast('Share failed — ' + (error.message || 'try again')); return; }
+  if (error) { toast('Submit failed - ' + (error.message || 'try again')); return; }
 
-  // Mark as shared in local state
-  cf._shared = true;
+  cf.submissionStatus = 'pending';
+  cf.submittedAt = new Date().toISOString();
+  cf.submissionId = data?.id || cf.submissionId || '';
   scheduleSave();
   renderMyFoodsTab();
-  toast(`"${cf.name}" shared with the community`);
+  toast(`"${cf.name}" sent for review`);
+}
+
+async function loadFoodAdminSubmissions(force = false) {
+  const adminBox = eid('foodAdminSubmissions');
+  if (!adminBox || typeof sb === 'undefined' || !sb || !currentUser) {
+    _foodIsAdmin = false;
+    _foodPendingSubmissions = [];
+    return;
+  }
+  if (_foodAdminChecked && !force) return;
+  _foodAdminChecked = true;
+
+  const { data: adminRows, error: adminErr } = await sb
+    .from('app_admins')
+    .select('user_id,role')
+    .eq('user_id', currentUser.id)
+    .limit(1);
+  if (adminErr || !adminRows?.length) {
+    _foodIsAdmin = false;
+    _foodPendingSubmissions = [];
+    renderFoodAdminSubmissions();
+    return;
+  }
+
+  _foodIsAdmin = true;
+  const { data, error } = await sb
+    .from('food_product_submissions')
+    .select('id,user_id,name,brand,barcode,country_code,region_group,serving_grams,kcal,protein,carbs,fat,fiber,notes,created_at')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true })
+    .limit(20);
+  _foodPendingSubmissions = error ? [] : (data || []);
+  renderFoodAdminSubmissions();
+}
+
+function renderFoodAdminSubmissions() {
+  const box = eid('foodAdminSubmissions');
+  if (!box) return;
+  if (!_foodAdminChecked) {
+    box.innerHTML = '';
+    loadFoodAdminSubmissions();
+    return;
+  }
+  if (!_foodIsAdmin) {
+    box.innerHTML = '';
+    return;
+  }
+  const rows = _foodPendingSubmissions || [];
+  box.innerHTML = `
+    <details class="card" style="margin-top:14px" ${rows.length ? 'open' : ''}>
+      <summary style="cursor:pointer;color:var(--cream);font-size:0.78rem;display:flex;justify-content:space-between;gap:10px">
+        <span>Pending Submissions</span>
+        <span style="font-family:'DM Mono',monospace;color:var(--muted)">${rows.length}</span>
+      </summary>
+      <div style="margin-top:10px">
+        ${rows.length ? rows.map(s => _foodSubmissionHtml(s)).join('') : `<div style="font-size:0.72rem;color:var(--muted);padding:10px 0">No pending foods.</div>`}
+      </div>
+    </details>`;
+}
+
+function _foodSubmissionHtml(s) {
+  const tag = _countryTag(s.country_code, s.region_group);
+  return `
+    <div style="border-top:1px solid var(--border);padding:10px 0;display:flex;gap:10px;align-items:flex-start">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:0.8rem;color:var(--cream)">${escapeHtml(s.name)}</div>
+        <div style="font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">
+          ${s.brand ? escapeHtml(s.brand) + ' &middot; ' : ''}${tag} &middot; ${Math.round(s.kcal || 0)} kcal/100g &middot; P${Math.round(s.protein || 0)}g &middot; C${Math.round(s.carbs || 0)}g &middot; F${Math.round(s.fat || 0)}g
+        </div>
+        ${s.notes ? `<div style="font-size:0.64rem;color:var(--muted-lt);margin-top:4px">${escapeHtml(s.notes)}</div>` : ''}
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
+        <button class="btn btn-p" style="font-size:0.62rem;padding:4px 8px" onclick="approveFoodSubmission('${s.id}')">Approve</button>
+        <button class="btn btn-g" style="font-size:0.62rem;padding:4px 8px" onclick="mergeFoodSubmission('${s.id}')">Merge</button>
+        <button class="btn btn-g" style="font-size:0.62rem;padding:4px 8px" onclick="rejectFoodSubmission('${s.id}')">Reject</button>
+      </div>
+    </div>`;
+}
+
+async function approveFoodSubmission(id) {
+  if (!_foodIsAdmin || typeof sb === 'undefined' || !sb || !currentUser) return;
+  const s = (_foodPendingSubmissions || []).find(row => String(row.id) === String(id));
+  if (!s) return;
+  const { data: product, error: insertErr } = await sb.from('food_products').insert({
+    name: s.name,
+    brand: s.brand || '',
+    barcode: s.barcode || '',
+    country_code: _normalizeFoodCountryCode(s.country_code),
+    region_group: s.region_group || '',
+    serving_grams: s.serving_grams || 100,
+    kcal: s.kcal || 0,
+    protein: s.protein || 0,
+    carbs: s.carbs || 0,
+    fat: s.fat || 0,
+    fiber: s.fiber || 0,
+    confidence_score: 0.70,
+    source_submission_id: s.id,
+    created_by: currentUser.id,
+    verified_at: new Date().toISOString()
+  }).select('id').single();
+  if (insertErr) { toast('Approve failed - ' + (insertErr.message || 'try again')); return; }
+
+  const { error: updateErr } = await sb.from('food_product_submissions')
+    .update({ status: 'approved', product_id: product.id, reviewed_by: currentUser.id, reviewed_at: new Date().toISOString() })
+    .eq('id', id);
+  if (updateErr) { toast('Submission approved, but status update failed'); return; }
+  await loadFoodAdminSubmissions(true);
+  toast(`"${s.name}" approved`);
+}
+
+async function rejectFoodSubmission(id) {
+  if (!_foodIsAdmin || typeof sb === 'undefined' || !sb || !currentUser) return;
+  const { error } = await sb.from('food_product_submissions')
+    .update({ status: 'rejected', reviewed_by: currentUser.id, reviewed_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) { toast('Reject failed - ' + (error.message || 'try again')); return; }
+  await loadFoodAdminSubmissions(true);
+  toast('Submission rejected');
+}
+
+async function mergeFoodSubmission(id) {
+  if (!_foodIsAdmin || typeof sb === 'undefined' || !sb || !currentUser) return;
+  const targetId = prompt('Existing food_products id to merge into:');
+  if (!targetId?.trim()) return;
+  const { error } = await sb.from('food_product_submissions')
+    .update({ status: 'merged', merge_target_id: targetId.trim(), reviewed_by: currentUser.id, reviewed_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) { toast('Merge failed - ' + (error.message || 'try again')); return; }
+  await loadFoodAdminSubmissions(true);
+  toast('Submission merged');
 }
 
 function openAddToMyFoods() {
   _myFoodEditId = null;
   const title = eid('myFoodEditTitle');
   if (title) title.textContent = 'Add to My Foods';
-  ['mfeeName','mfeeKcal','mfeeProtein','mfeeCarbs','mfeeFat','mfeeFiber'].forEach(id => {
+  ['mfeeName','mfeeBrand','mfeeBarcode','mfeeServingGrams','mfeeCountry','mfeeKcal','mfeeProtein','mfeeCarbs','mfeeFat','mfeeFiber','mfeeNotes'].forEach(id => {
     const el = eid(id); if (el) el.value = '';
   });
+  const country = eid('mfeeCountry'); if (country) country.value = _foodCountryCode();
+  const serving = eid('mfeeServingGrams'); if (serving) serving.value = '100';
   eid('mMyFoodEdit').classList.add('open');
   setTimeout(() => eid('mfeeName')?.focus(), 80);
 }
@@ -1788,22 +2167,33 @@ function editCustomFood(id) {
   if (title) title.textContent = 'Edit Food';
   const set = (elId, val) => { const el = eid(elId); if (el) el.value = val || ''; };
   set('mfeeName',    cf.name);
+  set('mfeeBrand',   cf.brand || '');
+  set('mfeeBarcode', cf.barcode || '');
+  set('mfeeServingGrams', cf.servingGrams || 100);
+  set('mfeeCountry', cf.countryCode || _foodCountryCode());
   set('mfeeKcal',    cf.kcal    || '');
   set('mfeeProtein', cf.protein || '');
   set('mfeeCarbs',   cf.carbs   || '');
   set('mfeeFat',     cf.fat     || '');
   set('mfeeFiber',   cf.fiber   || '');
+  set('mfeeNotes',   cf.notes || '');
   eid('mMyFoodEdit').classList.add('open');
   setTimeout(() => eid('mfeeName')?.focus(), 80);
 }
 
 function saveMyFoodEdit() {
   const name    = eid('mfeeName')?.value.trim();
+  const brand   = eid('mfeeBrand')?.value.trim() || '';
+  const barcode = eid('mfeeBarcode')?.value.trim() || '';
+  const servingGrams = Math.max(1, parseFloat(eid('mfeeServingGrams')?.value) || 100);
+  const countryCode = _normalizeFoodCountryCode(eid('mfeeCountry')?.value || _foodCountryCode());
+  const regionGroup = _foodRegionGroups(countryCode)[0] || '';
   const kcal    = parseFloat(eid('mfeeKcal')?.value)    || 0;
   const protein = parseFloat(eid('mfeeProtein')?.value) || 0;
   const carbs   = parseFloat(eid('mfeeCarbs')?.value)   || 0;
   const fat     = parseFloat(eid('mfeeFat')?.value)     || 0;
   const fiber   = parseFloat(eid('mfeeFiber')?.value)   || 0;
+  const notes   = eid('mfeeNotes')?.value.trim() || '';
   if (!name) { toast('Enter a name'); return; }
   if (!kcal && !protein && !carbs && !fat) { toast('Enter at least calories or macros'); return; }
 
@@ -1811,11 +2201,11 @@ function saveMyFoodEdit() {
 
   if (_myFoodEditId !== null) {
     const idx = S.customFoods.findIndex(cf => String(cf.id) === String(_myFoodEditId));
-    if (idx >= 0) S.customFoods[idx] = { ...S.customFoods[idx], name, kcal, protein, carbs, fat, fiber };
+    if (idx >= 0) S.customFoods[idx] = { ...S.customFoods[idx], name, brand, barcode, countryCode, regionGroup, servingGrams, kcal, protein, carbs, fat, fiber, notes };
   } else {
-    const exists = S.customFoods.some(cf => cf.name.toLowerCase() === name.toLowerCase());
+    const exists = S.customFoods.some(cf => cf.name.toLowerCase() === name.toLowerCase() && (cf.brand || '').toLowerCase() === brand.toLowerCase());
     if (exists) { toast('A food with that name already exists'); return; }
-    S.customFoods.push({ id: uid(), name, kcal, protein, carbs, fat, fiber });
+    S.customFoods.push({ id: uid(), name, brand, barcode, countryCode, regionGroup, servingGrams, sourceProductId: '', kcal, protein, carbs, fat, fiber, notes });
   }
 
   _myFoodEditId = null;

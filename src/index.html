@@ -1363,8 +1363,9 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
         <button class="btn btn-p" style="font-size:0.68rem;white-space:nowrap" onclick="openAddToMyFoods()">+ Manual</button>
       </div>
       <div id="myFoodsList"></div>
+      <div id="foodAdminSubmissions"></div>
       <div style="font-size:0.62rem;color:var(--muted);margin-top:12px;padding:10px;background:var(--panel);border-radius:8px;border:1px solid var(--border);line-height:1.5">
-        <b style="color:var(--muted-lt)">Tip for Kuwait &amp; local foods:</b> The global database has limited Kuwait coverage. Add your go-to foods here once — they'll appear instantly at the top of every search.
+        <b style="color:var(--muted-lt)">Tip for local foods:</b> Save products privately first. Submit them only when the brand, macros, and country are clear enough for review.
       </div>
     </div>
 
@@ -2299,16 +2300,23 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 
 <!-- My Food Edit Modal -->
 <div class="modal-bg" id="mMyFoodEdit" onclick="if(event.target===this)eid('mMyFoodEdit').classList.remove('open')">
-  <div class="modal" style="max-width:360px" onkeydown="if(event.key==='Enter'&&event.target.tagName!=='SELECT')saveMyFoodEdit()">
+  <div class="modal" style="max-width:460px" onkeydown="if(event.key==='Enter'&&event.target.tagName!=='SELECT'&&event.target.tagName!=='TEXTAREA')saveMyFoodEdit()">
     <h2 id="myFoodEditTitle">Add to My Foods</h2>
     <div class="mf"><label>Name</label><input id="mfeeName" class="add-inp" placeholder="e.g. Sadia Chicken Strips"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div class="mf" style="margin:0"><label style="font-size:0.7rem">Calories (kcal)</label><input id="mfeeKcal" type="number" class="add-inp" placeholder="0" min="0"></div>
-      <div class="mf" style="margin:0"><label style="font-size:0.7rem">Protein (g)</label><input id="mfeeProtein" type="number" class="add-inp" placeholder="0" min="0"></div>
-      <div class="mf" style="margin:0"><label style="font-size:0.7rem">Carbs (g)</label><input id="mfeeCarbs" type="number" class="add-inp" placeholder="0" min="0"></div>
-      <div class="mf" style="margin:0"><label style="font-size:0.7rem">Fat (g)</label><input id="mfeeFat" type="number" class="add-inp" placeholder="0" min="0"></div>
-      <div class="mf" style="margin:0;grid-column:1/-1"><label style="font-size:0.7rem">Fiber (g, optional)</label><input id="mfeeFiber" type="number" class="add-inp" placeholder="0" min="0"></div>
+    <div class="mf"><label>Brand</label><input id="mfeeBrand" class="add-inp" placeholder="e.g. Sadia, McDonald's, KDD"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div class="mf" style="margin:0"><label style="font-size:0.7rem">Country</label><input id="mfeeCountry" class="add-inp" placeholder="KW, US, GLOBAL"></div>
+      <div class="mf" style="margin:0"><label style="font-size:0.7rem">Serving grams</label><input id="mfeeServingGrams" type="number" class="add-inp" placeholder="100" min="1"></div>
     </div>
+    <div class="mf"><label>Barcode (optional)</label><input id="mfeeBarcode" class="add-inp" placeholder="Saved for future scanner support"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="mf" style="margin:0"><label style="font-size:0.7rem">Calories / 100g</label><input id="mfeeKcal" type="number" class="add-inp" placeholder="0" min="0"></div>
+      <div class="mf" style="margin:0"><label style="font-size:0.7rem">Protein / 100g</label><input id="mfeeProtein" type="number" class="add-inp" placeholder="0" min="0"></div>
+      <div class="mf" style="margin:0"><label style="font-size:0.7rem">Carbs / 100g</label><input id="mfeeCarbs" type="number" class="add-inp" placeholder="0" min="0"></div>
+      <div class="mf" style="margin:0"><label style="font-size:0.7rem">Fat / 100g</label><input id="mfeeFat" type="number" class="add-inp" placeholder="0" min="0"></div>
+      <div class="mf" style="margin:0;grid-column:1/-1"><label style="font-size:0.7rem">Fiber / 100g (optional)</label><input id="mfeeFiber" type="number" class="add-inp" placeholder="0" min="0"></div>
+    </div>
+    <div class="mf"><label>Notes (optional)</label><textarea id="mfeeNotes" class="add-inp" rows="2" placeholder="Useful label details, source, or prep notes"></textarea></div>
     <div class="modal-acts">
       <button class="btn btn-g" onclick="eid('mMyFoodEdit').classList.remove('open')">Cancel</button>
       <button class="btn btn-p" onclick="saveMyFoodEdit()">Save</button>
@@ -2455,7 +2463,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 </div>
 <script>
 if('serviceWorker' in navigator){
-  const SW_VERSION = 'aos-v52';
+  const SW_VERSION = 'aos-v53';
   // Capture whether a SW was already controlling this page at load time.
   // controllerchange also fires on first-ever install, so without this guard
   // the banner would flash on every fresh visit.

@@ -1062,10 +1062,105 @@ async function deleteCommunityNote(id) {
   await sb.from('community_notes').delete().eq('id', id).eq('user_id', currentUser.id);
 }
 
+/* ── Accountability posts ── */
+async function createCommunityPost(body, attachment) {
+  if (!currentUser) return null;
+  const text = String(body || '').trim().slice(0, 500);
+  const att = attachment && attachment.type ? attachment : null;
+  if (!text && !att) return null;
+  const { data, error } = await sb
+    .from('community_posts')
+    .insert({
+      user_id: currentUser.id,
+      body: text,
+      attachment_type: att?.type || '',
+      attachment: att?.data || {}
+    })
+    .select('*')
+    .single();
+  if (error) { console.warn('[community] createCommunityPost failed:', error.message); return null; }
+  return data;
+}
+
+async function deleteCommunityPost(postId) {
+  if (!currentUser) return;
+  await sb.from('community_posts')
+    .delete()
+    .eq('id', postId)
+    .eq('user_id', currentUser.id);
+}
+
+async function reportCommunityPost(postId, reason = '') {
+  if (!currentUser) return false;
+  const { error } = await sb.from('content_reports').insert({
+    reporter_id: currentUser.id,
+    post_id: postId,
+    reason: String(reason || '').slice(0, 300)
+  });
+  if (error) { console.warn('[community] reportCommunityPost failed:', error.message); return false; }
+  return true;
+}
+
+async function loadCommunityPostsHome(followingIds) {
+  if (!currentUser) return [];
+  const ids = [currentUser.id, ...(followingIds || [])].filter(Boolean);
+  if (!ids.length) return [];
+  const { data, error } = await sb
+    .from('community_posts')
+    .select('*, community_post_likes(user_id), community_post_comments(id)')
+    .in('user_id', ids)
+    .eq('is_deleted', false)
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (error) { console.warn('[community] loadCommunityPostsHome failed:', error.message); return []; }
+  return _attachCommunityPostProfiles(data || []);
+}
+
+async function loadCommunityPostsDiscover() {
+  if (!currentUser) return [];
+  const { data, error } = await sb
+    .from('community_posts')
+    .select('*, community_post_likes(user_id), community_post_comments(id)')
+    .eq('is_deleted', false)
+    .order('created_at', { ascending: false })
+    .limit(40);
+  if (error) { console.warn('[community] loadCommunityPostsDiscover failed:', error.message); return []; }
+  const posts = await _attachCommunityPostProfiles(data || []);
+  return posts
+    .filter(p => p.profiles?.is_public)
+    .sort((a, b) => {
+      const engagement = ((b.likeCount || 0) + (b.commentCount || 0)) - ((a.likeCount || 0) + (a.commentCount || 0));
+      const recency = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      return recency || engagement;
+    })
+    .slice(0, 20);
+}
+
+async function _attachCommunityPostProfiles(posts) {
+  const profiles = await _fetchCommunityVisibleProfilesByIds(posts.map(p => p.user_id));
+  return posts.map(p => ({
+    ...p,
+    profiles: profiles[p.user_id] || {},
+    likeCount: (p.community_post_likes || []).length,
+    commentCount: (p.community_post_comments || []).length,
+    likedByMe: (p.community_post_likes || []).some(l => l.user_id === currentUser?.id)
+  }));
+}
+
 /* ── Follows ── */
 async function followUser(userId) {
   if (!currentUser) return;
+  const profile = await fetchVisibleProfileById(userId);
+  if (profile && profile.is_public === false) {
+    await sb.from('follow_requests').upsert({
+      requester_id: currentUser.id,
+      target_id: userId,
+      status: 'pending'
+    }, { onConflict: 'requester_id,target_id' });
+    return 'pending';
+  }
   await sb.from('community_follows').insert({ follower_id: currentUser.id, following_id: userId });
+  return 'following';
 }
 
 async function unfollowUser(userId) {
@@ -1081,6 +1176,43 @@ async function loadFollowing() {
     .select('following_id')
     .eq('follower_id', currentUser.id);
   return (data || []).map(r => r.following_id);
+}
+
+async function loadFollowRequests() {
+  if (!currentUser) return [];
+  const { data, error } = await sb
+    .from('follow_requests')
+    .select('requester_id,target_id,status,created_at')
+    .eq('target_id', currentUser.id)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true });
+  if (error) { console.warn('[community] loadFollowRequests failed:', error.message); return []; }
+  const profiles = await _fetchCommunityVisibleProfilesByIds((data || []).map(r => r.requester_id));
+  return (data || []).map(r => ({ ...r, profiles: profiles[r.requester_id] || {} }));
+}
+
+async function approveFollowRequest(requesterId) {
+  if (!currentUser) return false;
+  const now = new Date().toISOString();
+  const followRes = await sb.from('community_follows').upsert({
+    follower_id: requesterId,
+    following_id: currentUser.id
+  }, { onConflict: 'follower_id,following_id' });
+  if (followRes.error) return false;
+  const { error } = await sb.from('follow_requests')
+    .update({ status: 'approved', reviewed_at: now })
+    .eq('requester_id', requesterId)
+    .eq('target_id', currentUser.id);
+  return !error;
+}
+
+async function rejectFollowRequest(requesterId) {
+  if (!currentUser) return false;
+  const { error } = await sb.from('follow_requests')
+    .update({ status: 'rejected', reviewed_at: new Date().toISOString() })
+    .eq('requester_id', requesterId)
+    .eq('target_id', currentUser.id);
+  return !error;
 }
 
 async function loadFollowersCount(userId) {
@@ -1107,6 +1239,17 @@ async function _fetchPublicProfilesByIds(ids) {
     .select('id, username, display_name, avatar_url, bio')
     .in('id', cleanIds);
   if (error) { console.warn('[community] public profile lookup failed:', error.message); return {}; }
+  return Object.fromEntries((data || []).map(p => [p.id, p]));
+}
+
+async function _fetchCommunityVisibleProfilesByIds(ids) {
+  const cleanIds = [...new Set((ids || []).filter(Boolean))];
+  if (!cleanIds.length) return {};
+  const { data, error } = await sb
+    .from('community_visible_profiles')
+    .select('id, username, display_name, avatar_url, bio, is_public')
+    .in('id', cleanIds);
+  if (error) { console.warn('[community] visible profile lookup failed:', error.message); return {}; }
   return Object.fromEntries((data || []).map(p => [p.id, p]));
 }
 
@@ -1207,6 +1350,16 @@ async function searchCommunityProfiles(query) {
 async function fetchPublicProfileById(userId) {
   const { data, error } = await sb
     .from('public_profiles')
+    .select('id, username, display_name, avatar_url, bio, is_public, share_fitness, share_food, share_projects, share_media')
+    .eq('id', userId)
+    .single();
+  if (error) return null;
+  return data;
+}
+
+async function fetchVisibleProfileById(userId) {
+  const { data, error } = await sb
+    .from('community_visible_profiles')
     .select('id, username, display_name, avatar_url, bio, is_public, share_fitness, share_food, share_projects, share_media')
     .eq('id', userId)
     .single();

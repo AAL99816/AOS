@@ -191,6 +191,62 @@ function makeHabit(h={}){
   };
 }
 
+function _numOr(value, fallback = 0) {
+  const n = parseFloat(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function normalizeFoodCountryCode(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return 'GLOBAL';
+  const lower = raw.toLowerCase();
+  const aliases = {
+    kuwait: 'KW',
+    kw: 'KW',
+    ksa: 'SA',
+    saudi: 'SA',
+    'saudi arabia': 'SA',
+    usa: 'US',
+    us: 'US',
+    'united states': 'US',
+    america: 'US',
+    jamaica: 'JM',
+    jm: 'JM',
+    korea: 'KR',
+    'south korea': 'KR',
+    kr: 'KR',
+    global: 'GLOBAL',
+    gcc: 'GLOBAL'
+  };
+  if (aliases[lower]) return aliases[lower];
+  return raw.length === 2 ? raw.toUpperCase() : 'GLOBAL';
+}
+
+function makeCustomFood(cf={}) {
+  const id = (typeof cf.id === 'number' || (typeof cf.id === 'string' && /^\d{13}$/.test(cf.id))) ? uid() : (cf.id ?? uid());
+  const per100g = cf.per100g && typeof cf.per100g === 'object' ? cf.per100g : {};
+  const countryCode = normalizeFoodCountryCode(cf.countryCode || cf.country_code || cf.region || (cf.gcc ? 'KW' : 'GLOBAL'));
+  const regionGroup = cf.regionGroup || cf.region_group || (cf.gcc || String(cf.region || '').toLowerCase() === 'gcc' ? 'GCC' : '');
+  return {
+    id,
+    name: cf.name || '',
+    brand: cf.brand || '',
+    barcode: cf.barcode || '',
+    countryCode,
+    regionGroup,
+    servingGrams: Math.max(1, _numOr(cf.servingGrams ?? cf.serving_grams, 100)),
+    sourceProductId: cf.sourceProductId || cf.sharedProductId || cf.source_product_id || '',
+    kcal: _numOr(cf.kcal ?? per100g.kcal),
+    protein: _numOr(cf.protein ?? per100g.protein),
+    carbs: _numOr(cf.carbs ?? per100g.carbs),
+    fat: _numOr(cf.fat ?? per100g.fat),
+    fiber: _numOr(cf.fiber ?? per100g.fiber),
+    notes: cf.notes || '',
+    submittedAt: cf.submittedAt || cf.submitted_at || '',
+    submissionStatus: cf.submissionStatus || cf.submission_status || (cf._shared ? 'pending' : '')
+  };
+}
+
 function normalizeAppState(raw={}){
   const src = raw && typeof raw === 'object' ? raw : {};
   const out = deepMerge(DS, src);
@@ -238,13 +294,11 @@ function normalizeAppState(raw={}){
     log: (cs.log && typeof cs.log === 'object') ? cs.log : {}
   }));
 
-  // Migrate legacy Date.now() IDs (13-digit numbers) on customFoods and foodLog entries to UUIDs
+  // Migrate My Foods into the country-aware product shape and preserve macro snapshots in old logs.
   if (Array.isArray(out.customFoods)) {
-    out.customFoods = out.customFoods.map(cf => ({
-      ...cf,
-      id: (typeof cf.id === 'number' || (typeof cf.id === 'string' && /^\d{13}$/.test(cf.id))) ? uid() : cf.id
-    }));
+    out.customFoods = out.customFoods.map(makeCustomFood).filter(cf => cf.name);
   }
+  // Migrate legacy Date.now() IDs (13-digit numbers) on foodLog entries to UUIDs.
   if (out.foodLog && typeof out.foodLog === 'object') {
     Object.keys(out.foodLog).forEach(date => {
       if (Array.isArray(out.foodLog[date])) {

@@ -3,6 +3,10 @@ import path from 'node:path';
 
 const root = process.cwd();
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
+const readIfExists = file => {
+  const fullPath = path.join(root, file);
+  return fs.existsSync(fullPath) ? fs.readFileSync(fullPath, 'utf8') : '';
+};
 const failures = [];
 
 function expect(condition, message) {
@@ -21,10 +25,17 @@ const auth = read('src/Renderer/auth.js');
 const webApi = read('src/Renderer/web-api.js');
 const mediaSearch = read('src/Renderer/mediaSearch.js');
 const media = read('src/Renderer/media.js');
+const community = read('src/Renderer/community.js');
 const settings = read('src/Renderer/settings.js');
 const sync = read('src/Renderer/sync.js');
 const state = read('src/Renderer/state.js');
 const fitness = read('src/Renderer/fitness.js');
+const food = read('src/Renderer/food.js');
+const sqlBundle = [
+  readIfExists('LOCAL_SQL_CHANGES.sql'),
+  readIfExists('supabase/migrations/20260503_food_products.sql'),
+  readIfExists('supabase/migrations/20260503_community_posts.sql')
+].join('\n');
 const sw = read('src/sw.js');
 const gitignore = read('.gitignore');
 
@@ -91,7 +102,7 @@ expect(webApi.includes("history.replaceState(null, '', window.location.pathname)
 expect(settings.includes('function isHexColor(value)'), 'custom theme colors are validated before restore');
 expect(!media.includes("updateBF('${escapeAttr(b.id)}'"), 'game media edit handlers do not single-quote escaped ids');
 expect(!index.includes('marked.min.js'), 'unused marked CDN script is not loaded');
-expect(!/marked\.parse/.test(read('src/Renderer/community.js')), 'community markdown does not render unsanitized marked HTML');
+expect(!/marked\.parse/.test(community), 'community markdown does not render unsanitized marked HTML');
 
 expect(sync.includes(".from('public_profiles')"), 'community public profile reads use public_profiles view');
 expect(!sync.includes(".select('*, profiles("), 'community feed no longer embeds raw profiles');
@@ -111,6 +122,39 @@ expect(fitness.includes('function logWorkoutSet'), 'fitness logs individual sets
 expect(fitness.includes("_exercisePickerCtx = { mode: mode === 'replace'"), 'exercise picker tracks add vs replace context');
 expect(fitness.includes('function moveEx'), 'workout card exercises can be reordered');
 expect(index.includes('.workout-set-grid'), 'fitness set logger has responsive CSS');
+
+if (sqlBundle.trim()) {
+  expect(sqlBundle.includes('create table if not exists public.food_products'), 'food products migration creates canonical product table');
+  expect(sqlBundle.includes('create table if not exists public.food_product_submissions'), 'food products migration creates submissions table');
+  expect(sqlBundle.includes('create table if not exists public.app_admins'), 'food products migration creates app_admins');
+  expect(sqlBundle.includes('grant select on table public.food_products'), 'food product tables explicitly grant client privileges behind RLS');
+  expect(sqlBundle.includes("execute 'drop table public.community_foods'"), 'food migration retires legacy community_foods');
+}
+expect(food.includes(".from('food_products')"), 'food search reads canonical food_products');
+expect(food.includes(".from('food_product_submissions')"), 'food submissions use food_product_submissions');
+expect(food.includes(".from('app_admins')"), 'food admin view checks app_admins');
+expect(!food.includes(".from('community_foods')"), 'food code no longer reads or writes community_foods');
+expect(food.includes('function _rankFoodSearchRows'), 'food search uses weighted ranking');
+expect(food.includes('sourceProductId'), 'custom foods keep product provenance as sourceProductId');
+expect(index.includes('id="foodAdminSubmissions"'), 'Food tab contains admin pending submissions mount');
+expect(index.includes('id="mfeeCountry"'), 'My Foods editor captures country code');
+expect(index.includes('id="mfeeServingGrams"'), 'My Foods editor captures serving grams');
+expect(index.includes('id="mfeeBarcode"'), 'My Foods editor stores barcode for later scanner support');
+
+if (sqlBundle.trim()) {
+  expect(sqlBundle.includes('create table if not exists public.community_posts'), 'community migration creates posts table');
+  expect(sqlBundle.includes('create table if not exists public.follow_requests'), 'community migration creates follow requests');
+  expect(sqlBundle.includes('create table if not exists public.content_reports'), 'community migration creates content reports');
+  expect(sqlBundle.includes('create view public.community_visible_profiles'), 'community migration creates visible profile view');
+  expect(sqlBundle.includes('on public.community_posts for delete'), 'community posts are deleted, not edited');
+}
+expect(sync.includes(".from('community_posts')"), 'sync reads/writes community_posts');
+expect(sync.includes(".from('follow_requests')"), 'sync handles follow_requests');
+expect(sync.includes(".from('content_reports')"), 'sync handles content_reports');
+expect(community.includes('function _buildPostsFeedView'), 'community feed renders accountability posts');
+expect(community.includes('function _buildPostsDiscoverView'), 'community discover renders public posts');
+expect(community.includes('function openProgressPicker'), 'community composer can attach progress cards');
+expect(community.includes('function reviewFollowRequest'), 'community profile can review follow requests');
 
 if (failures.length) {
   console.error('Smoke check failed:');
