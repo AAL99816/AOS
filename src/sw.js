@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'aos-v53';
+const CACHE = 'aos-v54';
 
 const SHELL = [
   '/',

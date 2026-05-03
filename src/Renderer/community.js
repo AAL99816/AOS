@@ -10,6 +10,7 @@ let _communityFeed    = [];
 let _communityPosts   = [];
 let _communityDiscoverPosts = [];
 let _communityFollowing = [];
+let _communityPendingFollows = [];
 let _communityFollowRequests = [];
 let _communityLoaded  = false;
 let _discoverResults  = [];       // active search results (non-empty while searching)
@@ -19,6 +20,9 @@ let _discoverPage     = 0;        // pagination cursor for ranked feed
 let _discoverLoading  = false;
 let _editingCommunityNoteId = null;
 let _postAttachment = null;
+let _expandedPostId = null;
+let _postComments = {};
+let _postCommentsLoading = {};
 
 const DISCOVER_PAGE_SIZE = 12;
 
@@ -51,7 +55,7 @@ function _scoreProfile(p, interests) {
 async function _loadDiscoverRanked() {
   if (_discoverLoading) return;
   _discoverLoading = true;
-  const excludeIds = [currentUser?.id, ..._communityFollowing].filter(Boolean);
+  const excludeIds = [currentUser?.id, ..._communityFollowing, ..._communityPendingFollows].filter(Boolean);
   const profiles   = await fetchDiscoverProfiles(excludeIds);
   const interests  = _computeViewerInterests();
   _discoverRanked  = profiles
@@ -123,15 +127,17 @@ async function renderCommunity() {
     const el = eid('communityContent');
     if (el) el.innerHTML = _buildLoadingState();
     _communityFollowing = await loadFollowing();
+    _communityPendingFollows = await loadSentFollowRequests();
     _communityPosts     = await loadCommunityPostsHome(_communityFollowing);
     _communityFeed      = await loadCommunityFeed(_communityFollowing);
     _communityNotes     = await loadCommunityNotes();
     _communityFollowRequests = await loadFollowRequests();
-    _communityDiscoverPosts = await loadCommunityPostsDiscover();
+    _communityDiscoverPosts = await loadCommunityPostsDiscover(_communityFollowing);
     // Reset ranked discover cache so it re-scores with the fresh follow list
     _discoverRanked  = [];
     _discoverPage    = 0;
     _discoverLoading = false;
+    await _loadDiscoverRanked();
   }
 
   _renderCommunityContent();
@@ -171,12 +177,14 @@ function _buildLoadingState() {
 function _buildPostsFeedView() {
   const composer = _buildPostComposer();
   if (!_communityPosts.length) {
+    const suggestions = _buildSuggestedProfiles(5);
     return composer + `
       <div style="text-align:center;padding:40px 0">
         <div style="font-family:'Cormorant Garamond',serif;font-size:1.05rem;color:var(--cream);margin-bottom:6px">Your feed is empty</div>
         <div style="font-size:0.72rem;color:var(--muted);line-height:1.6;max-width:280px;margin:0 auto 18px">Follow people or publish your first accountability post.</div>
         <button class="btn btn-p" style="font-size:0.76rem" onclick="switchCommunityView('discover')">Discover Posts</button>
-      </div>`;
+      </div>
+      ${suggestions}`;
   }
   return composer + _communityPosts.map(p => _buildPostCard(p)).join('');
 }
@@ -210,7 +218,7 @@ async function submitCommunityPost() {
   if (!post) { toast('Write something or attach progress first'); return; }
   _postAttachment = null;
   _communityPosts = await loadCommunityPostsHome(_communityFollowing);
-  _communityDiscoverPosts = await loadCommunityPostsDiscover();
+  _communityDiscoverPosts = await loadCommunityPostsDiscover(_communityFollowing);
   _renderCommunityContent();
   toast('Posted');
 }
@@ -236,6 +244,8 @@ function _buildPostCard(post) {
   const mine = currentUser && post.user_id === currentUser.id;
   const attachment = post.attachment_type ? _attachmentPreview({ type: post.attachment_type, data: post.attachment || {} }) : '';
   const dateStr = post.created_at ? new Date(post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+  const commentsOpen = _expandedPostId === post.id;
+  const liked = !!post.likedByMe;
   return `<div class="card" style="padding:13px 14px;margin-bottom:10px">
     <div style="display:flex;align-items:flex-start;gap:10px">
       <div onclick="openProfileOverlay('${escapeAttr(post.user_id)}')" style="cursor:pointer;flex-shrink:0">${avatar}</div>
@@ -249,16 +259,132 @@ function _buildPostCard(post) {
         </div>
         ${post.body ? `<div style="font-size:0.78rem;color:var(--muted-lt);line-height:1.55;margin-top:7px;white-space:pre-wrap">${escapeHtml(post.body)}</div>` : ''}
         ${attachment ? `<div style="margin-top:9px">${attachment}</div>` : ''}
-        <div style="display:flex;gap:12px;margin-top:9px;font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace"><span>${post.likeCount || 0} likes</span><span>${post.commentCount || 0} comments</span></div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <button class="btn ${liked ? 'btn-p' : 'btn-g'}" style="font-size:0.60rem;padding:4px 9px;min-height:28px" onclick="togglePostLike('${escapeAttr(post.id)}')">${liked ? 'Liked' : 'Like'} &middot; ${post.likeCount || 0}</button>
+          <button class="btn ${commentsOpen ? 'btn-p' : 'btn-g'}" style="font-size:0.60rem;padding:4px 9px;min-height:28px" onclick="togglePostComments('${escapeAttr(post.id)}')">Comments &middot; ${post.commentCount || 0}</button>
+        </div>
+        ${commentsOpen ? _buildPostCommentsPanel(post) : ''}
       </div>
     </div>
   </div>`;
+}
+
+function _findPostById(id) {
+  return [..._communityPosts, ..._communityDiscoverPosts].find(p => String(p.id) === String(id));
+}
+
+function _updatePostCaches(id, updater) {
+  const update = p => String(p.id) === String(id) ? updater({ ...p }) : p;
+  _communityPosts = _communityPosts.map(update);
+  _communityDiscoverPosts = _communityDiscoverPosts.map(update);
+}
+
+function _buildPostCommentsPanel(post) {
+  const postId = post.id;
+  const loading = !!_postCommentsLoading[postId];
+  const comments = _postComments[postId] || [];
+  const rows = loading
+    ? `<div style="font-size:0.68rem;color:var(--muted);padding:10px 0">Loading comments...</div>`
+    : (comments.length ? comments.map(c => _buildCommentRow(postId, c)).join('') : `<div style="font-size:0.68rem;color:var(--muted);padding:8px 0">No comments yet</div>`);
+
+  return `<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
+    ${rows}
+    <div style="display:flex;gap:8px;align-items:flex-start;margin-top:8px">
+      <textarea id="commentInput-${escapeAttr(postId)}" maxlength="300" rows="2" placeholder="Add a comment..."
+        style="flex:1;min-width:0;background:var(--mid);border:1px solid var(--border);border-radius:8px;color:var(--cream);font:inherit;font-size:0.74rem;line-height:1.45;padding:8px;resize:vertical;outline:none"></textarea>
+      <button class="btn btn-p" style="font-size:0.62rem;padding:6px 10px;min-height:34px" onclick="submitPostComment('${escapeAttr(postId)}')">Send</button>
+    </div>
+  </div>`;
+}
+
+function _buildCommentRow(postId, comment) {
+  const profile = comment.profiles || {};
+  const name = profile.display_name || profile.username || 'User';
+  const mine = currentUser && comment.user_id === currentUser.id;
+  const dateStr = comment.created_at ? new Date(comment.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+  return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+      <div style="min-width:0">
+        <span style="font-size:0.70rem;color:var(--cream);font-weight:600">${escapeHtml(name)}</span>
+        ${dateStr ? `<span style="font-size:0.56rem;color:var(--muted);font-family:'DM Mono',monospace;margin-left:6px">${dateStr}</span>` : ''}
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.58rem;padding:0" onclick="reportPostComment('${escapeAttr(comment.id)}')">Report</button>
+        ${mine ? `<button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.58rem;padding:0" onclick="deletePostCommentUI('${escapeAttr(postId)}','${escapeAttr(comment.id)}')">Delete</button>` : ''}
+      </div>
+    </div>
+    <div style="font-size:0.74rem;color:var(--muted-lt);line-height:1.5;white-space:pre-wrap;margin-top:4px">${escapeHtml(comment.body || '')}</div>
+  </div>`;
+}
+
+async function togglePostLike(id) {
+  const post = _findPostById(id);
+  if (!post) return;
+  const nextLiked = !post.likedByMe;
+  _updatePostCaches(id, p => ({
+    ...p,
+    likedByMe: nextLiked,
+    likeCount: Math.max(0, (p.likeCount || 0) + (nextLiked ? 1 : -1))
+  }));
+  _renderCommunityContent();
+  const ok = await toggleCommunityPostLike(id, nextLiked);
+  if (!ok) {
+    _updatePostCaches(id, p => ({
+      ...p,
+      likedByMe: !nextLiked,
+      likeCount: Math.max(0, (p.likeCount || 0) + (nextLiked ? -1 : 1))
+    }));
+    _renderCommunityContent();
+    toast('Like failed');
+  }
+}
+
+async function togglePostComments(id) {
+  if (_expandedPostId === id) {
+    _expandedPostId = null;
+    _renderCommunityContent();
+    return;
+  }
+  _expandedPostId = id;
+  if (!_postComments[id]) {
+    _postCommentsLoading[id] = true;
+    _renderCommunityContent();
+    _postComments[id] = await loadCommunityPostComments(id);
+    _postCommentsLoading[id] = false;
+  }
+  _renderCommunityContent();
+}
+
+async function submitPostComment(postId) {
+  const input = eid(`commentInput-${postId}`);
+  const body = input?.value || '';
+  const saved = await createCommunityPostComment(postId, body);
+  if (!saved) { toast('Comment failed'); return; }
+  if (!_postComments[postId]) _postComments[postId] = [];
+  _postComments[postId].push(saved);
+  _updatePostCaches(postId, p => ({ ...p, commentCount: (p.commentCount || 0) + 1 }));
+  _renderCommunityContent();
+}
+
+async function deletePostCommentUI(postId, commentId) {
+  if (!confirm('Delete this comment?')) return;
+  const ok = await deleteCommunityPostComment(commentId);
+  if (!ok) { toast('Delete failed'); return; }
+  _postComments[postId] = (_postComments[postId] || []).filter(c => String(c.id) !== String(commentId));
+  _updatePostCaches(postId, p => ({ ...p, commentCount: Math.max(0, (p.commentCount || 0) - 1) }));
+  _renderCommunityContent();
+}
+
+async function reportPostComment(commentId) {
+  const ok = await reportCommunityComment(commentId, prompt('Report reason (optional):') || '');
+  toast(ok ? 'Report sent' : 'Report failed');
 }
 
 async function deletePost(id) {
   if (!confirm('Delete this post?')) return;
   await deleteCommunityPost(id);
   _communityPosts = _communityPosts.filter(p => p.id !== id);
+  _communityDiscoverPosts = _communityDiscoverPosts.filter(p => p.id !== id);
   _renderCommunityContent();
 }
 
@@ -286,12 +412,23 @@ function openProgressPicker() {
 }
 
 function _buildPostsDiscoverView() {
+  const suggestions = _buildSuggestedProfiles(5);
   if (!_communityDiscoverPosts.length) {
-    return `<div style="text-align:center;padding:42px 0;color:var(--muted);font-size:0.76rem;line-height:1.6">No public posts yet.</div>`;
+    return `<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:0.76rem;line-height:1.6">No public posts yet.</div>${suggestions}`;
   }
   return `
     <div style="font-size:0.56rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;font-family:'DM Mono',monospace;margin-bottom:10px">Public Posts</div>
-    ${_communityDiscoverPosts.map(p => _buildPostCard(p)).join('')}`;
+    ${_communityDiscoverPosts.map(p => _buildPostCard(p)).join('')}
+    ${suggestions}`;
+}
+
+function _buildSuggestedProfiles(limit = 5) {
+  const rows = (_discoverRanked || []).slice(0, limit);
+  if (!rows.length) return '';
+  return `<div style="margin-top:16px">
+    <div style="font-size:0.56rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;font-family:'DM Mono',monospace;margin-bottom:10px">People to follow</div>
+    ${rows.map(p => _buildProfileCard(p)).join('')}
+  </div>`;
 }
 
 function _buildFeedView() {
@@ -421,6 +558,8 @@ function _buildDiscoverView() {
 
 function _buildProfileCard(p) {
   const isFollowing = _communityFollowing.includes(p.id);
+  const isPending = _communityPendingFollows.includes(p.id);
+  const isPrivate = p.is_public === false;
   const name    = p.display_name || p.username || 'Anonymous';
   const initial = (name[0] || '?').toUpperCase();
   const avatar  = p.avatar_url
@@ -445,8 +584,8 @@ function _buildProfileCard(p) {
           ${shares.length ? `<div style="font-size:0.60rem;color:var(--muted);margin-top:4px;font-family:'DM Mono',monospace">${shares.join(' · ')}</div>` : ''}
         </div>
       </div>
-      <button class="btn ${isFollowing ? 'btn-g' : 'btn-p'}" style="font-size:0.68rem;padding:6px 14px;flex-shrink:0;min-height:36px;min-width:72px"
-        onclick="toggleFollow('${escapeAttr(p.id)}',this)">${isFollowing ? 'Following' : 'Follow'}</button>
+      <button class="btn ${isFollowing || isPending ? 'btn-g' : 'btn-p'}" style="font-size:0.68rem;padding:6px 14px;flex-shrink:0;min-height:36px;min-width:78px"
+        onclick="toggleFollow('${escapeAttr(p.id)}',this)">${isFollowing ? 'Following' : (isPending ? 'Pending' : (isPrivate ? 'Request' : 'Follow'))}</button>
     </div>`;
 }
 
@@ -471,10 +610,12 @@ async function onDiscoverSearch(q) {
 
 async function toggleFollow(userId, btn) {
   const isFollowing = _communityFollowing.includes(userId);
+  const isPending = _communityPendingFollows.includes(userId);
   btn.disabled = true;
-  if (isFollowing) {
+  if (isFollowing || isPending) {
     await unfollowUser(userId);
     _communityFollowing = _communityFollowing.filter(id => id !== userId);
+    _communityPendingFollows = _communityPendingFollows.filter(id => id !== userId);
     btn.textContent = 'Follow';
     btn.className   = 'btn btn-p';
     // Re-add to ranked discover feed (re-score with current interests)
@@ -487,16 +628,21 @@ async function toggleFollow(userId, btn) {
   } else {
     const result = await followUser(userId);
     if (result === 'pending') {
+      _communityPendingFollows = [...new Set([..._communityPendingFollows, userId])];
       btn.textContent = 'Pending';
       btn.className   = 'btn btn-g';
-    } else {
+    } else if (result === 'following') {
       _communityFollowing = [..._communityFollowing, userId];
       btn.textContent = 'Following';
       btn.className   = 'btn btn-g';
       _discoverRanked = _discoverRanked.filter(p => p.id !== userId);
+    } else {
+      btn.textContent = 'Follow';
+      btn.className   = 'btn btn-p';
+      toast('Follow failed');
     }
   }
-  btn.style.cssText = 'font-size:0.68rem;padding:6px 14px;flex-shrink:0;min-height:36px;min-width:72px';
+  btn.style.cssText = 'font-size:0.68rem;padding:6px 14px;flex-shrink:0;min-height:36px;min-width:78px';
   btn.disabled = false;
 }
 
@@ -688,6 +834,8 @@ function _buildMyProfileTabContent(tab) {
         ? `<img src="${escapeAttr(u.avatar_url)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0">`
         : `<div style="width:40px;height:40px;border-radius:50%;background:var(--border-lt);display:flex;align-items:center;justify-content:center;font-size:0.9rem;color:var(--muted);font-weight:600;flex-shrink:0">${escapeHtml(uInitial)}</div>`;
       const isFollowing = _communityFollowing.includes(u.id);
+      const isPending = _communityPendingFollows.includes(u.id);
+      const isPrivate = u.is_public === false;
       return `
         <div class="card" style="padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px">
           <div style="flex:1;display:flex;align-items:center;gap:12px;cursor:pointer;min-width:0" onclick="openProfileOverlay('${escapeAttr(u.id)}')">
@@ -697,9 +845,9 @@ function _buildMyProfileTabContent(tab) {
               ${u.username ? `<div style="font-size:0.64rem;color:var(--muted);font-family:'DM Mono',monospace">@${escapeHtml(u.username)}</div>` : ''}
             </div>
           </div>
-          <button class="btn ${isFollowing ? 'btn-g' : 'btn-p'}"
+          <button class="btn ${isFollowing || isPending ? 'btn-g' : 'btn-p'}"
             style="font-size:0.68rem;padding:5px 12px;flex-shrink:0;min-height:34px"
-            onclick="toggleFollow('${escapeAttr(u.id)}',this)">${isFollowing ? 'Following' : 'Follow'}</button>
+            onclick="toggleFollow('${escapeAttr(u.id)}',this)">${isFollowing ? 'Following' : (isPending ? 'Pending' : (isPrivate ? 'Request' : 'Follow'))}</button>
         </div>`;
     }).join('');
   }
@@ -890,12 +1038,15 @@ async function openProfileOverlay(userId) {
   document.body.appendChild(overlay);
 
   // Parallel fetch: profile + activity + follower count
-  const [profile, feedData, notesRes, followerCount] = await Promise.all([
+  const [visibleProfile, requestableProfile, feedData, notesRes, followerCount] = await Promise.all([
     fetchVisibleProfileById(userId),
+    fetchRequestableProfileById(userId),
     loadCommunityFeedByUser(userId),
     sb.from('community_notes').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(30),
     loadFollowersCount(userId)
   ]);
+  const profile = visibleProfile || requestableProfile;
+  const canViewProfile = !!visibleProfile;
 
   const sheet = eid('profileOverlaySheet');
   if (!sheet) return;
@@ -905,7 +1056,7 @@ async function openProfileOverlay(userId) {
       <div style="display:flex;justify-content:flex-start;margin-bottom:16px">
         <button class="btn btn-g" style="font-size:0.70rem;padding:6px 14px" onclick="closeProfileOverlay()">← Back</button>
       </div>
-      <div style="text-align:center;padding:40px 0;color:var(--muted);font-size:0.76rem">Profile not found or is private</div>`;
+      <div style="text-align:center;padding:40px 0;color:var(--muted);font-size:0.76rem">Profile not found</div>`;
     return;
   }
 
@@ -917,6 +1068,7 @@ async function openProfileOverlay(userId) {
 
   // Build header
   const isFollowing = _communityFollowing.includes(userId);
+  const isPending = _communityPendingFollows.includes(userId);
   const name    = profile.display_name || profile.username || 'Anonymous';
   const initial = (name[0] || '?').toUpperCase();
   const avatar  = profile.avatar_url
@@ -924,6 +1076,22 @@ async function openProfileOverlay(userId) {
     : `<div style="width:68px;height:68px;border-radius:50%;background:var(--border-lt);display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:var(--muted);font-weight:600">${escapeHtml(initial)}</div>`;
 
   // Build tab strip — only tabs for categories they share
+  if (!canViewProfile) {
+    sheet.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:18px">
+        <button class="btn btn-g" style="font-size:0.70rem;padding:6px 12px;min-height:36px;flex-shrink:0" onclick="closeProfileOverlay()">Back</button>
+        <button id="overlayFollowBtn" class="btn ${isPending ? 'btn-g' : 'btn-p'}" style="font-size:0.72rem;padding:7px 16px;min-height:36px;flex-shrink:0"
+          onclick="toggleFollowFromOverlay('${escapeAttr(userId)}',this)">${isPending ? 'Pending' : 'Request'}</button>
+      </div>
+      <div style="text-align:center;padding:12px 0 24px">
+        <div style="display:flex;justify-content:center;margin-bottom:10px">${avatar}</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--cream);font-weight:600;word-break:break-word">${escapeHtml(name)}</div>
+        ${profile.username ? `<div style="font-size:0.68rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">@${escapeHtml(profile.username)}</div>` : ''}
+        <div style="font-size:0.72rem;color:var(--muted);line-height:1.6;max-width:280px;margin:14px auto 0">This profile is private. Send a follow request to see their posts if they approve you.</div>
+      </div>`;
+    return;
+  }
+
   const availTabs = [
     { id: 'activity', label: 'Activity' },
     profile.share_fitness  && { id: 'fitness',  label: 'Fitness' },
@@ -939,8 +1107,8 @@ async function openProfileOverlay(userId) {
   sheet.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:18px">
       <button class="btn btn-g" style="font-size:0.70rem;padding:6px 12px;min-height:36px;flex-shrink:0" onclick="closeProfileOverlay()">← Back</button>
-      <button id="overlayFollowBtn" class="btn ${isFollowing ? 'btn-g' : 'btn-p'}" style="font-size:0.72rem;padding:7px 16px;min-height:36px;flex-shrink:0"
-        onclick="toggleFollowFromOverlay('${escapeAttr(userId)}',this)">${isFollowing ? 'Following' : 'Follow'}</button>
+      <button id="overlayFollowBtn" class="btn ${isFollowing || isPending ? 'btn-g' : 'btn-p'}" style="font-size:0.72rem;padding:7px 16px;min-height:36px;flex-shrink:0"
+        onclick="toggleFollowFromOverlay('${escapeAttr(userId)}',this)">${isFollowing ? 'Following' : (isPending ? 'Pending' : 'Follow')}</button>
     </div>
 
     <div style="text-align:center;margin-bottom:18px">
@@ -1003,17 +1171,23 @@ async function switchProfileTab(tab) {
 async function toggleFollowFromOverlay(userId, btn) {
   btn.disabled = true;
   const isFollowing = _communityFollowing.includes(userId);
-  if (isFollowing) {
+  const isPending = _communityPendingFollows.includes(userId);
+  if (isFollowing || isPending) {
     await unfollowUser(userId);
     _communityFollowing = _communityFollowing.filter(id => id !== userId);
+    _communityPendingFollows = _communityPendingFollows.filter(id => id !== userId);
     btn.textContent = 'Follow'; btn.className = 'btn btn-p';
   } else {
     const result = await followUser(userId);
     if (result === 'pending') {
+      _communityPendingFollows = [...new Set([..._communityPendingFollows, userId])];
       btn.textContent = 'Pending'; btn.className = 'btn btn-g';
-    } else {
+    } else if (result === 'following') {
       _communityFollowing = [..._communityFollowing, userId];
       btn.textContent = 'Following'; btn.className = 'btn btn-g';
+    } else {
+      btn.textContent = 'Follow'; btn.className = 'btn btn-p';
+      toast('Follow failed');
     }
   }
   btn.style.cssText = 'font-size:0.72rem;padding:7px 18px';
@@ -1265,9 +1439,13 @@ function _emptyTab(msg) {
 // ── Refresh feed after a feed event is pushed ─────────────────────────────────
 async function refreshCommunityIfOpen() {
   if (!_communityLoaded) return;
+  _communityFollowing = await loadFollowing();
+  _communityPendingFollows = await loadSentFollowRequests();
+  _communityPosts = await loadCommunityPostsHome(_communityFollowing);
+  _communityDiscoverPosts = await loadCommunityPostsDiscover(_communityFollowing);
   _communityFeed = await loadCommunityFeed(_communityFollowing);
   if (_communityView === 'feed') {
     const el = eid('communityContent');
-    if (el) el.innerHTML = _buildFeedView();
+    if (el) el.innerHTML = _buildPostsFeedView();
   }
 }

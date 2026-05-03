@@ -146,15 +146,25 @@ if (sqlBundle.trim()) {
   expect(sqlBundle.includes('create table if not exists public.follow_requests'), 'community migration creates follow requests');
   expect(sqlBundle.includes('create table if not exists public.content_reports'), 'community migration creates content reports');
   expect(sqlBundle.includes('create view public.community_visible_profiles'), 'community migration creates visible profile view');
+  expect(sqlBundle.includes('create view public.community_requestable_profiles'), 'community migration creates requestable profile view');
+  expect(sqlBundle.includes('create or replace function public.aos_request_follow'), 'community migration routes follow requests through a database function');
+  expect(sqlBundle.includes('community_follows_insert_public_target'), 'community migration blocks direct follows to private profiles');
   expect(sqlBundle.includes('on public.community_posts for delete'), 'community posts are deleted, not edited');
 }
 expect(sync.includes(".from('community_posts')"), 'sync reads/writes community_posts');
 expect(sync.includes(".from('follow_requests')"), 'sync handles follow_requests');
 expect(sync.includes(".from('content_reports')"), 'sync handles content_reports');
+expect(sync.includes("sb.rpc('aos_request_follow'"), 'sync uses RPC for public follows and private follow requests');
+expect(sync.includes(".from('community_requestable_profiles')"), 'sync can find private profiles without exposing email');
+expect(sync.includes('async function toggleCommunityPostLike'), 'sync can like and unlike community posts');
+expect(sync.includes('async function loadCommunityPostComments'), 'sync can load community post comments');
 expect(community.includes('function _buildPostsFeedView'), 'community feed renders accountability posts');
 expect(community.includes('function _buildPostsDiscoverView'), 'community discover renders public posts');
 expect(community.includes('function openProgressPicker'), 'community composer can attach progress cards');
 expect(community.includes('function reviewFollowRequest'), 'community profile can review follow requests');
+expect(community.includes('function togglePostLike'), 'community posts expose like interactions');
+expect(community.includes('function togglePostComments'), 'community posts expose comments');
+expect(community.includes('_communityPendingFollows'), 'community UI tracks pending private follow requests');
 
 if (failures.length) {
   console.error('Smoke check failed:');
