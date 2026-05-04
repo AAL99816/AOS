@@ -400,6 +400,8 @@ function renderFoodTab() {
   if (!S.foodTargets) S.foodTargets = { kcal: 2000, protein: 150, carbs: 200, fat: 65 };
   renderFoodDiaryHeader();
   renderFoodMacroBar();
+  renderFoodEnergyTools();
+  if (typeof renderWeightLog === 'function') renderWeightLog();
   renderFoodMeals();
 }
 
@@ -439,6 +441,56 @@ function copyYesterday() {
 }
 
 // ── Macro summary bar ─────────────────────────────────────────
+
+function _latestWeightKg() {
+  const entries = Array.isArray(S.weightLog) ? [...S.weightLog] : [];
+  const latest = entries.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))[0];
+  return latest && Number.isFinite(+latest.weight) ? +latest.weight : null;
+}
+
+function renderFoodEnergyTools() {
+  const root = eid('foodEnergyTools');
+  if (!root) return;
+  const weightInput = eid('tdeeWeight');
+  const latestWeight = _latestWeightKg();
+  if (weightInput && !weightInput.value && latestWeight) weightInput.value = latestWeight;
+  const weightDate = eid('weightDate');
+  if (weightDate && !weightDate.value) weightDate.value = today();
+  calculateTdee(false);
+}
+
+function calculateTdee(applyTarget) {
+  const result = eid('tdeeResult');
+  if (!result) return;
+  const sex = eid('tdeeSex')?.value || 'male';
+  const age = parseFloat(eid('tdeeAge')?.value);
+  const height = parseFloat(eid('tdeeHeight')?.value);
+  const weight = parseFloat(eid('tdeeWeight')?.value);
+  const activity = parseFloat(eid('tdeeActivity')?.value) || 1.55;
+  const goal = parseFloat(eid('tdeeGoal')?.value) || 0;
+
+  if (!age || !height || !weight) {
+    result.innerHTML = `<span>Enter age, height, and weight to calculate TDEE.</span>`;
+    return;
+  }
+
+  const bmr = (10 * weight) + (6.25 * height) - (5 * age) + (sex === 'female' ? -161 : 5);
+  const maintenance = Math.round(bmr * activity);
+  const target = Math.max(800, Math.round(maintenance + goal));
+  result.innerHTML = `
+    <span><b>${maintenance}</b> kcal maintenance</span>
+    <span><b>${target}</b> kcal target</span>
+    <span>${goal < 0 ? 'Cut' : goal > 0 ? 'Lean gain' : 'Maintain'}</span>
+  `;
+
+  if (applyTarget) {
+    if (!S.foodTargets) S.foodTargets = {};
+    S.foodTargets.kcal = target;
+    scheduleSave();
+    renderFoodMacroBar();
+    toast('Calorie target updated');
+  }
+}
 
 function renderFoodMacroBar() {
   const el = eid('foodMacroBar');
@@ -1252,6 +1304,48 @@ function selectFoodManual() {
 
 // ── Quick Add ─────────────────────────────────────────────────
 
+function _foodGoalTotalsAfter(add) {
+  const date = _foodEffectiveDate();
+  const base = _sumMacros(S.foodLog?.[date] || []);
+  return {
+    kcal: base.kcal + (add.kcal || 0),
+    protein: base.protein + (add.protein || 0),
+    carbs: base.carbs + (add.carbs || 0),
+    fat: base.fat + (add.fat || 0)
+  };
+}
+
+function _goalRing(label, value, target, color) {
+  const pct = target > 0 ? Math.min(999, Math.round((value / target) * 100)) : 0;
+  const capped = Math.min(100, pct);
+  return `<div class="goal-ring" style="--goal-pct:${capped};--goal-color:${color}">
+    <div class="goal-ring-dot">
+      <strong>${pct}%</strong>
+      <span>${escapeHtml(label)}</span>
+    </div>
+    <div class="goal-ring-label">${Math.round(value)} / ${Math.round(target || 0)}</div>
+  </div>`;
+}
+
+function _renderFoodGoalPreview(targetId, add) {
+  const el = eid(targetId);
+  if (!el) return;
+  const hasAny = add && (add.kcal || add.protein || add.carbs || add.fat);
+  if (!hasAny) { el.innerHTML = ''; return; }
+  const totals = _foodGoalTotalsAfter(add);
+  const T = S.foodTargets || { kcal: 2000, protein: 150, carbs: 200, fat: 65 };
+  el.innerHTML = `
+    <div class="goal-preview">
+      <div class="goal-preview-title">After adding this to ${escapeHtml(_foodEffectiveDate())}</div>
+      <div class="goal-preview-grid">
+        ${_goalRing('kcal', totals.kcal, T.kcal, 'var(--blush)')}
+        ${_goalRing('protein', totals.protein, T.protein, 'var(--gold)')}
+        ${_goalRing('carbs', totals.carbs, T.carbs, 'var(--petal)')}
+        ${_goalRing('fat', totals.fat, T.fat, 'var(--muted-lt)')}
+      </div>
+    </div>`;
+}
+
 function _qaEstimateMacros() {
   // If only kcal is entered and protein/carbs/fat are all 0, show a hint
   const kcal    = parseFloat(eid('qaKcal')?.value) || 0;
@@ -1270,6 +1364,7 @@ function _qaEstimateMacros() {
       hint.textContent = '';
     }
   }
+  _renderFoodGoalPreview('qaGoalPreview', { kcal, protein, carbs, fat });
 }
 
 function saveQuickAdd() {
@@ -1410,11 +1505,21 @@ function _showFoodAddForm(per100g, manual, servingsMode = false, meta = {}) {
 function _updateFoodMacroPreview() {
   const form = eid('foodAddForm');
   if (!form) return;
-  const qty   = parseFloat(eid('foodAddGrams')?.value) ?? (form._servingsMode ? 1 : 100);
+  let qty = parseFloat(eid('foodAddGrams')?.value);
+  if (!Number.isFinite(qty)) qty = form._servingsMode ? 1 : 100;
   const p100  = form._per100g;
   const preview = eid('foodMacroPreview');
   if (!preview) return;
-  if (form._manual || !p100) { preview.innerHTML = ''; return; }
+  if (form._manual || !p100) {
+    preview.innerHTML = '';
+    _renderFoodGoalPreview('foodGoalPreview', {
+      kcal: parseFloat(eid('foodManualKcal')?.value) || 0,
+      protein: parseFloat(eid('foodManualProtein')?.value) || 0,
+      carbs: parseFloat(eid('foodManualCarbs')?.value) || 0,
+      fat: parseFloat(eid('foodManualFat')?.value) || 0
+    });
+    return;
+  }
   // servingsMode: ratio = qty (servings × per-serving values)
   // gramsMode:    ratio = qty/100
   const ratio = form._servingsMode ? qty : qty / 100;
@@ -1429,13 +1534,20 @@ function _updateFoodMacroPreview() {
       <span>C ${(p100.carbs * ratio).toFixed(1)}g</span>
       <span>F ${(p100.fat * ratio).toFixed(1)}g</span>
     </div>`;
+  _renderFoodGoalPreview('foodGoalPreview', {
+    kcal: p100.kcal * ratio,
+    protein: p100.protein * ratio,
+    carbs: p100.carbs * ratio,
+    fat: p100.fat * ratio
+  });
 }
 
 function saveFoodEntry() {
   const form    = eid('foodAddForm');
   const name    = eid('foodAddName')?.value.trim();
   const brand   = eid('foodAddBrand')?.value.trim() || '';
-  const grams   = parseFloat(eid('foodAddGrams')?.value) ?? 100;
+  let grams = parseFloat(eid('foodAddGrams')?.value);
+  if (!Number.isFinite(grams)) grams = form._servingsMode ? 1 : 100;
   const meal    = eid('foodAddMeal')?.value || _currentMeal;
   if (!name) { toast('Enter a food name'); return; }
 

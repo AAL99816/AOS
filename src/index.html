@@ -331,6 +331,32 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 .workout-session-date{margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .workout-session-date span{font-size:0.58rem;color:var(--muted);flex-shrink:0;}
 .workout-session-date input{background:var(--mid);border:1px solid var(--border);border-radius:6px;color:var(--gold-lt);font-size:0.66rem;padding:3px 7px;font-family:'DM Mono',monospace;outline:none;cursor:pointer;flex-shrink:0;}
+.fitness-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+.fitness-tab{border-radius:10px;min-height:32px;}
+.fitness-pane{display:none;}
+.fitness-pane.active{display:block;}
+.training-log-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.training-log-modes{display:flex;gap:6px;flex-wrap:wrap;}
+.training-session-card{padding:14px 0;border-bottom:1px solid var(--border);}
+.training-session-card:last-child{border-bottom:none;}
+.training-session-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px;}
+.training-session-title{font-size:0.88rem;color:var(--mist);}
+.training-session-date{font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
+.training-session-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.training-ex-table{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:color-mix(in srgb,var(--mid) 20%,transparent);}
+.training-ex-row{display:grid;grid-template-columns:minmax(0,1.8fr) 62px 74px 88px;gap:10px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border);}
+.training-ex-row:last-child{border-bottom:none;}
+.training-ex-head{display:grid;grid-template-columns:minmax(0,1.8fr) 62px 74px 88px;gap:10px;align-items:center;padding:7px 10px;background:color-mix(in srgb,var(--deep) 72%,transparent);color:var(--muted);font-family:'DM Mono',monospace;font-size:0.56rem;text-transform:uppercase;letter-spacing:0.08em;}
+.training-ex-name{font-size:0.74rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.training-ex-meta{font-size:0.66rem;color:var(--muted-lt);font-family:'DM Mono',monospace;}
+.training-cal{display:grid;gap:6px;}
+.training-cal.week{grid-template-columns:repeat(7,minmax(0,1fr));}
+.training-cal.month{grid-template-columns:repeat(7,minmax(0,1fr));}
+.training-cal-day{min-height:78px;border:1px solid var(--border);border-radius:10px;background:color-mix(in srgb,var(--panel) 55%,transparent);padding:7px;overflow:hidden;}
+.training-cal-day.is-muted{opacity:0.35;}
+.training-cal-date{font-size:0.56rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;}
+.training-cal-chip{display:block;width:100%;text-align:left;border:none;background:var(--blush-dim);color:var(--muted-lt);border-radius:7px;padding:4px 6px;margin-top:4px;font-size:0.58rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;}
+.training-cal-chip:hover{color:var(--petal);background:color-mix(in srgb,var(--blush) 16%,transparent);}
 
 /* ══ Projects ══ */
 .prog-filters{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;}
@@ -403,6 +429,18 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 .food-entry-remove:hover{background:rgba(180,60,60,0.12);color:#e89090;}
 .food-entry-note{display:block;width:100%;box-sizing:border-box;background:transparent;border:none;border-top:none;color:var(--muted);font-size:0.66rem;font-family:'DM Mono',monospace;resize:none;outline:none;padding:0 14px;line-height:1.4;transition:border-color 0.15s,padding 0.15s;}
 .food-entry-note.has-note,.food-entry-note:focus{border-top:1px solid var(--border);padding:5px 14px 7px;}
+.goal-preview{margin-top:10px;padding:10px;border:1px solid var(--border);border-radius:10px;background:color-mix(in srgb,var(--deep) 58%,transparent);}
+.goal-preview-title{font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:9px;}
+.goal-preview-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
+.goal-ring{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;}
+.goal-ring-dot{width:50px;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--goal-color,var(--ring-color,var(--blush))) calc(var(--goal-pct,var(--pct,0)) * 1%), var(--mid) 0);position:relative;}
+.goal-ring-dot::after{content:'';position:absolute;inset:5px;border-radius:50%;background:var(--deep);}
+.goal-ring-dot strong{position:relative;z-index:1;font-size:0.7rem;color:var(--cream);font-family:'DM Mono',monospace;font-weight:500;line-height:1;}
+.goal-ring-dot span{position:relative;z-index:1;font-size:0.46rem;color:var(--muted);font-family:'DM Mono',monospace;line-height:1;text-transform:uppercase;}
+.goal-ring-label{font-size:0.55rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.05em;}
+.food-energy-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;align-items:end;}
+.food-energy-result{font-size:0.72rem;color:var(--muted-lt);line-height:1.5;margin-top:10px;}
+.food-energy-result strong{font-family:'DM Mono',monospace;color:var(--gold-lt);font-weight:500;}
 .progs-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(275px,1fr)); gap:13px;}
 .prog-card{padding:16px;}
 .prog-top{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;}
@@ -900,6 +938,11 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
   .food-entry-main{align-items:flex-start;flex-wrap:wrap;}
   .food-qty-controls{order:3;width:100%;justify-content:flex-start;padding-left:0;}
   .food-entry-kcal{margin-left:auto;}
+  .training-ex-row,.training-ex-head{grid-template-columns:1fr 46px 56px 62px;gap:6px;padding:8px;}
+  .training-cal.month,.training-cal.week{grid-template-columns:repeat(7,minmax(42px,1fr));overflow-x:auto;}
+  .training-cal-day{min-height:70px;padding:6px;}
+  .food-energy-grid{grid-template-columns:1fr 1fr;}
+  .goal-preview-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
   /* Hero clears top safe area */
   .hero{padding-top:env(safe-area-inset-top,0px);}
   .hero-title h1{font-size:2rem;}
@@ -1361,6 +1404,13 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 
   <!-- FITNESS -->
   <div id="panel-fitness" class="panel">
+    <div class="fitness-tabs">
+      <button class="fpill fitness-tab active" id="fitTabGym" onclick="setFitnessTab('gym')">Gym</button>
+      <button class="fpill fitness-tab" id="fitTabCardio" onclick="setFitnessTab('cardio')">Cardio</button>
+      <button class="fpill fitness-tab" id="fitTabData" onclick="setFitnessTab('data')">Data</button>
+    </div>
+
+    <div id="fitnessPaneGym" class="fitness-pane active">
     <!-- Training Week (primary action — first thing you see) -->
     <div class="sec" style="justify-content:space-between">
       <span data-i18n="training_week">Training Week</span>
@@ -1371,10 +1421,12 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
     </div>
     <div class="gym-week" id="gymWeek"></div>
     <div class="g3" id="workoutCards"></div>
+    </div>
 
     <!-- Cardio -->
+    <div id="fitnessPaneCardio" class="fitness-pane">
     <div id="cardioSection">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;margin-top:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div class="sec" style="margin:0" data-i18n="cardio">Cardio</div>
     </div>
     <div class="card" style="margin-bottom:16px">
@@ -1389,22 +1441,10 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <div id="cardioHistory"></div>
     </div>
     </div>
-
-    <!-- Body Weight -->
-    <div id="bodyWeightSection" class="card" style="margin-bottom:16px">
-      <div style="margin-bottom:8px">
-        <span style="font-size:0.7rem;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase;font-family:'DM Mono',monospace">Body Weight</span>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
-        <input id="weightKg" class="add-inp" type="number" step="0.1" min="0" style="flex:1;min-width:90px" placeholder="Weight (kg)">
-        <input id="weightDate" type="date" class="add-inp" style="flex:1;min-width:110px">
-        <input id="weightNotes" class="add-inp" style="flex:2;min-width:120px" placeholder="Notes (optional)">
-        <button class="btn btn-p" onclick="logWeightEntry()">Log</button>
-      </div>
-      <div id="weightHistory"></div>
     </div>
 
     <!-- Heatmap + History (review / analysis) -->
+    <div id="fitnessPaneData" class="fitness-pane">
     <div id="muscleHeatmap" style="margin-top:4px"></div>
     <div id="trainingLog" style="margin-top:16px"></div>
 
@@ -1414,6 +1454,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <div id="exercisePbsList"></div>
     </div>
     <!-- END FEATURE: Exercise PBs -->
+    </div>
   </div>
 
   <!-- FOOD TAB -->
@@ -1431,6 +1472,52 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
     <div id="foodPaneDiary">
       <div id="foodDiaryHeader"></div>
       <div class="card food-summary-card" id="foodMacroBar"></div>
+      <div id="foodEnergyTools" class="card" style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px">
+          <div>
+            <div class="mono-label">Energy Target</div>
+            <div style="font-size:0.72rem;color:var(--muted);margin-top:2px">Estimate maintenance, then apply a daily target.</div>
+          </div>
+          <button class="btn btn-g" style="font-size:0.66rem;white-space:nowrap" onclick="calculateTdee(true)">Apply</button>
+        </div>
+        <div class="food-energy-grid">
+          <select id="tdeeSex" class="add-inp" onchange="calculateTdee(false)">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+          <input id="tdeeAge" class="add-inp" type="number" min="10" max="100" placeholder="Age" oninput="calculateTdee(false)">
+          <input id="tdeeHeight" class="add-inp" type="number" min="90" max="240" placeholder="Height cm" oninput="calculateTdee(false)">
+          <input id="tdeeWeight" class="add-inp" type="number" min="30" max="300" step="0.1" placeholder="Weight kg" oninput="calculateTdee(false)">
+          <select id="tdeeActivity" class="add-inp" onchange="calculateTdee(false)">
+            <option value="1.2">Sedentary</option>
+            <option value="1.375">Light</option>
+            <option value="1.55" selected>Moderate</option>
+            <option value="1.725">High</option>
+            <option value="1.9">Athlete</option>
+          </select>
+          <select id="tdeeGoal" class="add-inp" onchange="calculateTdee(false)">
+            <option value="-500">Cut</option>
+            <option value="0" selected>Maintain</option>
+            <option value="300">Lean gain</option>
+          </select>
+        </div>
+        <div id="tdeeResult" class="food-energy-result"></div>
+      </div>
+      <div id="bodyWeightSection" class="card" style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px">
+          <div>
+            <div class="mono-label">Body Weight</div>
+            <div style="font-size:0.72rem;color:var(--muted);margin-top:2px">Used by the energy calculator and trend chart.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+          <input id="weightKg" class="add-inp" type="number" step="0.1" placeholder="Weight kg" style="flex:1;min-width:110px">
+          <input id="weightDate" class="add-inp" type="date" style="flex:1;min-width:120px">
+          <input id="weightNotes" class="add-inp" placeholder="Notes" style="flex:2;min-width:140px">
+          <button class="btn btn-p" onclick="logWeightEntry()">Log</button>
+        </div>
+        <div id="weightHistory"></div>
+      </div>
       <div id="foodMeals"></div>
     </div>
 
@@ -2332,10 +2419,10 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
         <div class="mf" style="margin:0;grid-column:1/-1"><label style="font-size:0.7rem">Name</label><input id="qaName" class="add-inp" placeholder="e.g. Chicken rice bowl"></div>
         <div class="mf" style="margin:0"><label style="font-size:0.7rem">Calories (kcal)</label><input id="qaKcal" type="number" class="add-inp" placeholder="0" min="0" oninput="_qaEstimateMacros()"></div>
-        <div class="mf" style="margin:0"><label style="font-size:0.7rem">Protein (g)</label><input id="qaProtein" type="number" class="add-inp" placeholder="0" min="0"></div>
-        <div class="mf" style="margin:0"><label style="font-size:0.7rem">Carbs (g)</label><input id="qaCarbs" type="number" class="add-inp" placeholder="0" min="0"></div>
-        <div class="mf" style="margin:0"><label style="font-size:0.7rem">Fat (g)</label><input id="qaFat" type="number" class="add-inp" placeholder="0" min="0"></div>
-        <div class="mf" style="margin:0"><label style="font-size:0.7rem">Fiber (g)</label><input id="qaFiber" type="number" class="add-inp" placeholder="0" min="0"></div>
+        <div class="mf" style="margin:0"><label style="font-size:0.7rem">Protein (g)</label><input id="qaProtein" type="number" class="add-inp" placeholder="0" min="0" oninput="_qaEstimateMacros()"></div>
+        <div class="mf" style="margin:0"><label style="font-size:0.7rem">Carbs (g)</label><input id="qaCarbs" type="number" class="add-inp" placeholder="0" min="0" oninput="_qaEstimateMacros()"></div>
+        <div class="mf" style="margin:0"><label style="font-size:0.7rem">Fat (g)</label><input id="qaFat" type="number" class="add-inp" placeholder="0" min="0" oninput="_qaEstimateMacros()"></div>
+        <div class="mf" style="margin:0"><label style="font-size:0.7rem">Fiber (g)</label><input id="qaFiber" type="number" class="add-inp" placeholder="0" min="0" oninput="_qaEstimateMacros()"></div>
         <div class="mf" style="margin:0;grid-column:1/-1"><label style="font-size:0.7rem">Meal</label>
           <select id="qaMeal" class="add-inp" style="width:100%">
             <option value="breakfast">Breakfast</option>
@@ -2346,6 +2433,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
         </div>
       </div>
       <div id="qaCalcHint" style="font-size:0.62rem;color:var(--muted);margin-bottom:8px"></div>
+      <div id="qaGoalPreview"></div>
       <label style="display:flex;align-items:center;gap:6px;font-size:0.68rem;color:var(--muted);margin-bottom:10px;cursor:pointer">
         <input type="checkbox" id="qaSaveCustom" style="width:14px;height:14px;cursor:pointer">
         Save to My Foods
@@ -2376,14 +2464,15 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
         </div>
       </div>
       <div id="foodMacroPreview"></div>
+      <div id="foodGoalPreview"></div>
       <!-- Manual macro fields -->
       <div id="foodManualMacros" style="display:none">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-          <div class="mf" style="margin:0"><label style="font-size:0.7rem">Calories (kcal)</label><input id="foodManualKcal" type="number" class="add-inp" placeholder="0" min="0"></div>
-          <div class="mf" style="margin:0"><label style="font-size:0.7rem">Protein (g)</label><input id="foodManualProtein" type="number" class="add-inp" placeholder="0" min="0"></div>
-          <div class="mf" style="margin:0"><label style="font-size:0.7rem">Carbs (g)</label><input id="foodManualCarbs" type="number" class="add-inp" placeholder="0" min="0"></div>
-          <div class="mf" style="margin:0"><label style="font-size:0.7rem">Fat (g)</label><input id="foodManualFat" type="number" class="add-inp" placeholder="0" min="0"></div>
-          <div class="mf" style="margin:0"><label style="font-size:0.7rem">Fiber (g)</label><input id="foodManualFiber" type="number" class="add-inp" placeholder="0" min="0"></div>
+          <div class="mf" style="margin:0"><label style="font-size:0.7rem">Calories (kcal)</label><input id="foodManualKcal" type="number" class="add-inp" placeholder="0" min="0" oninput="_updateFoodMacroPreview()"></div>
+          <div class="mf" style="margin:0"><label style="font-size:0.7rem">Protein (g)</label><input id="foodManualProtein" type="number" class="add-inp" placeholder="0" min="0" oninput="_updateFoodMacroPreview()"></div>
+          <div class="mf" style="margin:0"><label style="font-size:0.7rem">Carbs (g)</label><input id="foodManualCarbs" type="number" class="add-inp" placeholder="0" min="0" oninput="_updateFoodMacroPreview()"></div>
+          <div class="mf" style="margin:0"><label style="font-size:0.7rem">Fat (g)</label><input id="foodManualFat" type="number" class="add-inp" placeholder="0" min="0" oninput="_updateFoodMacroPreview()"></div>
+          <div class="mf" style="margin:0"><label style="font-size:0.7rem">Fiber (g)</label><input id="foodManualFiber" type="number" class="add-inp" placeholder="0" min="0" oninput="_updateFoodMacroPreview()"></div>
         </div>
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
@@ -2559,7 +2648,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 </div>
 <script>
 if('serviceWorker' in navigator){
-  const SW_VERSION = 'aos-v55';
+  const SW_VERSION = 'aos-v56';
   // Capture whether a SW was already controlling this page at load time.
   // controllerchange also fires on first-ever install, so without this guard
   // the banner would flash on every fresh visit.

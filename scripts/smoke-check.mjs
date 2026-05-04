@@ -127,6 +127,12 @@ expect(fitness.includes('function logWorkoutSet'), 'fitness logs individual sets
 expect(fitness.includes("_exercisePickerCtx = { mode: mode === 'replace'"), 'exercise picker tracks add vs replace context');
 expect(fitness.includes('function moveEx'), 'workout card exercises can be reordered');
 expect(index.includes('.workout-set-grid'), 'fitness set logger has responsive CSS');
+expect(index.includes('id="fitnessPaneGym"'), 'Fitness tab is split into Gym/Cardio/Data panes');
+expect(fitness.includes('function setFitnessTab'), 'fitness sub-tabs can switch panes');
+expect(fitness.includes('_trainingLogShowAll'), 'training log defaults to recent sessions with show-all state');
+expect(fitness.includes('function _trainingSessionHtml'), 'training log renders vertical exercise rows');
+expect(fitness.includes('function _renderTrainingCalendar'), 'training log supports calendar views');
+expect(fitness.includes('function _normExerciseLookupName'), 'muscle volume uses normalized exercise lookup');
 
 if (sqlBundle.trim()) {
   expect(sqlBundle.includes('create table if not exists public.food_products'), 'food products migration creates canonical product table');
@@ -149,6 +155,11 @@ expect(index.includes('class="food-tabbar"'), 'Food tab uses app-like segmented 
 expect(index.includes('.food-summary-card'), 'Food tab has structured macro summary styling');
 expect(food.includes('food-meal-panel'), 'Food diary renders meal panels through reusable classes');
 expect(food.includes('food-entry-note'), 'Food diary rows use reusable entry note styling');
+expect(index.includes('id="foodEnergyTools"'), 'Food diary includes TDEE calculator mount');
+expect(index.includes('id="bodyWeightSection"'), 'Food diary contains body weight section');
+expect(index.includes('id="foodGoalPreview"'), 'Food add modal includes goal contribution preview');
+expect(food.includes('function calculateTdee'), 'Food tab calculates TDEE');
+expect(food.includes('function _renderFoodGoalPreview'), 'Food add flow previews cumulative daily macro contribution');
 
 if (sqlBundle.trim()) {
   expect(sqlBundle.includes('create table if not exists public.community_posts'), 'community migration creates posts table');

@@ -1,5 +1,32 @@
 'use strict';
 
+let _fitnessTab = 'gym';
+
+function setFitnessTab(tab) {
+  _fitnessTab = ['gym', 'cardio', 'data'].includes(tab) ? tab : 'gym';
+  [
+    ['gym', 'fitTabGym', 'fitnessPaneGym'],
+    ['cardio', 'fitTabCardio', 'fitnessPaneCardio'],
+    ['data', 'fitTabData', 'fitnessPaneData']
+  ].forEach(([key, btnId, paneId]) => {
+    const btn = eid(btnId);
+    const pane = eid(paneId);
+    const active = key === _fitnessTab;
+    if (btn) btn.classList.toggle('active', active);
+    if (pane) pane.classList.toggle('active', active);
+  });
+}
+
+function _weekdayIndexFromDate(dateStr) {
+  const d = new Date(`${dateStr || today()}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return -1;
+  return (d.getDay() + 6) % 7;
+}
+
+function _latestWorkoutSessionForDate(dateStr) {
+  return [...(S.workoutHistory || [])].reverse().find(s => s.date === dateStr) || null;
+}
+
 /* ══ FITNESS STATE HELPERS ══ */
 function ensureFitnessState() {
   if (!Array.isArray(S.workout)) S.workout = [];
@@ -330,8 +357,11 @@ function renderGymWeek() {
 
   week.forEach((d, i) => {
     const wd = S.workout[i] || { type: 'Rest', rest: true };
-    const done = !!S.gymLog[d];
-    const isRest = !!wd.rest;
+    const loggedSession = _latestWorkoutSessionForDate(d);
+    const done = !!S.gymLog[d] || !!loggedSession;
+    const isRest = !!wd.rest && !loggedSession;
+    const displayCardId = loggedSession?.cardId || wd.cardId || '';
+    const displayType = loggedSession?.title || wd.type || '';
 
     const div = document.createElement('div');
     div.className = `gym-day${isRest ? ' rest' : ''}${done ? ' done' : ''}`;
@@ -342,9 +372,9 @@ function renderGymWeek() {
 
     div.innerHTML = `
       <div class="dn">${DAY_SHORT[i]}</div>
-      ${wd.cardId
+      ${displayCardId
         ? `<div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap;justify-content:center">
-             <span style="font-size:0.60rem;background:var(--rose);padding:2px 6px;border-radius:20px;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px">${escapeHtml(wd.type||'')}</span>
+             <span style="font-size:0.60rem;background:var(--rose);padding:2px 6px;border-radius:20px;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px">${escapeHtml(displayType||'')}</span>
              <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.75rem;line-height:1;padding:0 2px" onclick="event.stopPropagation();unlinkPreset(${i})" title="Unlink preset">×</button>
            </div>`
         : `<input class="editable wt-inp" value="${escapeHtml(wd.type || '')}" onchange="updateWDay(${i},this.value)" onclick="event.stopPropagation()" title="${t('click_rename')}">`
@@ -661,13 +691,12 @@ function finishWorkoutDraft(cardId) {
   if (gh) { if (!gh.days) gh.days = {}; gh.days[sessionDate] = true; }
   S.gymLog[sessionDate] = true;
 
-  const week = weekDays();
-  const todayIdx = week.indexOf(sessionDate);
-  if (todayIdx >= 0) {
-    if (!S.workout[todayIdx]) S.workout[todayIdx] = {};
-    S.workout[todayIdx].cardId = wc.id;
-    S.workout[todayIdx].type = wc.title || 'Workout';
-    S.workout[todayIdx].rest = false;
+  const dayIdx = _weekdayIndexFromDate(sessionDate);
+  if (dayIdx >= 0) {
+    if (!S.workout[dayIdx]) S.workout[dayIdx] = {};
+    S.workout[dayIdx].cardId = wc.id;
+    S.workout[dayIdx].type = wc.title || 'Workout';
+    S.workout[dayIdx].rest = false;
   }
 
   delete S.activeWorkoutDrafts[String(cardId)];
@@ -841,7 +870,7 @@ function renderWorkoutCards() {
 
 let _trainingLogLimit = 30;
 
-function renderTrainingLog(){
+function _renderTrainingLogLegacy(){
   const c = eid('trainingLog');
   if(!c) return;
   c.innerHTML = '';
@@ -932,6 +961,179 @@ function renderTrainingLog(){
 }
 
 // ── Edit session ─────────────────────────────────────────────────────────────
+let _trainingLogShowAll = false;
+let _trainingLogView = 'list';
+let _trainingCalendarAnchor = today();
+
+function _setTrainingLogView(view) {
+  _trainingLogView = ['list', 'week', 'month'].includes(view) ? view : 'list';
+  renderTrainingLog();
+}
+
+function _setTrainingLogShowAll(on) {
+  _trainingLogShowAll = !!on;
+  renderTrainingLog();
+}
+
+function _moveTrainingCalendar(delta) {
+  const d = new Date(`${_trainingCalendarAnchor || today()}T00:00:00`);
+  if (_trainingLogView === 'month') d.setMonth(d.getMonth() + delta);
+  else d.setDate(d.getDate() + delta * 7);
+  _trainingCalendarAnchor = d.toISOString().slice(0, 10);
+  renderTrainingLog();
+}
+
+function _trainingSessionsSorted() {
+  return [...(S.workoutHistory || [])].sort((a, b) => {
+    const dateSort = String(b.date || '').localeCompare(String(a.date || ''));
+    if (dateSort) return dateSort;
+    return String(b.id || '').localeCompare(String(a.id || ''));
+  });
+}
+
+function _sessionSetsArray(ex) {
+  const source = Array.isArray(ex?.loggedSets) && ex.loggedSets.length
+    ? ex.loggedSets
+    : (ex && (ex.weight != null || ex.reps != null) ? [{ weight: ex.weight, reps: ex.reps, sets: ex.sets || 1, restBeforeSecs: ex.restBeforeSecs ?? null }] : []);
+  const rows = [];
+  source.forEach(set => {
+    const count = Math.max(1, parseInt(set.sets, 10) || 1);
+    for (let i = 0; i < count; i++) rows.push(set);
+  });
+  return rows;
+}
+
+function _exerciseSetStats(ex) {
+  const rows = _sessionSetsArray(ex);
+  const reps = rows.map(s => parseInt(s.reps, 10)).filter(Number.isFinite);
+  const rests = rows.map(s => parseFloat(s.restBeforeSecs)).filter(v => Number.isFinite(v) && v > 0);
+  const repLabel = !reps.length ? '-' : [...new Set(reps)].length === 1 ? String(reps[0]) : `${Math.min(...reps)}-${Math.max(...reps)}`;
+  const restAvg = rests.length ? rests.reduce((s, v) => s + v, 0) / rests.length : null;
+  return {
+    sets: rows.length || parseInt(ex?.sets, 10) || 0,
+    reps: repLabel,
+    rest: restAvg === null ? '-' : _formatRest(restAvg)
+  };
+}
+
+function _trainingSessionHtml(item) {
+  const exercises = Array.isArray(item.exercises) ? item.exercises : [];
+  return `
+    <div class="training-session-card">
+      <div class="training-session-head">
+        <div onclick="openSessionDetail('${item.id}')" style="cursor:pointer;min-width:0">
+          <div class="training-session-title">${escapeHtml(item.title || 'Workout')}</div>
+          <div class="training-session-date">${escapeHtml(item.date || '')}</div>
+        </div>
+        <div class="training-session-actions">
+          <button class="btn btn-g" onclick="openEditSession('${item.id}')">Edit</button>
+          <button class="habit-del" style="opacity:0.45" onclick="deleteWorkoutSession('${item.id}')">x</button>
+        </div>
+      </div>
+      <div class="training-ex-table">
+        <div class="training-ex-head"><span>Workout</span><span>Sets</span><span>Reps</span><span>Rest avg</span></div>
+        ${exercises.length ? exercises.map(ex => {
+          const stats = _exerciseSetStats(ex);
+          return `<div class="training-ex-row">
+            <div class="training-ex-name">${escapeHtml(ex.name || '')}</div>
+            <div class="training-ex-meta">${stats.sets || '-'}</div>
+            <div class="training-ex-meta">${escapeHtml(stats.reps)}</div>
+            <div class="training-ex-meta">${escapeHtml(stats.rest)}</div>
+          </div>`;
+        }).join('') : `<div class="training-ex-row"><div class="training-ex-name">No exercise data</div><div></div><div></div><div></div></div>`}
+      </div>
+    </div>`;
+}
+
+function _weekStartFromDate(dateStr) {
+  const d = new Date(`${dateStr || today()}T00:00:00`);
+  const diff = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - diff);
+  return d;
+}
+
+function _renderTrainingCalendar(mode, histAll) {
+  const byDate = {};
+  histAll.forEach(s => {
+    if (!s.date) return;
+    if (!byDate[s.date]) byDate[s.date] = [];
+    byDate[s.date].push(s);
+  });
+
+  let dates = [];
+  let title = '';
+  if (mode === 'week') {
+    const start = _weekStartFromDate(_trainingCalendarAnchor);
+    dates = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      return { date: d.toISOString().slice(0, 10), muted: false };
+    });
+    title = `${dates[0].date.slice(5)} to ${dates[6].date.slice(5)}`;
+  } else {
+    const anchor = new Date(`${_trainingCalendarAnchor || today()}T00:00:00`);
+    const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+    const start = _weekStartFromDate(first.toISOString().slice(0, 10));
+    dates = Array.from({ length: 42 }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      return { date: d.toISOString().slice(0, 10), muted: d.getMonth() !== anchor.getMonth() };
+    });
+    title = anchor.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+
+  return `
+    <div class="card">
+      <div class="training-log-tools" style="margin-bottom:10px">
+        <button class="btn btn-g" onclick="_moveTrainingCalendar(-1)">Prev</button>
+        <span class="training-session-date" style="flex:1;text-align:center">${escapeHtml(title)}</span>
+        <button class="btn btn-g" onclick="_moveTrainingCalendar(1)">Next</button>
+      </div>
+      <div class="training-cal ${mode}">
+        ${dates.map(day => {
+          const items = byDate[day.date] || [];
+          return `<div class="training-cal-day${day.muted ? ' is-muted' : ''}">
+            <div class="training-cal-date">${day.date.slice(8)}</div>
+            ${items.slice(0, 3).map(s => `<button class="training-cal-chip" onclick="openSessionDetail('${s.id}')">${escapeHtml(s.title || 'Workout')}</button>`).join('')}
+            ${items.length > 3 ? `<div class="training-session-date">+${items.length - 3}</div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+function renderTrainingLog(){
+  const c = eid('trainingLog');
+  if(!c) return;
+  const histAll = _trainingSessionsSorted();
+  const shown = _trainingLogShowAll ? histAll : histAll.slice(0, 7);
+
+  c.innerHTML = `
+    <div class="training-log-tools">
+      <div class="sec" style="margin:0">${t('training_log')} <span class="lbl">${histAll.length} ${histAll.length!==1?t('sessions_plural_s'):t('sessions_plural')}</span></div>
+      <div class="training-log-modes">
+        <button class="fpill ${_trainingLogView === 'list' ? 'active' : ''}" onclick="_setTrainingLogView('list')">List</button>
+        <button class="fpill ${_trainingLogView === 'week' ? 'active' : ''}" onclick="_setTrainingLogView('week')">Week</button>
+        <button class="fpill ${_trainingLogView === 'month' ? 'active' : ''}" onclick="_setTrainingLogView('month')">Month</button>
+      </div>
+    </div>`;
+
+  if(!histAll.length){
+    c.innerHTML += `<div style="text-align:center;padding:40px 24px"><div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--border-lt);margin-bottom:10px">◇</div><div style="font-size:0.66rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace">${t('no_sessions')}</div></div>`;
+    return;
+  }
+
+  if (_trainingLogView === 'week' || _trainingLogView === 'month') {
+    c.innerHTML += _renderTrainingCalendar(_trainingLogView, histAll);
+    return;
+  }
+
+  c.innerHTML += `<div class="training-session-list">${shown.map(_trainingSessionHtml).join('')}</div>`;
+  if (histAll.length > 7) {
+    c.innerHTML += `<button class="btn btn-g" style="width:100%;margin-top:10px;font-size:0.68rem" onclick="_setTrainingLogShowAll(${_trainingLogShowAll ? 'false' : 'true'})">${_trainingLogShowAll ? 'Show recent 7' : `Show all ${histAll.length}`}</button>`;
+  }
+}
+
 let _editingSessionId = null;
 
 function openEditSession(id) {
@@ -1080,7 +1282,10 @@ function openSessionDetail(id){
         </div>`;
     }).join('');
   } else {
-    ex.innerHTML = `<div style="font-size:0.75rem;color:var(--muted);text-align:center;padding:20px">${escapeHtml(s.summary||t('no_exercise_data'))}</div>`;
+    const summaryRows = String(s.summary || '').split(new RegExp('\\s*[|\\u00b7]\\s*')).filter(Boolean);
+    ex.innerHTML = summaryRows.length
+      ? `<div class="training-ex-table">${summaryRows.map(row => `<div class="training-ex-row"><div class="training-ex-name">${escapeHtml(row)}</div><div></div><div></div><div></div></div>`).join('')}</div>`
+      : `<div style="font-size:0.75rem;color:var(--muted);text-align:center;padding:20px">${escapeHtml(t('no_exercise_data'))}</div>`;
   }
   // Session notes
   const sdNotes = eid('sdNotes');
@@ -1650,14 +1855,38 @@ const MUSCLE_GROUPS = [
 ];
 
 function _getMuscleInfo(exerciseName) {
-  if (typeof EXERCISE_DB === 'undefined') return null;
-  const key = normExerciseKey(exerciseName);
-  return EXERCISE_DB.find(e => e.name.toLowerCase() === key) || null;
+  const name = String(exerciseName || '');
+  const key = _normExerciseLookupName(name);
+  const db = typeof EXERCISE_DB !== 'undefined' ? EXERCISE_DB : [];
+  const direct = db.find(e => _normExerciseLookupName(e.name) === key);
+  if (direct) return direct;
+  const compact = ` ${key} `;
+  if (/( pulldown | pull up | chin up | lat )/.test(compact)) return { muscles:['lats'], secondary:['biceps','back'] };
+  if (/( row | t bar | cable row | machine row )/.test(compact)) return { muscles:['back'], secondary:['lats','biceps','traps'] };
+  if (/( back extension | hyperextension )/.test(compact)) return { muscles:['back'], secondary:['glutes','hamstrings'] };
+  if (/( curl | preacher )/.test(compact)) return { muscles:['biceps'], secondary:['forearms'] };
+  if (/( bench | chest press | fly | pec )/.test(compact)) return { muscles:['chest'], secondary:['triceps','shoulders'] };
+  if (/( shoulder press | lateral raise | rear delt | face pull )/.test(compact)) return { muscles:['shoulders'], secondary:['traps'] };
+  if (/( squat | leg press | lunge | leg extension )/.test(compact)) return { muscles:['quads'], secondary:['glutes','hamstrings'] };
+  if (/( deadlift | romanian | leg curl | hamstring )/.test(compact)) return { muscles:['hamstrings'], secondary:['glutes','back'] };
+  if (/( calf )/.test(compact)) return { muscles:['calves'], secondary:[] };
+  if (/( crunch | plank | sit up | ab )/.test(compact)) return { muscles:['core'], secondary:[] };
+  return null;
+}
+
+function _normExerciseLookupName(name) {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
 }
 
 /* Compute sets volume per muscle group for the past N days from workoutHistory */
 function _muscleWeeklyVolume(days) {
-  const cutoff = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+  const cutoff = days === 7
+    ? weekDays()[0]
+    : new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
   const vol = {}; // muscleKey → total sets (primary = 1, secondary = 0.33)
 
   (S.workoutHistory || []).forEach(session => {
