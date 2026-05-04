@@ -1,6 +1,7 @@
 'use strict';
 
 let _fitnessTab = 'gym';
+let _fitnessDataTab = 'log';
 
 function setFitnessTab(tab) {
   _fitnessTab = ['gym', 'cardio', 'data'].includes(tab) ? tab : 'gym';
@@ -12,6 +13,21 @@ function setFitnessTab(tab) {
     const btn = eid(btnId);
     const pane = eid(paneId);
     const active = key === _fitnessTab;
+    if (btn) btn.classList.toggle('active', active);
+    if (pane) pane.classList.toggle('active', active);
+  });
+}
+
+function setFitnessDataTab(tab) {
+  _fitnessDataTab = ['log', 'volume', 'prs'].includes(tab) ? tab : 'log';
+  [
+    ['log', 'fitDataTabLog', 'fitnessDataPaneLog'],
+    ['volume', 'fitDataTabVolume', 'fitnessDataPaneVolume'],
+    ['prs', 'fitDataTabPrs', 'fitnessDataPanePrs']
+  ].forEach(([key, btnId, paneId]) => {
+    const btn = eid(btnId);
+    const pane = eid(paneId);
+    const active = key === _fitnessDataTab;
     if (btn) btn.classList.toggle('active', active);
     if (pane) pane.classList.toggle('active', active);
   });

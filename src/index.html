@@ -335,6 +335,10 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 .fitness-tab{border-radius:10px;min-height:32px;}
 .fitness-pane{display:none;}
 .fitness-pane.active{display:block;}
+.fitness-data-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;padding:6px;border:1px solid var(--border);border-radius:14px;background:color-mix(in srgb,var(--deep) 68%,transparent);}
+.fitness-data-tab{border-radius:10px;min-height:30px;}
+.fitness-data-pane{display:none;}
+.fitness-data-pane.active{display:block;}
 .training-log-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
 .training-log-modes{display:flex;gap:6px;flex-wrap:wrap;}
 .training-session-card{padding:14px 0;border-bottom:1px solid var(--border);}
@@ -420,6 +424,8 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 .food-entry-kcal{text-align:right;flex-shrink:0;min-width:42px;}
 .food-entry-kcal strong{display:block;font-size:0.9rem;color:var(--gold-lt);font-family:'DM Mono',monospace;font-weight:500;}
 .food-entry-kcal span{font-size:0.58rem;color:var(--muted);}
+.food-entry-edit{background:var(--blush-dim);border:1px solid var(--border);border-radius:7px;color:var(--muted-lt);cursor:pointer;font-size:0.58rem;padding:4px 7px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.05em;}
+.food-entry-edit:hover{border-color:var(--border-lt);color:var(--petal);}
 .food-qty-controls{display:flex;align-items:center;gap:4px;flex-shrink:0;}
 .food-qty-btn{background:var(--mid);border:1px solid transparent;color:var(--muted-lt);cursor:pointer;font-size:1.05rem;width:34px;height:34px;border-radius:50%;line-height:1;-webkit-tap-highlight-color:transparent;}
 .food-qty-btn:hover{border-color:var(--border-lt);color:var(--petal);}
@@ -433,11 +439,16 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 .goal-preview-title{font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:9px;}
 .goal-preview-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
 .goal-ring{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;}
-.goal-ring-dot{width:50px;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--goal-color,var(--ring-color,var(--blush))) calc(var(--goal-pct,var(--pct,0)) * 1%), var(--mid) 0);position:relative;}
+.goal-ring-dot{width:50px;aspect-ratio:1;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:conic-gradient(var(--goal-color,var(--ring-color,var(--blush))) calc(var(--goal-pct,var(--pct,0)) * 1%), var(--mid) 0);position:relative;}
 .goal-ring-dot::after{content:'';position:absolute;inset:5px;border-radius:50%;background:var(--deep);}
-.goal-ring-dot strong{position:relative;z-index:1;font-size:0.7rem;color:var(--cream);font-family:'DM Mono',monospace;font-weight:500;line-height:1;}
-.goal-ring-dot span{position:relative;z-index:1;font-size:0.46rem;color:var(--muted);font-family:'DM Mono',monospace;line-height:1;text-transform:uppercase;}
+.goal-ring-dot strong{position:relative;z-index:1;font-size:0.68rem;color:var(--cream);font-family:'DM Mono',monospace;font-weight:500;line-height:1;margin-top:1px;}
+.goal-ring-dot span{position:relative;z-index:1;font-size:0.43rem;color:var(--muted);font-family:'DM Mono',monospace;line-height:1;text-transform:uppercase;margin-top:3px;}
 .goal-ring-label{font-size:0.55rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.05em;}
+.meal-goal-strip{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:7px;}
+.meal-goal-dot{width:36px;aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;background:conic-gradient(var(--meal-color,var(--blush)) calc(var(--meal-pct,0) * 1%), var(--mid) 0);position:relative;}
+.meal-goal-dot::after{content:'';position:absolute;inset:4px;border-radius:50%;background:var(--panel);}
+.meal-goal-dot span{position:relative;z-index:1;font-size:0.48rem;color:var(--cream);font-family:'DM Mono',monospace;}
+.meal-goal-label{font-size:0.52rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.05em;margin-right:3px;}
 .food-energy-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;align-items:end;}
 .food-energy-result{font-size:0.72rem;color:var(--muted-lt);line-height:1.5;margin-top:10px;}
 .food-energy-result strong{font-family:'DM Mono',monospace;color:var(--gold-lt);font-weight:500;}
@@ -1445,8 +1456,18 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 
     <!-- Heatmap + History (review / analysis) -->
     <div id="fitnessPaneData" class="fitness-pane">
-    <div id="muscleHeatmap" style="margin-top:4px"></div>
-    <div id="trainingLog" style="margin-top:16px"></div>
+    <div class="fitness-data-tabs">
+      <button class="fpill fitness-data-tab active" id="fitDataTabLog" onclick="setFitnessDataTab('log')">Training Log</button>
+      <button class="fpill fitness-data-tab" id="fitDataTabVolume" onclick="setFitnessDataTab('volume')">Muscle Volume</button>
+      <button class="fpill fitness-data-tab" id="fitDataTabPrs" onclick="setFitnessDataTab('prs')">PRs</button>
+    </div>
+    <div id="fitnessDataPaneLog" class="fitness-data-pane active">
+      <div id="trainingLog"></div>
+    </div>
+    <div id="fitnessDataPaneVolume" class="fitness-data-pane">
+      <div id="muscleHeatmap" style="margin-top:4px"></div>
+    </div>
+    <div id="fitnessDataPanePrs" class="fitness-data-pane">
 
     <!-- FEATURE: Exercise PBs — remove this block to disable -->
     <div id="exercisePbsSection" class="card" style="margin-top:20px">
@@ -1455,6 +1476,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
     </div>
     <!-- END FEATURE: Exercise PBs -->
     </div>
+    </div>
   </div>
 
   <!-- FOOD TAB -->
@@ -1462,6 +1484,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
     <!-- Tab row: Diary | History | Meal Plans | My Foods -->
     <div class="food-tabbar">
       <button class="fpill active" id="ftabDiary"    onclick="setFoodTab('diary')">Diary</button>
+      <button class="fpill"        id="ftabEnergy"   onclick="setFoodTab('energy')">Energy</button>
       <button class="fpill"        id="ftabHistory"  onclick="setFoodTab('history')">History</button>
       <button class="fpill"        id="ftabMeals"    onclick="setFoodTab('meals')">Meal Plans</button>
       <button class="fpill"        id="ftabMyfoods"  onclick="setFoodTab('myfoods')">My Foods</button>
@@ -1472,6 +1495,11 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
     <div id="foodPaneDiary">
       <div id="foodDiaryHeader"></div>
       <div class="card food-summary-card" id="foodMacroBar"></div>
+      <div id="foodMeals"></div>
+    </div>
+
+    <!-- ENERGY VIEW -->
+    <div id="foodPaneEnergy" style="display:none">
       <div id="foodEnergyTools" class="card" style="margin-bottom:16px">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px">
           <div>
@@ -1518,7 +1546,6 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
         </div>
         <div id="weightHistory"></div>
       </div>
-      <div id="foodMeals"></div>
     </div>
 
     <!-- HISTORY VIEW -->
@@ -2477,7 +2504,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
         <button class="btn btn-g" onclick="_backToSearch()">Back</button>
-        <button class="btn btn-p" onclick="saveFoodEntry()">Add</button>
+        <button id="foodSaveEntryBtn" class="btn btn-p" onclick="saveFoodEntry()">Add</button>
       </div>
     </div>
   </div>
@@ -2648,7 +2675,7 @@ h1,h2,h3,.auth-box h1,.sec,.review-kicker { font-family: var(--font-heading); }
 </div>
 <script>
 if('serviceWorker' in navigator){
-  const SW_VERSION = 'aos-v56';
+  const SW_VERSION = 'aos-v57';
   // Capture whether a SW was already controlling this page at load time.
   // controllerchange also fires on first-ever install, so without this guard
   // the banner would flash on every fresh visit.

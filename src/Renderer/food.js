@@ -400,8 +400,10 @@ function renderFoodTab() {
   if (!S.foodTargets) S.foodTargets = { kcal: 2000, protein: 150, carbs: 200, fat: 65 };
   renderFoodDiaryHeader();
   renderFoodMacroBar();
-  renderFoodEnergyTools();
-  if (typeof renderWeightLog === 'function') renderWeightLog();
+  if (_foodSubTab === 'energy') {
+    renderFoodEnergyTools();
+    if (typeof renderWeightLog === 'function') renderWeightLog();
+  }
   renderFoodMeals();
 }
 
@@ -565,6 +567,23 @@ function _sumMacros(entries) {
 
 // ── Meal sections ─────────────────────────────────────────────
 
+function _mealGoalStrip(totals) {
+  const T = S.foodTargets || { kcal: 2000, protein: 150, carbs: 200, fat: 65 };
+  const ring = (label, val, target, color) => {
+    const pct = target > 0 ? Math.min(999, Math.round((val / target) * 100)) : 0;
+    return `<span style="display:flex;align-items:center;gap:4px">
+      <span class="meal-goal-label">${label}</span>
+      <span class="meal-goal-dot" style="--meal-pct:${Math.min(100, pct)};--meal-color:${color}"><span>${pct}%</span></span>
+    </span>`;
+  };
+  return `<div class="meal-goal-strip">
+    ${ring('cal', totals.kcal, T.kcal, 'var(--blush)')}
+    ${ring('pro', totals.protein, T.protein, 'var(--gold)')}
+    ${ring('carb', totals.carbs, T.carbs, 'var(--petal)')}
+    ${ring('fat', totals.fat, T.fat, 'var(--muted-lt)')}
+  </div>`;
+}
+
 function renderFoodMeals() {
   const el = eid('foodMeals');
   if (!el) return;
@@ -585,6 +604,7 @@ function renderFoodMeals() {
             </div>
           </div>
           ${items.length ? `<div class="food-meal-mini"><div class="food-meal-mini-fill" style="--pct:${mealPct / 100}"></div></div>` : ''}
+          ${items.length ? _mealGoalStrip(totals) : ''}
         </div>
         <div class="food-meal-panel">
           ${items.length ? items.map(e => _foodEntryRow(e)).join('') : ''}
@@ -658,6 +678,7 @@ function _foodEntryRow(e) {
           <strong>${Math.round(e.kcal)}</strong>
           <span>kcal</span>
         </div>
+        <button class="food-entry-edit" onclick="editFoodEntry('${e.id}')" title="Edit food">Edit</button>
         <button class="food-entry-remove" onclick="deleteFoodEntry('${e.id}')">&#x2715;</button>
       </div>
       <textarea
@@ -761,6 +782,8 @@ function _applyFoodMode(mode) {
     if (qaMeal) qaMeal.value = _currentMeal;
     const hint = eid('qaCalcHint');
     if (hint) hint.textContent = '';
+    const preview = eid('qaGoalPreview');
+    if (preview) preview.innerHTML = '';
   } else if (mode === 'builder') {
     if (searchInp)   searchInp.style.display  = '';
     if (catPills)    catPills.style.display    = '';
@@ -793,8 +816,10 @@ function _backToSearch() {
   if (addForm) addForm.style.display = 'none';
   const searchInp   = eid('foodSearchInput');
   const resultsPane = eid('foodSearchResults');
+  const catPills    = eid('foodCatPills');
   if (searchInp)   searchInp.style.display   = '';
   if (resultsPane) resultsPane.style.display  = '';
+  if (catPills)    catPills.style.display     = '';
   if (searchInp)   { searchInp.value = ''; searchInp.focus(); }
   _showRecentFoods();
 }
@@ -1451,6 +1476,8 @@ function _showFoodAddForm(per100g, manual, servingsMode = false, meta = {}) {
   form.style.display = '';
   eid('foodSearchResults').style.display = 'none';
   eid('foodSearchInput').style.display   = 'none';
+  const catPills = eid('foodCatPills');
+  if (catPills) catPills.style.display = 'none';
 
   const macroFields = eid('foodManualMacros');
   macroFields.style.display = manual ? '' : 'none';
@@ -1461,6 +1488,8 @@ function _showFoodAddForm(per100g, manual, servingsMode = false, meta = {}) {
   form._sourceProductId = meta.sourceProductId || '';
   form._sourceCountryCode = _normalizeFoodCountryCode(meta.countryCode || 'GLOBAL');
   form._servingGrams = Math.max(1, parseFloat(meta.servingGrams) || 100);
+  const saveBtn = eid('foodSaveEntryBtn');
+  if (saveBtn) saveBtn.textContent = _foodEditId !== null ? 'Save' : 'Add';
 
   const gramsInp = eid('foodAddGrams');
   const gramsLbl = eid('foodAddGramsLabel');
@@ -1558,7 +1587,7 @@ function saveFoodEntry() {
     carbs   = parseFloat(eid('foodManualCarbs')?.value)   || 0;
     fat     = parseFloat(eid('foodManualFat')?.value)     || 0;
     fiber   = parseFloat(eid('foodManualFiber')?.value)   || 0;
-    per100g = { kcal, protein, carbs, fat, fiber };
+    per100g = null;
   } else {
     const r = form._per100g;
     // servingsMode: grams field holds servings count; ratio = servings
@@ -1610,6 +1639,22 @@ function saveFoodEntry() {
   if (!S.foodLog) S.foodLog = {};
   const _date = _foodEffectiveDate();
   if (!S.foodLog[_date]) S.foodLog[_date] = [];
+
+  if (_foodEditId !== null) {
+    const idx = S.foodLog[_date].findIndex(e => String(e.id) === String(_foodEditId));
+    if (idx >= 0) {
+      const existing = S.foodLog[_date][idx];
+      S.foodLog[_date][idx] = { ...existing, ...entry, id: existing.id, notes: existing.notes || entry.notes || '' };
+      _foodEditId = null;
+      scheduleSave();
+      closeFoodSearch();
+      renderFoodTab();
+      toast(`${name} updated`);
+      return;
+    }
+    _foodEditId = null;
+  }
+
   S.foodLog[_date].push(entry);
   scheduleSave();
   closeFoodSearch();
@@ -1626,19 +1671,20 @@ function editFoodEntry(id) {
   const modal = eid('mFoodSearch');
   if (!modal) return;
   modal.classList.add('open');
-  _applyFoodMode('quick');
+  _applyFoodMode('search');
   const lbl = eid('foodMealLabel');
-  if (lbl) lbl.textContent = MEAL_LABELS[entry.meal] || entry.meal;
-  // Pre-fill Quick Add fields
-  setTimeout(() => {
-    const qaName = eid('qaName'); if (qaName) qaName.value = entry.name || '';
-    const qaKcal = eid('qaKcal'); if (qaKcal) qaKcal.value = entry.kcal || '';
-    const qaProtein = eid('qaProtein'); if (qaProtein) qaProtein.value = entry.protein || '';
-    const qaCarbs = eid('qaCarbs'); if (qaCarbs) qaCarbs.value = entry.carbs || '';
-    const qaFat = eid('qaFat'); if (qaFat) qaFat.value = entry.fat || '';
-    const qaFiber = eid('qaFiber'); if (qaFiber) qaFiber.value = entry.fiber || '';
-    const qaMeal = eid('qaMeal'); if (qaMeal) qaMeal.value = entry.meal || _currentMeal;
-  }, 80);
+  if (lbl) lbl.textContent = `Edit ${MEAL_LABELS[entry.meal] || entry.meal}`;
+  eid('foodAddName').value = entry.name || '';
+  eid('foodAddBrand').value = entry.brand || '';
+  _showFoodAddForm(null, true, false, { servingGrams: entry.grams || 100, countryCode: entry.countryCode || 'GLOBAL' });
+  const gramsInp = eid('foodAddGrams'); if (gramsInp) gramsInp.value = entry.grams || 0;
+  const mealSel = eid('foodAddMeal'); if (mealSel) mealSel.value = entry.meal || _currentMeal;
+  const kcalEl = eid('foodManualKcal'); if (kcalEl) kcalEl.value = Math.round(entry.kcal || 0);
+  const proteinEl = eid('foodManualProtein'); if (proteinEl) proteinEl.value = Math.round((entry.protein || 0) * 10) / 10;
+  const carbsEl = eid('foodManualCarbs'); if (carbsEl) carbsEl.value = Math.round((entry.carbs || 0) * 10) / 10;
+  const fatEl = eid('foodManualFat'); if (fatEl) fatEl.value = Math.round((entry.fat || 0) * 10) / 10;
+  const fiberEl = eid('foodManualFiber'); if (fiberEl) fiberEl.value = Math.round((entry.fiber || 0) * 10) / 10;
+  _updateFoodMacroPreview();
 }
 
 function deleteFoodEntry(id) {
@@ -1753,7 +1799,7 @@ let _foodSubTab = 'diary';
 
 function setFoodTab(tab) {
   _foodSubTab = tab;
-  ['diary','history','meals','myfoods'].forEach(t => {
+  ['diary','energy','history','meals','myfoods'].forEach(t => {
     const btn  = eid(`ftab${t.charAt(0).toUpperCase()+t.slice(1)}`);
     const pane = eid(`foodPane${t.charAt(0).toUpperCase()+t.slice(1)}`);
     const active = t === tab;
@@ -1763,6 +1809,7 @@ function setFoodTab(tab) {
   if (tab === 'history') renderFoodHistory();
   if (tab === 'meals')   renderMealPlansList();
   if (tab === 'diary')   renderFoodTab();
+  if (tab === 'energy')  { renderFoodEnergyTools(); if (typeof renderWeightLog === 'function') renderWeightLog(); }
   if (tab === 'myfoods') renderMyFoodsTab();
 }
 
